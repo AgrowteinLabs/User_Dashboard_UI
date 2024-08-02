@@ -1,0 +1,92 @@
+.notifications-page {
+    padding: 20px;
+    background-color: var(--background-color);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    animation: fadeIn 1s ease-in-out;
+  
+    .notifications-header {
+      text-align: center;
+      margin-bottom: 20px;
+  
+      h1 {
+        font-size: 2.5em;
+        margin-bottom: 10px;
+        color: var(--primary-color);
+      }
+  
+      p {
+        font-size: 1.2em;
+        color: var(--text-color); // Use text color variable
+      }
+    }
+  
+    .notifications-list {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      width: 100%;
+      max-width: 900px;
+  
+      .notification-card {
+        background-color: var(--card-background-color);
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        display: flex;
+        align-items: center;
+        transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+  
+        &:hover {
+          transform: translateY(-5px);
+          box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+        }
+  
+        &.unread {
+          border-left: 5px solid var(--primary-color);
+        }
+  
+        .notification-icon {
+          font-size: 2em;
+          margin-right: 20px;
+          color: var(--primary-color);
+        }
+  
+        .notification-content {
+          flex: 1;
+  
+          .notification-message {
+            font-size: 1.2em;
+            color: var(--text-color); // Use text color variable
+            margin-bottom: 5px;
+          }
+  
+          .notification-time {
+            font-size: 0.9em;
+            color: var(--base-text-color); // Use base text color variable
+          }
+        }
+  
+        .notification-badge {
+          background-color: var(--primary-color);
+          color: white;
+          padding: 5px 10px;
+          border-radius: 5px;
+          font-size: 0.8em;
+          font-weight: bold;
+        }
+      }
+    }
+  
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+      }
+      to {
+        opacity: 1;
+      }
+    }
+  }
+  

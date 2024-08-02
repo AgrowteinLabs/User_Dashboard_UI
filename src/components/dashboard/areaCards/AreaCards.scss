@@ -1,0 +1,54 @@
+.content-area-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  margin-top: 12px;
+  gap: 16px;
+
+  @media (max-width: 992px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @media (max-width: 576px) {
+    grid-template-columns: 100%;
+  }
+
+  .area-card {
+    background-color: var(--secondary-color);
+    display: flex;
+    align-items: center;
+    border-radius: 5px;
+    padding: 20px 16px;
+    justify-content: space-between;
+    box-shadow: var(--light-shadow1);
+
+    @media (max-width: 768px) {
+      padding: 12px;
+    }
+
+    .info-title {
+      color: var(--lg-text-color);
+      font-size: 18px;
+      margin-bottom: 8px;
+      font-weight: bold;
+    }
+
+    .info-value {
+      color: var(--xl-text-color);
+      font-weight: 700;
+      font-size: 24px;
+      margin-bottom: 8px;
+    }
+
+    .power-switch {
+      display: flex;
+      align-items: center;
+
+      span {
+        margin-left: 8px;
+        color: var(--xl-text-color);
+        font-weight: 700;
+        font-size: 18px;
+      }
+    }
+  }
+}

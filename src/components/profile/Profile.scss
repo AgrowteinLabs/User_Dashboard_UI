@@ -1,0 +1,99 @@
+.profile-page {
+    margin-top: 50px;
+    padding: 20px;
+    background-color: var(--background-color);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    animation: fadeIn 1s ease-in-out;
+  
+    .profile-header {
+      width: 100%;
+      max-width: 900px;
+      background: url('https://via.placeholder.com/900x300.png?text=Profile+Header') no-repeat center center;
+      background-size: cover;
+      padding: 40px 20px;
+      text-align: center;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      margin-bottom: 20px;
+      position: relative;
+  
+      .profile-picture {
+        border-radius: 50%;
+        width: 150px;
+        height: 150px;
+        object-fit: cover;
+        border: 5px solid var(--primary-color);
+        position: absolute;
+        top: -75px;
+        left: 50%;
+        transform: translateX(-50%);
+        transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+  
+        &:hover {
+          transform: translateX(-50%) scale(1.1);
+          box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+        }
+      }
+  
+      .profile-info {
+        padding-top: 80px;
+      }
+  
+      .profile-name {
+        font-size: 2.5em;
+        margin: 10px 0;
+        color: var(--text-color);
+      }
+  
+      .profile-bio {
+        font-size: 1.2em;
+        color: var(--text-secondary-color); // Ensure this uses the correct text color variable
+      }
+    }
+  
+    .profile-content {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      max-width: 900px;
+      gap: 20px;
+  
+      .profile-card {
+        background-color: var(--card-background-color);
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+  
+        &:hover {
+          transform: translateY(-5px);
+          box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+        }
+  
+        h2 {
+          font-size: 1.5em;
+          margin-bottom: 10px;
+          color: var(--primary-color);
+        }
+  
+        p {
+          font-size: 1em;
+          margin-bottom: 5px;
+          color: var(--text-color); // Ensure this uses the correct text color variable
+        }
+      }
+    }
+  
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+      }
+      to {
+        opacity: 1;
+      }
+    }
+  }
+  
