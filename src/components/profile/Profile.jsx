@@ -1,14 +1,30 @@
 // src/components/profile/Profile.jsx
 
-import React, { useContext } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import { UserContext } from '../../context/UserContext';
 import "./Profile.scss";
+import { fetchUser } from '../dashboard/api/fetchuser';
+import { CircularProgress } from '@mui/material';
 
 const Profile = () => {
   const { user } = useContext(UserContext);
+  const [userData, setUserData] = useState(null);
 
-  if (!user) {
-    return <div>Loading...</div>; // Show a loading state while user data is being fetched
+  useEffect(() => {
+    const getUserData = async () => {
+      const data = await fetchUser();
+      setUserData(data);
+    };
+
+    getUserData();
+  }, []);
+
+  if (!user || !userData) {
+    return (
+      <div className="loading-state">
+        <CircularProgress />
+      </div>
+    );
   }
 
   return (
@@ -20,24 +36,26 @@ const Profile = () => {
           className="profile-picture"
         />
         <div className="profile-info">
-          <h1 className="profile-name">{user.name}</h1>
-          <p className="profile-bio">{user.bio}</p>
+          <h1 className="profile-name">{userData.fullName}</h1>
+          <p className="profile-bio">
+            {`${userData.address.city}, ${userData.address.state}, ${userData.address.country} - ${userData.address.postalCode}`}
+          </p>
         </div>
       </div>
       <div className="profile-content">
         <div className="profile-card">
           <h2>Contact Information</h2>
-          <p>Email: {user.email}</p>
-          <p>Phone: {user.phone}</p>
+          <p>Email: {userData.email}</p>
+          <p>Phone: {userData.phoneNumber}</p>
         </div>
         <div className="profile-card">
           <h2>Personal Details</h2>
-          <p>Location: {user.location}</p>
-          <p>Joined: {user.joined}</p>
+          <p>Location: {`${userData.address.city}, ${userData.address.state}`}</p>
+          <p>Joined: {new Date(userData.dayOfRegistration).toLocaleDateString()}</p>
         </div>
         <div className="profile-card">
           <h2>Interests</h2>
-          <p>{user.interests.join(', ')}</p>
+          <p>{user.interests ? user.interests.join(', ') : "No interests listed"}</p>
         </div>
       </div>
     </div>

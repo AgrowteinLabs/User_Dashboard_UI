@@ -1,10 +1,15 @@
 import PropTypes from "prop-types";
 import { useState, useEffect } from "react";
 import { FiClock, FiThermometer, FiPower } from "react-icons/fi";
+import findTempAndHumidity from "../api/fetchpdata";
+import { CircularProgress } from "@mui/material";
+
 
 const AreaCard = ({ colors, cardInfo, type }) => {
   const [isPowerOn, setIsPowerOn] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [temperature, setTemperature] = useState(null);
+  const [humidity, setHumidity] = useState(null);
 
   useEffect(() => {
     if (type === "time") {
@@ -16,16 +21,30 @@ const AreaCard = ({ colors, cardInfo, type }) => {
     }
   }, [type]);
 
+  useEffect(() => {
+    const fetchData = async () => {
+      const data = await findTempAndHumidity();
+      if (data) {
+        setTemperature(data.lastTemperature);
+        setHumidity(data.lastHumidityLevel);
+      }
+    };
+    fetchData();
+  }, []);
+
   const handlePowerSwitch = () => {
     setIsPowerOn(!isPowerOn);
+
   };
 
   const renderValue = () => {
     switch (type) {
       case "time":
-        return new Date().toLocaleTimeString();
+        return currentTime.toLocaleTimeString();
       case "temperature":
-        return "25°C"; // Replace with actual temperature value
+        return temperature !== null ? temperature : <CircularProgress/>;
+      case "humidity":
+        return humidity !== null ? humidity : "Loading...";
       case "power":
         return (
           <div className="power-switch">
@@ -48,6 +67,8 @@ const AreaCard = ({ colors, cardInfo, type }) => {
       case "time":
         return <FiClock size={48} color={colors[1]} />;
       case "temperature":
+        return <FiThermometer size={48} color={colors[1]} />;
+      case "humidity":
         return <FiThermometer size={48} color={colors[1]} />;
       case "power":
         return (
@@ -74,10 +95,10 @@ const AreaCard = ({ colors, cardInfo, type }) => {
   );
 };
 
-export default AreaCard;
-
 AreaCard.propTypes = {
   colors: PropTypes.array.isRequired,
   cardInfo: PropTypes.object.isRequired,
   type: PropTypes.string.isRequired,
 };
+
+export default AreaCard;

@@ -2,9 +2,28 @@ import React from 'react';
 import ReactApexChart from 'react-apexcharts';
 import { FaWater } from "react-icons/fa";
 import "./AreaCharts.scss";
+import findTempAndHumidity from '../api/fetchpdata';
+import { useEffect, useState } from 'react';
+import CircularProgress from '@mui/material/CircularProgress';
 
 const CurrentWaterLevel = () => {
-  const series = [70]; // Example water level percentage
+  const [temperature, setTemperature] = useState(null);
+  const [humidity, setHumidity] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const data = await findTempAndHumidity();
+      if (data) {
+        setTemperature(data.lastTemperature);
+        setHumidity(data.lastHumidityLevel);
+      }
+      setLoading(false);
+    };
+    fetchData();
+  }, []);
+
+  const series = [humidity];
   const options = {
     chart: {
       type: 'radialBar',
@@ -49,7 +68,11 @@ const CurrentWaterLevel = () => {
         </h4>
       </div>
       <div className="chart-wrapper">
-        <ReactApexChart options={options} series={series} type="radialBar" height={350} />
+        {loading ? (
+          <CircularProgress size="10rem" />
+        ) : (
+          <ReactApexChart options={options} series={series} type="radialBar" height={350} />
+        )}
       </div>
     </div>
   );

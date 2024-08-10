@@ -1,7 +1,8 @@
 import AreaCard from "./AreaCard";
 import "./AreaCards.scss";
 
-const AreaCards = () => {
+const AreaCards = () => {  
+
   return (
     <section className="content-area-cards">
       <AreaCard
