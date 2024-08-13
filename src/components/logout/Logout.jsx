@@ -12,7 +12,7 @@ const Logout = () => {
     setTimeout(() => {
       // Perform any logout logic here (e.g., clearing tokens, session data, etc.)
       navigate('/login');
-    }, 2000); // Adjust the timeout as needed
+    }, 1500); // Adjust the timeout as needed
   };
 
   const handleCancel = () => {
@@ -22,20 +22,21 @@ const Logout = () => {
   return (
     <div className="logout-page">
       {!confirmed ? (
-        <div className="confirmation-dialog">
-          <div className="dialog-icon">
-            <MdExitToApp size={64} />
+        <div className="logout-container">
+          <div className="logout-icon">
+            <MdExitToApp size={80} />
           </div>
-          <h1>Are you sure you want to log out?</h1>
-          <div className="dialog-buttons">
-            <button onClick={handleConfirm} className="confirm-button">Yes</button>
-            <button onClick={handleCancel} className="cancel-button">No</button>
+          <h1 className="logout-title">Confirm Logout</h1>
+          <p className="logout-description">Are you sure you want to log out?</p>
+          <div className="logout-actions">
+            <button onClick={handleConfirm} className="logout-confirm-button">Logout</button>
+            <button onClick={handleCancel} className="logout-cancel-button">Cancel</button>
           </div>
         </div>
       ) : (
-        <div className="logout-message">
-          <h1>You have been logged out</h1>
-          <p>Redirecting to login page...</p>
+        <div className="logout-container">
+          <h1 className="logout-title">Logged Out</h1>
+          <p className="logout-description">Redirecting to login page...</p>
         </div>
       )}
     </div>

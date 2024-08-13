@@ -1,85 +1,98 @@
 .logout-page {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-    background-color: var(--background-color);
-    animation: fadeIn 1s ease-in-out;
-  
-    .confirmation-dialog, .logout-message {
-      text-align: center;
-      background-color: var(--card-background-color);
-      color: var(--text-color); // Use text color variable
-      padding: 40px;
-      border-radius: 10px;
-      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
-      transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
-  
-      &:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2);
-      }
-  
-      h1 {
-        font-size: 2em;
-        margin-bottom: 20px;
-        color: var(--primary-color);
-      }
-  
-      p {
-        font-size: 1.2em;
-        color: var(--text-secondary-color);
-      }
-  
-      .dialog-icon {
-        margin-bottom: 20px;
-        color: var(--primary-color);
-      }
-  
-      .dialog-buttons {
-        display: flex;
-        justify-content: center;
-        gap: 20px;
-  
-        .confirm-button, .cancel-button {
-          padding: 10px 20px;
-          font-size: 1em;
-          border: none;
-          border-radius: 5px;
-          cursor: pointer;
-          transition: background-color 0.3s ease-in-out, transform 0.2s;
-  
-          &.confirm-button {
-            background-color: var(--primary-color);
-            color: white;
-  
-            &:hover {
-              filter: brightness(90%);
-              transform: translateY(-2px);
-            }
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  animation: fadeIn 0.8s ease-in-out;
+
+  .logout-container {
+    background-color: #ffffff; // White card
+    padding: 40px;
+    border-radius: 12px; // Rounded corners for a modern look
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); // Soft shadow for depth
+    text-align: center;
+    max-width: 400px;
+    width: 100%;
+    animation: slideIn 0.5s ease-in-out;
+
+    .logout-icon {
+      margin-bottom: 20px;
+      color: #ff6b6b; // A standout color for the logout icon
+      animation: bounceIn 0.6s ease-in-out;
+    }
+
+    .logout-title {
+      font-size: 1.8em;
+      margin-bottom: 10px;
+      color: #333333;
+    }
+
+    .logout-description {
+      font-size: 1.1em;
+      color: #777777;
+      margin-bottom: 30px;
+    }
+
+    .logout-actions {
+      display: flex;
+      justify-content: space-between;
+      gap: 20px;
+
+      .logout-confirm-button, .logout-cancel-button {
+        padding: 12px 20px;
+        font-size: 1em;
+        border: none;
+        border-radius: 8px; // Soft edges for buttons
+        cursor: pointer;
+        transition: background-color 0.3s ease-in-out;
+
+        &.logout-confirm-button {
+          background-color: #ff6b6b; // Red button for logout
+          color: white;
+
+          &:hover {
+            background-color: #e55a5a;
           }
-  
-          &.cancel-button {
-            background-color: var(--cancel-color);
-            color: white;
-  
-            &:hover {
-              filter: brightness(90%);
-              transform: translateY(-2px);
-            }
+        }
+
+        &.logout-cancel-button {
+          background-color: #4CAF50; // Green button for cancel
+          color: white;
+
+          &:hover {
+            background-color: #43a047;
           }
         }
       }
     }
-  
-    @keyframes fadeIn {
-      from {
-        opacity: 0;
-      }
-      to {
-        opacity: 1;
-      }
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
     }
   }
-  
+
+  @keyframes slideIn {
+    from {
+      transform: translateY(30px);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
+  @keyframes bounceIn {
+    from, 20%, 40%, 60%, 80%, to {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-10px);
+    }
+  }
+}

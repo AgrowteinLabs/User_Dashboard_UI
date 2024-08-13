@@ -1,8 +1,7 @@
-// src/components/profile/Profile.jsx
-
 import React, { useContext } from 'react';
 import { UserContext } from '../../context/UserContext';
 import "./Profile.scss";
+import defaultProfileIcon from '../../assets/defaultProfileIcon.png'; // Path to the fixed profile icon
 
 const Profile = () => {
   const { user } = useContext(UserContext);
@@ -13,16 +12,14 @@ const Profile = () => {
 
   return (
     <div className="profile-page">
-      <div className="profile-header">
+      <div className="profile-info">
         <img
-          src={user.profilePicture}
+          src={defaultProfileIcon}  // Use fixed profile icon for all users
           alt="Profile"
           className="profile-picture"
         />
-        <div className="profile-info">
-          <h1 className="profile-name">{user.name}</h1>
-          <p className="profile-bio">{user.bio}</p>
-        </div>
+        <h1 className="profile-name">{user.name}</h1>
+        <p className="profile-bio">{user.bio}</p>
       </div>
       <div className="profile-content">
         <div className="profile-card">

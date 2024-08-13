@@ -1,11 +1,11 @@
 import React from 'react';
 import ReactApexChart from 'react-apexcharts';
 import { FaTint } from "react-icons/fa";
-import "./AreaCharts.scss";
+import "../AreaCharts.scss";
 
 const data = [70, 55, 35, 90, 55, 30, 32]; // Example water levels for the last 7 days
 
-const WaterLevelLast7Days = () => {
+const WaterLevelHistory = () => {
   const series = [{
     name: 'Water Level',
     data: data
@@ -28,11 +28,21 @@ const WaterLevelLast7Days = () => {
     },
     xaxis: {
       categories: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+      labels: {
+        style: {
+          colors: 'var(--text-color)', // Use CSS variable for text color
+        }
+      }
     },
     yaxis: {
       min: 0,
       max: 100,
       tickAmount: 5,
+      labels: {
+        style: {
+          colors: 'var(--text-color)', // Use CSS variable for text color
+        }
+      }
     },
     fill: {
       type: 'gradient',
@@ -48,17 +58,21 @@ const WaterLevelLast7Days = () => {
         formatter: function (val) {
           return val + '%';
         }
-      }
+      },
+      style: {
+        fontSize: '12px',
+        fontFamily: undefined,
+        colors: ['var(--text-color)'], // Tooltip text color for dark mode
+      },
     },
-    colors: ['#00E396'],
-  };
+    colors: ['#03856d'],  };
 
   return (
     <div className="bar-chart">
       <div className="bar-chart-info">
-        <h5 className="bar-chart-title">
-          <FaTint style={{ marginRight: "8px" }} />
-          Water Level Last 7 Days
+        <h5 className="bar-chart-title" style={{ color: 'var(--text-color)' }}>
+          <FaTint style={{ marginRight: "8px", color: 'var(--text-color)' }} />
+          Water Level History
         </h5>
       </div>
       <div className="chart-wrapper">
@@ -68,4 +82,4 @@ const WaterLevelLast7Days = () => {
   );
 };
 
-export default WaterLevelLast7Days;
+export default WaterLevelHistory;
