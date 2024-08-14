@@ -47,7 +47,7 @@ const Sidebar = () => {
     <>
       {!isSidebarOpen && (
         <button className="sidebar-open-btn" onClick={toggleSidebar}>
-          <MdMenu size={24} />
+          <MdMenu size={35} />
         </button>
       )}
       <nav

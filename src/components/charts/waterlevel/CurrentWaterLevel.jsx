@@ -7,11 +7,11 @@ import "../AreaCharts.scss";
 Modal.setAppElement('#root'); // This is to avoid accessibility issues
 
 const CurrentWaterLevel = () => {
-  const [waterLevel, setWaterLevel] = useState(70); // Example water level percentage
+  const [displayedWaterLevel] = useState(70); // This is the fixed value displayed in the graph
   const [modalIsOpen, setModalIsOpen] = useState(false);
-  const [newWaterLevel, setNewWaterLevel] = useState(waterLevel);
+  const [newWaterLevel, setNewWaterLevel] = useState(displayedWaterLevel);
 
-  const series = [waterLevel];
+  const series = [displayedWaterLevel];
   const options = {
     chart: {
       type: 'radialBar',
@@ -60,7 +60,7 @@ const CurrentWaterLevel = () => {
   };
 
   const saveWaterLevel = () => {
-    setWaterLevel(newWaterLevel);
+    // In this case, we do nothing with the newWaterLevel since it's for another purpose
     closeModal();
   };
 

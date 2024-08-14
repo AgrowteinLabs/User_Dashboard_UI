@@ -6,23 +6,23 @@
   .products-header {
     display: flex;
     align-items: center;
-    justify-content: center;  // Center the heading
+    justify-content: center;
     margin-bottom: 20px;
-    position: relative;  // Allows date-picker to be positioned correctly
+    position: relative;
 
     h1 {
       font-size: 2.5em;
       color: var(--primary-color);
       animation: fadeIn 1s ease-in-out;
-      text-align: center;  // Ensure text is centered
+      text-align: center;
     }
 
     .date-picker-container {
       position: absolute;
-      right: 20px;  // Keep the date picker on the right side
+      right: 20px;
       top: 50%;
-      transform: translateY(-50%);  // Vertically center the date picker button
-      z-index: 1000;  // Ensure date picker stays on top of all other elements
+      transform: translateY(-50%);
+      z-index: 1000;
 
       .date-picker-button {
         background-color: var(--primary-color);
@@ -40,13 +40,30 @@
 
       .date-range-wrapper {
         position: absolute;
-        top: 50px;  // Adjust based on your layout
+        top: 50px;
         right: 0;
-        z-index: 1100;  // Higher z-index than other elements
+        z-index: 1100;
         box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         background-color: var(--card-background-color);
         border-radius: 10px;
         padding: 10px;
+      }
+    }
+
+    @media (max-width: 768px) {
+      flex-direction: column;
+      align-items: flex-start;
+
+      h1 {
+        text-align: left;
+        margin-bottom: 10px;
+      }
+
+      .date-picker-container {
+        position: static;
+        transform: none;
+        margin-top: 10px;
+        align-self: center;
       }
     }
   }
@@ -143,10 +160,14 @@
       grid-template-columns: 1fr 2fr;  /* 1/3 for current reading, 2/3 for last 7 days */
       grid-template-rows: auto auto;
       gap: 16px;
-      z-index: 500; // Lower z-index than date picker
+      z-index: 500;
 
       .chart-row {
-        display: contents;  /* Allows grid children to flow naturally in the grid */
+        display: contents;
+      }
+
+      @media (max-width: 992px) {
+        grid-template-columns: 100%;
       }
     }
 
