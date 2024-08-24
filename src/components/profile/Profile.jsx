@@ -1,8 +1,7 @@
-// src/components/profile/Profile.jsx
-
 import React, { useContext, useEffect, useState } from 'react';
 import { UserContext } from '../../context/UserContext';
 import "./Profile.scss";
+import defaultProfileIcon from '../../assets/defaultProfileIcon.png'; // Path to the fixed profile icon
 import { fetchUser } from '../dashboard/api/fetchuser';
 import { CircularProgress } from '@mui/material';
 
@@ -29,18 +28,16 @@ const Profile = () => {
 
   return (
     <div className="profile-page">
-      <div className="profile-header">
+      <div className="profile-info">
         <img
-          src={user.profilePicture}
+          src={defaultProfileIcon}  // Use fixed profile icon for all users
           alt="Profile"
           className="profile-picture"
         />
-        <div className="profile-info">
-          <h1 className="profile-name">{userData.fullName}</h1>
-          <p className="profile-bio">
+        <h1 className="profile-name">{userData.fullName}</h1>
+        <p className="profile-bio">
             {`${userData.address.city}, ${userData.address.state}, ${userData.address.country} - ${userData.address.postalCode}`}
           </p>
-        </div>
       </div>
       <div className="profile-content">
         <div className="profile-card">

@@ -1,7 +1,7 @@
-import CurrentWaterLevel from "./CurrentWaterLevel";
-import WaterLevelLast7Days from "./WaterLevelLast7Days";
-import CurrentPHValue from "./CurrentPHValue";
-import Last7DaysPHValue from "./Last7DaysPHValue";
+import CurrentWaterLevel from "../../charts/waterlevel/CurrentWaterLevel";
+import WaterLevelLast7Days from "../../charts/waterlevel/WaterLevelHistory";
+import CurrentPHValue from "../../charts/pH/CurrentPHValue";
+import Last7DaysPHValue from "../../charts/pH/PHValueHistory";
 import "./AreaCharts.scss";
 
 const AreaCharts = () => {

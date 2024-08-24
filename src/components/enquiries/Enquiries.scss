@@ -1,100 +1,128 @@
 .enquiries-page {
-    padding: 20px;
-    background-color: var(--background-color);
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    animation: fadeIn 1s ease-in-out;
-  
-    .enquiries-header {
-      text-align: center;
-      margin-bottom: 20px;
-  
-      h1 {
-        font-size: 2.5em;
-        margin-bottom: 10px;
-        color: var(--primary-color);
-      }
-  
-      p {
-        font-size: 1.2em;
-        color: var(--text-color); // Ensure this uses the correct text color variable
-      }
+  padding: 20px;
+  background-color: var(--background-color);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  animation: fadeIn 1s ease-in-out;
+
+  .enquiries-header {
+    text-align: center;
+    margin-bottom: 20px;
+
+    h1 {
+      font-size: 2.5em;
+      margin-bottom: 10px;
+      color: var(--primary-color);
     }
-  
-    .enquiries-form {
-      background-color: var(--card-background-color);
+
+    p {
+      font-size: 1.2em;
       color: var(--text-color); // Ensure this uses the correct text color variable
-      padding: 20px;
-      border-radius: 10px;
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-      width: 100%;
-      max-width: 600px;
-  
-      form {
+    }
+  }
+
+  .enquiries-form {
+    background-color: var(--card-background-color);
+    color: var(--text-color); // Ensure this uses the correct text color variable
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 600px;
+
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+
+      .form-group {
         display: flex;
-        flex-direction: column;
-        gap: 15px;
-  
-        .form-group {
-          display: flex;
-          align-items: center;
-          position: relative;
-  
-          .form-icon {
-            position: absolute;
-            left: 10px;
-            font-size: 1.5em;
-            color: var(--primary-color);
-          }
-  
-          input, textarea {
-            width: 100%;
-            padding: 10px 10px 10px 40px;
-            border: 1px solid var(--border-color);
-            border-radius: 5px;
-            font-size: 1em;
-            color: var(--text-color); // Ensure this uses the correct text color variable
-            background-color: var(--input-background-color);
-            transition: border-color 0.3s ease-in-out;
-  
-            &:focus {
-              border-color: var(--primary-color);
-              outline: none;
-            }
-          }
-  
-          textarea {
-            resize: vertical;
-            height: 100px;
+        align-items: center;
+        position: relative;
+
+        .form-icon {
+          position: absolute;
+          left: 10px;
+          font-size: 1.5em;
+          color: var(--primary-color);
+        }
+
+        input, textarea {
+          width: 100%;
+          padding: 10px 10px 10px 40px;
+          border: 1px solid var(--border-color);
+          border-radius: 5px;
+          font-size: 1em;
+          color: var(--text-color); // Ensure this uses the correct text color variable
+          background-color: var(--input-background-color);
+          transition: border-color 0.3s ease-in-out;
+
+          &:focus {
+            border-color: var(--primary-color);
+            outline: none;
           }
         }
-  
+
+        textarea {
+          resize: vertical;
+          height: 100px;
+        }
+      }
+
+      .form-button {
+        background-color: var(--primary-color);
+        color: white;
+        padding: 10px;
+        border: none;
+        border-radius: 5px;
+        font-size: 1em;
+        cursor: pointer;
+        transition: background-color 0.3s ease-in-out;
+
+        &:hover {
+          filter: brightness(90%);
+        }
+      }
+    }
+
+    @media (prefers-color-scheme: dark) {
+
+      background-color: var(--secondary-color);
+      color: var(--secondary-text-color);
+
+      form {
+        .form-group {
+          .form-icon {
+            color: var(--primary-color);
+          }
+
+          input, textarea {
+            border: 1px solid var(--secondary-border-color);
+            color: var(--secondary-text-color);
+            background-color: var(--secondary-input-background-color);
+          }
+        }
+
         .form-button {
           background-color: var(--primary-color);
           color: white;
-          padding: 10px;
-          border: none;
-          border-radius: 5px;
-          font-size: 1em;
-          cursor: pointer;
-          transition: background-color 0.3s ease-in-out;
-  
+
           &:hover {
-            filter: brightness(90%);
+            filter: brightness(85%);
           }
         }
       }
     }
-  
-    @keyframes fadeIn {
-      from {
-        opacity: 0;
-      }
-      to {
-        opacity: 1;
-      }
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
     }
   }
-  
+}
