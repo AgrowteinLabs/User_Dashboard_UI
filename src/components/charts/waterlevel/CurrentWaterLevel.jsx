@@ -1,17 +1,31 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import ReactApexChart from 'react-apexcharts';
 import { FaWater } from "react-icons/fa";
 import Modal from 'react-modal';
 import "../AreaCharts.scss";
+import findTempAndHumidity from '../../dashboard/api/fetchpdata';
+import { CircularProgress } from '@mui/material';
 
 Modal.setAppElement('#root'); // This is to avoid accessibility issues
 
 const CurrentWaterLevel = () => {
-  const [displayedWaterLevel] = useState(70); // This is the fixed value displayed in the graph
-  const [modalIsOpen, setModalIsOpen] = useState(false);
-  const [newWaterLevel, setNewWaterLevel] = useState(displayedWaterLevel);
+  const [lastHumidityLevel, setLastHumidityLevel] = useState(null);
+  const [lastTemperature, setLastTemperature] = useState(null);
 
-  const series = [displayedWaterLevel];
+  useEffect(() => {
+    const fetchData = async () => {
+      const { lastHumidityLevel, lastTemperature } = await findTempAndHumidity();
+      setLastHumidityLevel(lastHumidityLevel);
+      setLastTemperature(lastTemperature);
+    };
+
+    fetchData();
+  }, []);
+
+  const [modalIsOpen, setModalIsOpen] = useState(false);
+  const [newWaterLevel, setNewWaterLevel] = useState(lastHumidityLevel);
+
+  const series = lastHumidityLevel !== null ? [lastHumidityLevel] : [];
   const options = {
     chart: {
       type: 'radialBar',
@@ -87,7 +101,11 @@ const CurrentWaterLevel = () => {
         </button>
       </div>
       <div className="chart-wrapper">
-        <ReactApexChart options={options} series={series} type="radialBar" height={350} />
+        {lastHumidityLevel === null ? (
+          <CircularProgress />
+        ) : (
+          <ReactApexChart options={options} series={series} type="radialBar" height={350} />
+        )}
       </div>
 
       <Modal
