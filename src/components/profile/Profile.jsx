@@ -8,15 +8,31 @@ import { CircularProgress } from '@mui/material';
 const Profile = () => {
   const { user } = useContext(UserContext);
   const [userData, setUserData] = useState(null);
+  const [error, setError] = useState(null); // State to track errors
 
   useEffect(() => {
     const getUserData = async () => {
       const data = await fetchUser();
+      if (data.error) {
+        setError(data.error);
+        return;
+      }
       setUserData(data);
     };
 
     getUserData();
   }, []);
+
+  if (error) {
+    // Handle error (e.g., redirect to login page or show an error message)
+    return (
+      <div className="error-state">
+        <h1>{error}</h1>
+        <p>Go to the login page.</p>
+        <button  onClick={() => window.location.href = '/login'}>Login</button>
+      </div>
+    );
+  }
 
   if (!user || !userData) {
     return (

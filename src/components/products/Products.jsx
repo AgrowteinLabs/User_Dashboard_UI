@@ -19,21 +19,9 @@ import { CircularProgress } from '@mui/material';
 
 const Products = () => {
   const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true); // State to track loading status
-
-  useEffect(() => {
-    const productsFetch = async () => {
-      setLoading(true); // Set loading to true when starting the fetch
-      const data = await fetchProducts();
-      setProducts(data);
-      setLoading(false); // Set loading to false once data is fetched
-    };
-    productsFetch();
-  }, []);
-
-  const { user } = useContext(UserContext);
-  const [currentPage, setCurrentPage] = useState(1);
-  const productsPerPage = 6;
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [message, setMessage] = useState(null);
   const [viewingProduct, setViewingProduct] = useState(() => {
     const savedProduct = sessionStorage.getItem('viewingProduct');
     return savedProduct ? JSON.parse(savedProduct) : null;
@@ -45,12 +33,30 @@ const Products = () => {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const dateRangeRef = useRef(null);
 
-  const userProducts = products;
+  useEffect(() => {
+    const productsFetch = async () => {
+      setLoading(true);
+      const data = await fetchProducts();
+      setLoading(false);
+      if (data.error) {
+        setError(data.error);
+      } else if (data.message) {
+        setMessage(data.message);
+      } else {
+        setProducts(data);
+      }
+    };
+    productsFetch();
+  }, []);
+
+  const { user } = useContext(UserContext);
+  const [currentPage, setCurrentPage] = useState(1);
+  const productsPerPage = 6;
 
   const indexOfLastProduct = currentPage * productsPerPage;
   const indexOfFirstProduct = indexOfLastProduct - productsPerPage;
-  const currentProducts = userProducts.slice(indexOfFirstProduct, indexOfLastProduct);
-  const totalPages = Math.ceil(userProducts.length / productsPerPage);
+  const currentProducts = products.slice(indexOfFirstProduct, indexOfLastProduct);
+  const totalPages = Math.ceil(products.length / productsPerPage);
 
   const handleViewProduct = (product) => {
     setViewingProduct(product);
@@ -82,8 +88,34 @@ const Products = () => {
   }, []);
 
   const hasSensor = (product, sensorType) => {
-    return product.sensor.some(sensor => sensor._id === sensorType);
+    return product.sensors && product.sensors.some(sensor => sensor.sensorId._id === sensorType);
   };
+
+  if (loading) {
+    return (
+      <div className="loading-state">
+        <CircularProgress />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="error-state">
+      <h1>{error}</h1>
+      <p>Go to the login page.</p>
+      <button onClick={() => window.location.href = '/login'}>Go to Login</button>
+    </div>
+    );
+  }
+
+  if (message) {
+    return (
+      <div className="message-state">
+        <h1>{message}</h1>
+      </div>
+    );
+  }
 
   return (
     <div className="product-management-page">
@@ -114,17 +146,16 @@ const Products = () => {
         )}
       </div>
 
-      {loading ? ( 
-        <div className="loading-state">
-          <CircularProgress />
-        </div>
-      ) : !viewingProduct ? (
+      {!viewingProduct ? (
         <div className="product-grid">
           {currentProducts.map((product) => (
             <div key={product._id} className="product-card">
               <div className="product-info">
-                <h2>{product.name}</h2>
-                <p>{product.description}</p>
+                <h2>{product.productId.name}</h2>
+                <p>{product.productId.description}</p>
+                <p>{product.alias}</p>
+                <p>{product.location}</p>
+                <p>{product.state}</p>
               </div>
               <div className="product-actions">
                 <button className="view-button" onClick={() => handleViewProduct(product)}>
@@ -137,33 +168,33 @@ const Products = () => {
         </div>
       ) : (
         <div className="product-details">
-          <h2>{viewingProduct.name} - Sensor Data</h2>
+          <h2>{viewingProduct.productId.name} - Sensor Data</h2>
           <div className="content-area-charts">
-            {hasSensor(viewingProduct, 'Water Level Sensor ID') && (
+            {hasSensor(viewingProduct, '66d442e2772a6d2e0d90aa5b') && (
               <div className="chart-row">
                 <CurrentWaterLevel selectedDates={selectedDates} />
                 <WaterLevelHistory selectedDates={selectedDates} />
               </div>
             )}
-            {hasSensor(viewingProduct, 'PH Sensor ID') && (
+            {hasSensor(viewingProduct, '66d44324772a6d2e0d90aa5e') && (
               <div className="chart-row">
                 <CurrentPHValue selectedDates={selectedDates} />
                 <PHValueHistory selectedDates={selectedDates} />
               </div>
             )}
-            {hasSensor(viewingProduct, 'Temperature Sensor ID') && (
+            {hasSensor(viewingProduct, '66d442e2772a6d2e0d90aa5b') && (
               <div className="chart-row">
                 <CurrentTemperature selectedDates={selectedDates} />
                 <TemperatureHistory selectedDates={selectedDates} />
               </div>
             )}
-            {hasSensor(viewingProduct, 'Humidity Sensor ID') && (
+            {hasSensor(viewingProduct, '66d44324772a6d2e0d90aa5e') && (
               <div className="chart-row">
                 <CurrentHumidity selectedDates={selectedDates} />
                 <HumidityHistory selectedDates={selectedDates} />
               </div>
             )}
-            {hasSensor(viewingProduct, 'CO2 Sensor ID') && (
+            {hasSensor(viewingProduct, '66d44366772a6d2e0d90aa63') && (
               <div className="chart-row">
                 <CurrentCO2Level selectedDates={selectedDates} />
                 <CO2History selectedDates={selectedDates} />

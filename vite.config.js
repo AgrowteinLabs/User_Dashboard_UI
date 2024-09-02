@@ -8,6 +8,8 @@ export default defineConfig({
       '/api/': {
         target: 'https://agrowteinlabs.onrender.com',
         changeOrigin: true,
+        secure: false,  // Set to false if using HTTP
+        cookieDomainRewrite: 'localhost',
       }
     }
   }
