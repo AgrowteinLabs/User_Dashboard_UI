@@ -14,6 +14,7 @@ import Enquiries from './components/enquiries/Enquiries';
 import Logout from './components/logout/Logout';
 import { SidebarProvider } from './context/SidebarContext';
 import { UserProvider } from "./context/UserContext";
+import { ProductProvider } from "./context/ProductContext";  // Import ProductProvider
 import Login from "./loginpage/login";
 import ProtectedRoute from "./components/ProtectedRoute";  // Import ProtectedRoute
 
@@ -38,7 +39,9 @@ function App() {
         <Route element={
           <SidebarProvider>
             <UserProvider>
-              <BaseLayout />
+              <ProductProvider> {/* Add ProductProvider here */}
+                <BaseLayout />
+              </ProductProvider>
             </UserProvider>
           </SidebarProvider>
         }>

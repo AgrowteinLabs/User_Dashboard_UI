@@ -2,6 +2,7 @@ import React from 'react';
 import ReactApexChart from 'react-apexcharts';
 import { FaTint } from "react-icons/fa";
 
+
 const CurrentHumidity = () => {
   const series = [{ name: 'Humidity', data: [60] }]; // Example current humidity percentage
   const options = {

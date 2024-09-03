@@ -1,10 +1,12 @@
 import React, { useContext, useEffect, useState } from 'react';
 import { UserContext } from '../../context/UserContext';
+import { ProductContext } from '../../context/ProductContext';  // Import ProductContext
 import AreaCards from './areaCards/AreaCards';
-import SensorChart from './SensorChart'; // Adjust the import based on your file structure
+import SensorChart from './SensorChart';
 
 const Dashboard = () => {
-  const { user } = useContext(UserContext);  // Access user from context
+  const { user } = useContext(UserContext);
+  const { selectedProductUid } = useContext(ProductContext);  // Access selectedProductUid from ProductContext
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -16,14 +18,12 @@ const Dashboard = () => {
     } else {
       setIsLoading(false);  // Set loading to false if userId exists
     }
-  }, []);  // Run this effect only once when the component mounts
+  }, []);
 
-  // Render loading state if still loading
   if (isLoading) {
     return <div>Loading...</div>;
   }
 
-  // Check if the user context is still loading
   if (!user) {
     return <div>Loading user data...</div>;
   }

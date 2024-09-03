@@ -1,40 +1,57 @@
 import PropTypes from "prop-types";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useContext } from "react";
 import { FiClock, FiThermometer, FiPower } from "react-icons/fi";
-import findTempAndHumidity from "../api/fetchpdata";
 import { CircularProgress } from "@mui/material";
+import { ProductContext } from "../../../context/ProductContext";
+import { fetcheddata } from "../api/fetchdata";
+import { PowerButton } from "../api/powerButton";
 
-
-const AreaCard = ({ colors, cardInfo, type }) => {
+const AreaCard = ({ colors, cardInfo, type, controlName }) => {
   const [isPowerOn, setIsPowerOn] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [temperature, setTemperature] = useState(null);
+  const [temperature, setTemperature] = useState(undefined);
   const [humidity, setHumidity] = useState(null);
+  const { selectedProductUid } = useContext(ProductContext);
 
   useEffect(() => {
     if (type === "time") {
       const timer = setInterval(() => {
         setCurrentTime(new Date());
       }, 1000);
-
       return () => clearInterval(timer);
     }
   }, [type]);
 
   useEffect(() => {
     const fetchData = async () => {
-      const data = await findTempAndHumidity();
-      if (data) {
-        setTemperature(data.lastTemperature);
-        setHumidity(data.lastHumidityLevel);
+      try {
+        if (selectedProductUid) {
+          const data = await fetcheddata(selectedProductUid);
+          if (data && data.data) {
+            setTemperature(data.data.Temperature);
+            setHumidity(data.data.Humidity);
+          } else {
+            throw new Error("Sensor data not received");
+          }
+        }
+      } catch (error) {
+        setTemperature(undefined); // Set to undefined to trigger error display
+        console.error("Error fetching sensor data:", error);
       }
     };
     fetchData();
-  }, []);
+  }, [selectedProductUid]);
 
-  const handlePowerSwitch = () => {
-    setIsPowerOn(!isPowerOn);
+  const handlePowerSwitch = async () => {
+    const newPowerState = !isPowerOn;
+    const command = `${controlName}${newPowerState ? "on" : "off"}`;
 
+    try {
+      await PowerButton(selectedProductUid, command);
+      setIsPowerOn(newPowerState); // Update state only if API call is successful
+    } catch (error) {
+      console.error("Error switching power:", error);
+    }
   };
 
   const renderValue = () => {
@@ -42,9 +59,14 @@ const AreaCard = ({ colors, cardInfo, type }) => {
       case "time":
         return currentTime.toLocaleTimeString();
       case "temperature":
-        return temperature !== null ? temperature : <CircularProgress/>;
+        if (temperature === undefined || temperature === null) {
+          return "Sensor Error"; // Display "Sensor Error" if temperature is undefined or null
+        }
+        return `${temperature} °C`; // Display the temperature value
       case "humidity":
-        return humidity !== null ? humidity : "Loading...";
+        return humidity !== null && humidity !== undefined
+          ? `${humidity} %`
+          : "Loading...";
       case "power":
         return (
           <div className="power-switch">
@@ -99,6 +121,7 @@ AreaCard.propTypes = {
   colors: PropTypes.array.isRequired,
   cardInfo: PropTypes.object.isRequired,
   type: PropTypes.string.isRequired,
+  controlName: PropTypes.string // Added prop type for controlName
 };
 
 export default AreaCard;
