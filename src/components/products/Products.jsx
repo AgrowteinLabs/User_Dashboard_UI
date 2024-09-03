@@ -14,19 +14,14 @@ import CO2History from '../charts/CO2/CO2History';
 import { addDays } from 'date-fns';
 import { DateRange } from 'react-date-range';
 import './Products.scss';
-
-const initialProducts = [
-  { id: 1, name: "Agventure", description: "Advanced agricultural solutions for modern farming.", sensors: ['Water Level', 'PH', 'Voltage', 'Pressure', 'NPK'] },
-  { id: 2, name: "Mushroom Farm Automation", description: "State-of-the-art automation for mushroom farming.", sensors: ['Temperature', 'Humidity', 'CO2 Level', 'Light Intensity', 'Airflow'] },
-  { id: 3, name: "Aquaculture", description: "Advanced monitoring for aquaculture.", sensors: ['PH', 'Oxygen', 'Temperature', 'Salinity', 'Water Clarity'] },
-  { id: 4, name: "Greenhouse Automation", description: "Control and monitor greenhouse environments efficiently.", sensors: ['Temperature', 'Humidity', 'Light Intensity', 'CO2 Levels'] },
-  { id: 5, name: "Hydroponics Automation", description: "Automated hydroponic systems for efficient growth.", sensors: ['Water pH', 'EC', 'Nutrient Levels'] },
-];
+import fetchProducts from '../dashboard/api/fetchProducts';
+import { CircularProgress } from '@mui/material';
 
 const Products = () => {
-  const { user } = useContext(UserContext);  // Fetch user data from context
-  const [currentPage, setCurrentPage] = useState(1);
-  const productsPerPage = 6;
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [message, setMessage] = useState(null);
   const [viewingProduct, setViewingProduct] = useState(() => {
     const savedProduct = sessionStorage.getItem('viewingProduct');
     return savedProduct ? JSON.parse(savedProduct) : null;
@@ -38,17 +33,35 @@ const Products = () => {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const dateRangeRef = useRef(null);
 
-  const userProducts = initialProducts.filter(product => user?.products.includes(product.name));  // Filter products based on user data
+  useEffect(() => {
+    const productsFetch = async () => {
+      setLoading(true);
+      const data = await fetchProducts();
+      setLoading(false);
+      if (data.error) {
+        setError(data.error);
+      } else if (data.message) {
+        setMessage(data.message);
+      } else {
+        setProducts(data);
+      }
+    };
+    productsFetch();
+  }, []);
+
+  const { user } = useContext(UserContext);
+  const [currentPage, setCurrentPage] = useState(1);
+  const productsPerPage = 6;
 
   const indexOfLastProduct = currentPage * productsPerPage;
   const indexOfFirstProduct = indexOfLastProduct - productsPerPage;
-  const currentProducts = userProducts.slice(indexOfFirstProduct, indexOfLastProduct);
-  const totalPages = Math.ceil(userProducts.length / productsPerPage);
+  const currentProducts = products.slice(indexOfFirstProduct, indexOfLastProduct);
+  const totalPages = Math.ceil(products.length / productsPerPage);
 
   const handleViewProduct = (product) => {
     setViewingProduct(product);
     sessionStorage.setItem('viewingProduct', JSON.stringify(product));
-    setShowDatePicker(false); 
+    setShowDatePicker(false);
   };
 
   const handleBackToProducts = () => {
@@ -73,6 +86,36 @@ const Products = () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
+
+  const hasSensor = (product, sensorType) => {
+    return product.sensors && product.sensors.some(sensor => sensor.sensorId._id === sensorType);
+  };
+
+  if (loading) {
+    return (
+      <div className="loading-state">
+        <CircularProgress />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="error-state">
+      <h1>{error}</h1>
+      <p>Go to the login page.</p>
+      <button onClick={() => window.location.href = '/login'}>Go to Login</button>
+    </div>
+    );
+  }
+
+  if (message) {
+    return (
+      <div className="message-state">
+        <h1>{message}</h1>
+      </div>
+    );
+  }
 
   return (
     <div className="product-management-page">
@@ -103,13 +146,16 @@ const Products = () => {
         )}
       </div>
 
-      {!viewingProduct && (
+      {!viewingProduct ? (
         <div className="product-grid">
           {currentProducts.map((product) => (
-            <div key={product.id} className="product-card">
+            <div key={product._id} className="product-card">
               <div className="product-info">
-                <h2>{product.name}</h2>
-                <p>{product.description}</p>
+                <h2>{product.productId.name}</h2>
+                <p>{product.productId.description}</p>
+                <p>{product.alias}</p>
+                <p>{product.location}</p>
+                <p>{product.state}</p>
               </div>
               <div className="product-actions">
                 <button className="view-button" onClick={() => handleViewProduct(product)}>
@@ -120,37 +166,35 @@ const Products = () => {
             </div>
           ))}
         </div>
-      )}
-
-      {viewingProduct && (
+      ) : (
         <div className="product-details">
-          <h2>{viewingProduct.name} - Sensor Data</h2>
+          <h2>{viewingProduct.productId.name} - Sensor Data</h2>
           <div className="content-area-charts">
-            {viewingProduct.sensors.includes('Water Level') && (
+            {hasSensor(viewingProduct, '66d442e2772a6d2e0d90aa5b') && (
               <div className="chart-row">
                 <CurrentWaterLevel selectedDates={selectedDates} />
                 <WaterLevelHistory selectedDates={selectedDates} />
               </div>
             )}
-            {viewingProduct.sensors.includes('PH') && (
+            {hasSensor(viewingProduct, '66d44324772a6d2e0d90aa5e') && (
               <div className="chart-row">
                 <CurrentPHValue selectedDates={selectedDates} />
                 <PHValueHistory selectedDates={selectedDates} />
               </div>
             )}
-            {viewingProduct.sensors.includes('Temperature') && (
+            {hasSensor(viewingProduct, '66d442e2772a6d2e0d90aa5b') && (
               <div className="chart-row">
                 <CurrentTemperature selectedDates={selectedDates} />
                 <TemperatureHistory selectedDates={selectedDates} />
               </div>
             )}
-            {viewingProduct.sensors.includes('Humidity') && (
+            {hasSensor(viewingProduct, '66d44324772a6d2e0d90aa5e') && (
               <div className="chart-row">
                 <CurrentHumidity selectedDates={selectedDates} />
                 <HumidityHistory selectedDates={selectedDates} />
               </div>
             )}
-            {viewingProduct.sensors.includes('CO2 Level') && (
+            {hasSensor(viewingProduct, '66d44366772a6d2e0d90aa63') && (
               <div className="chart-row">
                 <CurrentCO2Level selectedDates={selectedDates} />
                 <CO2History selectedDates={selectedDates} />
@@ -173,7 +217,6 @@ const Products = () => {
   );
 };
 
-// Inline Pagination Component
 const Pagination = ({ currentPage, totalPages, onPageChange }) => {
   const pageNumbers = [];
 

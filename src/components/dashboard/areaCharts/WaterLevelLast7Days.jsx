@@ -3,6 +3,7 @@ import ReactApexChart from 'react-apexcharts';
 import { FaTint } from "react-icons/fa";
 import "./AreaCharts.scss";
 
+
 const data = [70, 55, 35, 90, 55, 30, 32]; // Example water levels for the last 7 days
 
 const WaterLevelLast7Days = () => {

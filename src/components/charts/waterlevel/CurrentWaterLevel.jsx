@@ -1,17 +1,37 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import ReactApexChart from 'react-apexcharts';
 import { FaWater } from "react-icons/fa";
 import Modal from 'react-modal';
 import "../AreaCharts.scss";
+import { CircularProgress } from '@mui/material';
+import { fetcheddata } from '../../dashboard/api/fetchdata';
+import { ProductContext } from '../../../context/ProductContext';
 
 Modal.setAppElement('#root'); // This is to avoid accessibility issues
 
-const CurrentWaterLevel = () => {
-  const [displayedWaterLevel] = useState(70); // This is the fixed value displayed in the graph
-  const [modalIsOpen, setModalIsOpen] = useState(false);
-  const [newWaterLevel, setNewWaterLevel] = useState(displayedWaterLevel);
+const CurrentHumidity = () => {
+  const [humidity, setHumidity] = useState(null);
+  const { selectedProductUid } = useContext(ProductContext);
 
-  const series = [displayedWaterLevel];
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const data = await fetcheddata(selectedProductUid);
+        const humidityValue = data?.data?.Humidity; // Extracting the Humidity value from the data object
+        setHumidity(humidityValue);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+        setHumidity(null); // Set to null explicitly in case of error
+      }
+    };
+
+    fetchData();
+  }, [selectedProductUid]);
+
+  const [modalIsOpen, setModalIsOpen] = useState(false);
+  const [newHumidity, setNewHumidity] = useState(humidity);
+
+  const series = humidity !== null ? [humidity] : [];
   const options = {
     chart: {
       type: 'radialBar',
@@ -44,7 +64,7 @@ const CurrentWaterLevel = () => {
     stroke: {
       lineCap: 'round',
     },
-    labels: ['Current Water Level'],
+    labels: ['Current Humidity'],
   };
 
   const openModal = () => {
@@ -55,12 +75,11 @@ const CurrentWaterLevel = () => {
     setModalIsOpen(false);
   };
 
-  const handleWaterLevelChange = (e) => {
-    setNewWaterLevel(e.target.value);
+  const handleHumidityChange = (e) => {
+    setNewHumidity(e.target.value);
   };
 
-  const saveWaterLevel = () => {
-    // In this case, we do nothing with the newWaterLevel since it's for another purpose
+  const saveHumidity = () => {
     closeModal();
   };
 
@@ -69,7 +88,7 @@ const CurrentWaterLevel = () => {
       <div className="progress-bar-info">
         <h4 className="progress-bar-title" style={{ color: 'var(--text-color)' }}>
           <FaWater style={{ marginRight: "8px", color: 'var(--text-color)' }} />
-          Current Water Level
+          Current Humidity
         </h4>
         <button
           onClick={openModal}
@@ -83,17 +102,23 @@ const CurrentWaterLevel = () => {
             borderRadius: '4px',
           }}
         >
-          Adjust Water Level
+          Adjust Humidity
         </button>
       </div>
       <div className="chart-wrapper">
-        <ReactApexChart options={options} series={series} type="radialBar" height={350} />
+        {humidity === null ? (
+          <div style={{ color: 'red', fontSize: '18px', textAlign: 'center' }}>
+            Sensor Error
+          </div>
+        ) : (
+          <ReactApexChart options={options} series={series} type="radialBar" height={350} />
+        )}
       </div>
 
       <Modal
         isOpen={modalIsOpen}
         onRequestClose={closeModal}
-        contentLabel="Adjust Water Level"
+        contentLabel="Adjust Humidity"
         style={{
           content: {
             top: '50%',
@@ -107,18 +132,18 @@ const CurrentWaterLevel = () => {
           },
         }}
       >
-        <h2>Adjust Water Level</h2>
+        <h2>Adjust Humidity</h2>
         <input
           type="range"
           min="0"
           max="100"
-          value={newWaterLevel}
-          onChange={handleWaterLevelChange}
+          value={newHumidity}
+          onChange={handleHumidityChange}
           style={{ width: '100%' }}
         />
-        <p>{newWaterLevel}%</p>
+        <p>{newHumidity}%</p>
         <button
-          onClick={saveWaterLevel}
+          onClick={saveHumidity}
           style={{
             padding: '5px 10px',
             cursor: 'pointer',
@@ -149,4 +174,4 @@ const CurrentWaterLevel = () => {
   );
 };
 
-export default CurrentWaterLevel;
+export default CurrentHumidity;

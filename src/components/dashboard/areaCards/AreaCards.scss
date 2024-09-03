@@ -1,15 +1,47 @@
 .content-area-cards {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: 1fr; /* Ensure dropdown occupies full width in its row */
   margin-top: 12px;
   gap: 16px;
 
-  @media (max-width: 992px) {
-    grid-template-columns: repeat(2, 1fr);
+  .dropdown-container {
+    margin-bottom: 16px; /* Add space between dropdown and AreaCards */
+    display: flex;
+    justify-content: center;
+
+    select {
+      width: 100%;
+      max-width: 300px;
+      padding: 8px;
+      border-radius: 5px;
+      border: 1px solid var(--light-border-color);
+      background-color: var(--secondary-color);
+      color: var(--lg-text-color);
+      font-size: 16px;
+      font-weight: bold;
+      box-shadow: var(--light-shadow1);
+      appearance: none;
+      cursor: pointer;
+
+      &:focus {
+        outline: none;
+        border-color: var(--primary-color);
+      }
+    }
   }
 
-  @media (max-width: 576px) {
-    grid-template-columns: 100%;
+  .area-cards-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+
+    @media (max-width: 992px) {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    @media (max-width: 576px) {
+      grid-template-columns: 1fr;
+    }
   }
 
   .area-card {

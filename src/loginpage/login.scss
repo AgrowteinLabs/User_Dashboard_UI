@@ -1,0 +1,133 @@
+.login-page {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background-color: #f0f0f0;
+  
+    body.dark-mode & {
+      background-color: #2c2c2c;
+    }
+  }
+  
+  .login-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+  }
+  
+  .login-box {
+    background: #fff;
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    width: 600px;
+  
+    body.dark-mode & {
+      background: #444;
+      color: #fff;
+    }
+  }
+  
+  .logo {
+    width: 100px;
+    margin-bottom: 1rem;
+  }
+  
+  .login-header {
+    text-align: center;
+  }
+  
+  .login-input {
+    margin-bottom: 1rem;
+  
+    input {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      background: #fff;
+      color: #000;
+  
+      body.dark-mode & {
+        background: #333;
+        color: #fff;
+        border: 1px solid #555;
+      }
+    }
+  }
+  
+  .login-remember {
+    display: flex;
+    align-items: center;
+    margin-bottom: 1.5rem;
+  
+    input[type="checkbox"] {
+      margin-right: 0.5rem;
+    }
+  
+    label {
+      margin: 0; /* Ensures no extra space */
+    }
+  
+    .forgot-password {
+      text-decoration: none;
+      color: #007bff;
+  
+      &:hover {
+        text-decoration: underline;
+      }
+  
+      body.dark-mode & {
+        color: #add8e6;
+      }
+    }
+  }
+  
+  .login-button {
+    width: 100%;
+    padding: 0.75rem;
+    background-color: #007bff;
+    border: none;
+    color: #fff;
+    border-radius: 4px;
+    cursor: pointer;
+  
+    &:hover {
+      background-color: #0056b3;
+    }
+  
+    body.dark-mode & {
+      background-color: #0056b3;
+  
+      &:hover {
+        background-color: #003d80;
+      }
+    }
+  }
+  /* Custom styles for SweetAlert2 in dark mode */
+.swal-container {
+    border-radius: 8px;
+  }
+  
+  .swal-title {
+    color: #fff;
+  }
+  
+  .swal-content {
+    color: #ccc;
+  }
+  
+  .swal-confirm-button {
+    background-color: #007bff;
+    border: none;
+    color: #fff;
+    padding: 0.75rem 1.5rem;
+    border-radius: 4px;
+  }
+  
+  .swal-confirm-button:hover {
+    background-color: #0056b3;
+  }
+  
