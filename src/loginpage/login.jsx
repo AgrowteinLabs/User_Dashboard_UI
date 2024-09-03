@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import Swal from "sweetalert2";
 import { loginUser } from "./loginapi";
-import "./Login.scss";
+import "./login.scss";
 import logo from "./image.png";
 
 const Login = () => {
