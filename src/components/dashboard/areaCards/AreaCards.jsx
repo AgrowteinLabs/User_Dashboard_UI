@@ -16,7 +16,6 @@ const AreaCards = () => {
         if (data && data.length > 0) {
           setProducts(data);
           if (!selectedProductUid) {
-            // Set the first product UID as default only if it's not already set
             setSelectedProductUid(data[0].uid);
           }
         }
@@ -28,10 +27,9 @@ const AreaCards = () => {
   }, [selectedProductUid, setSelectedProductUid]);
 
   useEffect(() => {
-    // Find the selected product's controls based on the selected UID
     const selectedProduct = products.find(product => product.uid === selectedProductUid);
     if (selectedProduct && selectedProduct.controls) {
-      setSelectedControls(Object.values(selectedProduct.controls));
+      setSelectedControls(Object.entries(selectedProduct.controls));
     }
   }, [selectedProductUid, products]);
 
@@ -67,14 +65,16 @@ const AreaCards = () => {
           type="temperature"
           className="center-card"
         />
-        {selectedControls.map((control, index) => (
+        {selectedControls.map(([controlKey, controlName], index) => (
           <AreaCard
             key={index}
             colors={["#e4e8ef", "#f29a2e"]}
             cardInfo={{
-              title: control, // Use the control name as the title
+              title: controlName,
             }}
             type="power"
+            controlName={controlName}
+            controlKey={controlKey}
           />
         ))}
       </div>

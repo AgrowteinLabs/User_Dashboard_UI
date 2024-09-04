@@ -6,14 +6,13 @@ import { ProductContext } from "../../../context/ProductContext";
 import { fetcheddata } from "../api/fetchdata";
 import { PowerButton } from "../api/powerButton";
 
-const AreaCard = ({ colors, cardInfo, type, controlName }) => {
+const AreaCard = ({ colors, cardInfo, type, controlName, controlKey }) => {
   const [isPowerOn, setIsPowerOn] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [temperature, setTemperature] = useState(undefined);
   const [humidity, setHumidity] = useState(null);
   const { selectedProductUid } = useContext(ProductContext);
 
-  // Handling current time updates
   useEffect(() => {
     if (type === "time") {
       const timer = setInterval(() => {
@@ -23,9 +22,8 @@ const AreaCard = ({ colors, cardInfo, type, controlName }) => {
     }
   }, [type]);
 
-  // Fetching temperature and humidity data every second
   useEffect(() => {
-    let isActive = true; // Flag to manage async operation
+    let isActive = true;
 
     const fetchData = async () => {
       if (!selectedProductUid) {
@@ -43,36 +41,32 @@ const AreaCard = ({ colors, cardInfo, type, controlName }) => {
         }
       } catch (error) {
         if (isActive) {
-          setTemperature(undefined); // Trigger error display
+          setTemperature(undefined);
           console.error("Error fetching sensor data:", error);
         }
       }
     };
 
-    // Set up interval to fetch data every second
     const intervalId = setInterval(fetchData, 1000);
 
-    // Clean up the interval on unmount or if `selectedProductUid` changes
     return () => {
-      isActive = false; // Cancel the subscription
+      isActive = false;
       clearInterval(intervalId);
     };
   }, [selectedProductUid]);
 
-  // Power switch handling
   const handlePowerSwitch = async () => {
     const newPowerState = !isPowerOn;
-    const command = `${controlName}${newPowerState ? "on" : "off"}`;
+    const command = `${controlKey}${newPowerState ? "on" : "off"}`;
 
     try {
       await PowerButton(selectedProductUid, command);
-      setIsPowerOn(newPowerState); // Update state only if API call is successful
+      setIsPowerOn(newPowerState);
     } catch (error) {
       console.error("Error switching power:", error);
     }
   };
 
-  // Render value based on the type
   const renderValue = () => {
     switch (type) {
       case "time":
@@ -103,7 +97,6 @@ const AreaCard = ({ colors, cardInfo, type, controlName }) => {
     }
   };
 
-  // Render the appropriate icon based on the type
   const renderIcon = () => {
     switch (type) {
       case "time":
@@ -141,7 +134,8 @@ AreaCard.propTypes = {
   colors: PropTypes.array.isRequired,
   cardInfo: PropTypes.object.isRequired,
   type: PropTypes.string.isRequired,
-  controlName: PropTypes.string // Added prop type for controlName
+  controlName: PropTypes.string,
+  controlKey: PropTypes.string,
 };
 
 export default AreaCard;
