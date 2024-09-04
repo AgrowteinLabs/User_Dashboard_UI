@@ -1,14 +1,14 @@
-import CurrentHumidity from "./CurrentWaterLevel";
-import WaterLevelLast7Days from "../../charts/waterlevel/WaterLevelHistory";
+import CurrentWaterLevel from "./CurrentWaterLevel";
+import HumidityLast7Days from "./WaterLevelLast7Days";
 import CurrentPHValue from "./CurrentPHValue";
-import Last7DaysPHValue from "../../charts/pH/PHValueHistory";
+import Last7DaysPHValue from "./Last7DaysPHValue";
 import "./AreaCharts.scss";
 
 const AreaCharts = () => {
   return (
     <section className="content-area-charts">
-      <CurrentHumidity />
-      <WaterLevelLast7Days />
+      <CurrentWaterLevel />
+      <HumidityLast7Days />
       <CurrentPHValue />
       <Last7DaysPHValue />
     </section>

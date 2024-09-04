@@ -1,16 +1,35 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import ReactApexChart from 'react-apexcharts';
 import { FaTint } from "react-icons/fa";
+import CircularProgress from '@mui/material/CircularProgress';
 import "./AreaCharts.scss";
+import fetchDataForDateRange from '../api/fetch7day'; 
 
+const HumidityLast7Days = () => {
+  const [humidityData, setHumidityData] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-const data = [70, 55, 35, 90, 55, 30, 32]; // Example water levels for the last 7 days
+  useEffect(() => {
+    const fetchHumidityData = async () => {
+      try {
+        const response = await fetchDataForDateRange();
+        const humidityValues = response.map(item => item.humidity); // Assuming the response contains a 'humidity' field
+        setHumidityData(humidityValues);
+      } catch (error) {
+        console.error("Error fetching humidity data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-const WaterLevelLast7Days = () => {
+    fetchHumidityData();
+  }, []);
+
   const series = [{
-    name: 'Water Level',
-    data: data
+    name: 'Humidity',
+    data: humidityData
   }];
+
   const options = {
     chart: {
       type: 'area',
@@ -20,6 +39,9 @@ const WaterLevelLast7Days = () => {
         easing: 'easeinout',
         speed: 800,
       },
+      zoom: {
+        enabled: true,
+      },
     },
     dataLabels: {
       enabled: false,
@@ -28,7 +50,10 @@ const WaterLevelLast7Days = () => {
       curve: 'smooth',
     },
     xaxis: {
-      categories: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+      type: 'numeric',
+      labels: {
+        show: true,
+      },
     },
     yaxis: {
       min: 0,
@@ -59,14 +84,18 @@ const WaterLevelLast7Days = () => {
       <div className="bar-chart-info">
         <h5 className="bar-chart-title">
           <FaTint style={{ marginRight: "8px" }} />
-          Water Level Last 7 Days
+          Humidity Data
         </h5>
       </div>
       <div className="chart-wrapper">
-        <ReactApexChart options={options} series={series} type="area" height={350} />
+        {loading ? (
+          <CircularProgress />
+        ) : (
+          <ReactApexChart options={options} series={series} type="area" height={350} />
+        )}
       </div>
     </div>
   );
 };
 
-export default WaterLevelLast7Days;
+export default HumidityLast7Days;
