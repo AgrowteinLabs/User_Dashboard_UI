@@ -13,6 +13,7 @@ const AreaCard = ({ colors, cardInfo, type, controlName }) => {
   const [humidity, setHumidity] = useState(null);
   const { selectedProductUid } = useContext(ProductContext);
 
+  // Handling current time updates
   useEffect(() => {
     if (type === "time") {
       const timer = setInterval(() => {
@@ -22,26 +23,40 @@ const AreaCard = ({ colors, cardInfo, type, controlName }) => {
     }
   }, [type]);
 
+  // Fetching temperature and humidity data
   useEffect(() => {
+    let isActive = true; // Flag to manage async operation
+
     const fetchData = async () => {
+      if (!selectedProductUid) {
+        console.warn("Product UID is not set");
+        return;
+      }
+
       try {
-        if (selectedProductUid) {
-          const data = await fetcheddata(selectedProductUid);
-          if (data && data.data) {
-            setTemperature(data.data.Temperature);
-            setHumidity(data.data.Humidity);
-          } else {
-            throw new Error("Sensor data not received");
-          }
+        const data = await fetcheddata(selectedProductUid);
+        if (data && data.data && isActive) {
+          setTemperature(data.data.Temperature);
+          setHumidity(data.data.Humidity);
+        } else {
+          throw new Error("Incomplete sensor data received");
         }
       } catch (error) {
-        setTemperature(undefined); // Set to undefined to trigger error display
-        console.error("Error fetching sensor data:", error);
+        if (isActive) {
+          setTemperature(undefined); // Trigger error display
+          console.error("Error fetching sensor data:", error);
+        }
       }
     };
-    fetchData();
-  }, [selectedProductUid]);
 
+    fetchData();
+
+    return () => {
+      isActive = false; // Cancel the subscription
+    };
+  }, []);
+
+  // Power switch handling
   const handlePowerSwitch = async () => {
     const newPowerState = !isPowerOn;
     const command = `${controlName}${newPowerState ? "on" : "off"}`;
@@ -54,15 +69,16 @@ const AreaCard = ({ colors, cardInfo, type, controlName }) => {
     }
   };
 
+  // Render value based on the type
   const renderValue = () => {
     switch (type) {
       case "time":
         return currentTime.toLocaleTimeString();
       case "temperature":
         if (temperature === undefined || temperature === null) {
-          return "Sensor Error"; // Display "Sensor Error" if temperature is undefined or null
+          return "Sensor Error";
         }
-        return `${temperature} °C`; // Display the temperature value
+        return `${temperature} °C`;
       case "humidity":
         return humidity !== null && humidity !== undefined
           ? `${humidity} %`
@@ -84,6 +100,7 @@ const AreaCard = ({ colors, cardInfo, type, controlName }) => {
     }
   };
 
+  // Render the appropriate icon based on the type
   const renderIcon = () => {
     switch (type) {
       case "time":

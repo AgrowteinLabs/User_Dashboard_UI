@@ -3,16 +3,22 @@ export default async function fetchProducts() {
 
     if (!userId) {
         // Return an error if userId is not found
-        return { error: 'User id not found, try loggin in again' };
+        return { error: 'User id not found, try logging in again' };
     }
 
     try {
-        const API_URL = `/api/v1/user/product/${userId}`;
+        const API_URL = `https://agrowteinlabs.onrender.com/api/v1/user/product/${userId}`;
         
-        const response = await fetch(API_URL);
+        // Add credentials: 'include' to send cookies
+        const response = await fetch(API_URL, {
+            method: 'GET',
+            credentials: 'include', // Ensures cookies are sent with the request
+        });
+        
         if (!response.ok) {
             throw new Error('Network response was not ok');
         }
+        
         const data = await response.json();
 
         // Check if no products are returned
