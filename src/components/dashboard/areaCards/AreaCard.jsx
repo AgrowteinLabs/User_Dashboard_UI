@@ -23,7 +23,7 @@ const AreaCard = ({ colors, cardInfo, type, controlName }) => {
     }
   }, [type]);
 
-  // Fetching temperature and humidity data
+  // Fetching temperature and humidity data every second
   useEffect(() => {
     let isActive = true; // Flag to manage async operation
 
@@ -49,12 +49,15 @@ const AreaCard = ({ colors, cardInfo, type, controlName }) => {
       }
     };
 
-    fetchData();
+    // Set up interval to fetch data every second
+    const intervalId = setInterval(fetchData, 1000);
 
+    // Clean up the interval on unmount or if `selectedProductUid` changes
     return () => {
       isActive = false; // Cancel the subscription
+      clearInterval(intervalId);
     };
-  }, []);
+  }, [selectedProductUid]);
 
   // Power switch handling
   const handlePowerSwitch = async () => {

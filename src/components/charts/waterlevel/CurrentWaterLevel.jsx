@@ -3,7 +3,6 @@ import ReactApexChart from 'react-apexcharts';
 import { FaWater } from "react-icons/fa";
 import Modal from 'react-modal';
 import "../AreaCharts.scss";
-import { CircularProgress } from '@mui/material';
 import { fetcheddata } from '../../dashboard/api/fetchdata';
 import { ProductContext } from '../../../context/ProductContext';
 
@@ -14,18 +13,31 @@ const CurrentHumidity = () => {
   const { selectedProductUid } = useContext(ProductContext);
 
   useEffect(() => {
+    let isActive = true; // Flag to manage async operation
+
     const fetchData = async () => {
       try {
         const data = await fetcheddata(selectedProductUid);
         const humidityValue = data?.data?.Humidity; // Extracting the Humidity value from the data object
-        setHumidity(humidityValue);
+        if (isActive) {
+          setHumidity(humidityValue);
+        }
       } catch (error) {
         console.error("Error fetching data:", error);
-        setHumidity(null); // Set to null explicitly in case of error
+        if (isActive) {
+          setHumidity(null); // Set to null explicitly in case of error
+        }
       }
     };
 
-    fetchData();
+    // Set up interval to fetch data every second
+    const intervalId = setInterval(fetchData, 1000);
+
+    // Clean up the interval on unmount or if `selectedProductUid` changes
+    return () => {
+      isActive = false; // Cancel the subscription
+      clearInterval(intervalId);
+    };
   }, [selectedProductUid]);
 
   const [modalIsOpen, setModalIsOpen] = useState(false);
