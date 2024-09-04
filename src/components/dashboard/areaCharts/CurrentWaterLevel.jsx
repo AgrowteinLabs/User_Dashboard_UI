@@ -2,7 +2,6 @@ import React, { useState, useEffect, useContext } from 'react';
 import ReactApexChart from 'react-apexcharts';
 import { FaWater } from "react-icons/fa";
 import Modal from 'react-modal';
-import CircularProgress from '@mui/material/CircularProgress';
 import "./AreaCharts.scss";
 import { fetcheddata } from '../../dashboard/api/fetchdata';
 import { ProductContext } from '../../../context/ProductContext';
@@ -24,7 +23,6 @@ const CurrentHumidity = () => {
         const humidityValue = data?.data?.Humidity;
 
         if (isActive) {
-          setLoading(false);
           if (humidityValue !== undefined && humidityValue !== null) {
             setHumidity(parseFloat(humidityValue.toFixed(2))); // Set humidity with two decimal places
           } else {
@@ -34,9 +32,10 @@ const CurrentHumidity = () => {
       } catch (error) {
         console.error("Error fetching data:", error);
         if (isActive) {
-          setLoading(false);
           setHumidity(null); // Set to null explicitly in case of error
         }
+      } finally {
+        setLoading(false); // Ensure loading is set to false after fetching
       }
     };
 
@@ -128,9 +127,7 @@ const CurrentHumidity = () => {
         </button>
       </div>
       <div className="chart-wrapper">
-        {loading ? (
-          <CircularProgress />
-        ) : humidity === null ? (
+        {humidity === null ? (
           <div style={{ color: 'red', fontSize: '18px', textAlign: 'center' }}>
             Sensor Error
           </div>
