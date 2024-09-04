@@ -1,11 +1,38 @@
-import React from 'react';
+import React, { useEffect, useState, useContext } from 'react';
 import ReactApexChart from 'react-apexcharts';
 import { FaFlask } from "react-icons/fa";
+import { fetcheddata } from '../../dashboard/api/fetchdata';
+import { ProductContext } from '../../../context/ProductContext';
 import "./AreaCharts.scss";
 
-const currentPH = 7; // Example pH value
-
 const CurrentPHValue = () => {
+  const [currentPH, setCurrentPH] = useState(7); // Default pH value
+  const { selectedProductUid } = useContext(ProductContext);
+
+  useEffect(() => {
+    const fetchPHData = async () => {
+      if (!selectedProductUid) return;
+
+      try {
+        const data = await fetcheddata(selectedProductUid);
+        if (data && data.data && data.data.pH !== undefined) {
+          setCurrentPH(parseFloat(data.data.pH.toFixed(2))); // Format pH value to 2 decimal places
+        } else {
+          console.error("pH data not found in the API response");
+        }
+      } catch (error) {
+        console.error("Error fetching pH data:", error);
+      }
+    };
+
+    fetchPHData();
+
+    // Optionally, refresh the data periodically
+    const intervalId = setInterval(fetchPHData, 5000); // Refresh every 5 seconds
+
+    return () => clearInterval(intervalId); // Cleanup interval on unmount
+  }, [selectedProductUid]);
+
   const series = [currentPH];
   const options = {
     chart: {
@@ -36,7 +63,7 @@ const CurrentPHValue = () => {
             color: '#000',
             offsetY: 10,
             formatter: function (val) {
-              return val;
+              return val ? val.toFixed(2) : "N/A"; // Format to 2 decimal places, or show "N/A"
             },
           },
         },

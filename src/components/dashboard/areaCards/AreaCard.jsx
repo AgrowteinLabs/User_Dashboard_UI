@@ -10,6 +10,7 @@ const AreaCard = ({ colors, cardInfo, type, controlName, controlKey }) => {
   const [isPowerOn, setIsPowerOn] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [temperature, setTemperature] = useState(undefined);
+  const [loadingTemperature, setLoadingTemperature] = useState(true);
   const [humidity, setHumidity] = useState(null);
   const { selectedProductUid } = useContext(ProductContext);
 
@@ -32,22 +33,28 @@ const AreaCard = ({ colors, cardInfo, type, controlName, controlKey }) => {
       }
 
       try {
+        setLoadingTemperature(true);
         const data = await fetcheddata(selectedProductUid);
         if (data && data.data && isActive) {
-          setTemperature(data.data.Temperature);
+          const temp = data.data.Temperature;
+          setTemperature(temp !== null && temp !== undefined ? parseFloat(temp.toFixed(2)) : null);
           setHumidity(data.data.Humidity);
         } else {
           throw new Error("Incomplete sensor data received");
         }
       } catch (error) {
         if (isActive) {
-          setTemperature(undefined);
+          setTemperature(null);
           console.error("Error fetching sensor data:", error);
+        }
+      } finally {
+        if (isActive) {
+          setLoadingTemperature(false);
         }
       }
     };
 
-    const intervalId = setInterval(fetchData, 1000);
+    const intervalId = setInterval(fetchData, 3000);
 
     return () => {
       isActive = false;
@@ -72,7 +79,10 @@ const AreaCard = ({ colors, cardInfo, type, controlName, controlKey }) => {
       case "time":
         return currentTime.toLocaleTimeString();
       case "temperature":
-        if (temperature === undefined || temperature === null) {
+        if (loadingTemperature) {
+          return <CircularProgress size={24} />;
+        }
+        if (temperature === null) {
           return "Sensor Error";
         }
         return `${temperature} °C`;

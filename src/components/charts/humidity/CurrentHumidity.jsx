@@ -1,10 +1,38 @@
-import React from 'react';
+import React, { useEffect, useState, useContext } from 'react';
 import ReactApexChart from 'react-apexcharts';
 import { FaTint } from "react-icons/fa";
-
+import { fetcheddata } from '../../dashboard/api/fetchdata';
+import { ProductContext } from '../../../context/ProductContext';
 
 const CurrentHumidity = () => {
-  const series = [{ name: 'Humidity', data: [60] }]; // Example current humidity percentage
+  const [series, setSeries] = useState([{ name: 'Humidity', data: [0] }]);
+  const { selectedProductUid } = useContext(ProductContext);
+
+  useEffect(() => {
+    const fetchHumidityData = async () => {
+      if (!selectedProductUid) return;
+
+      try {
+        const data = await fetcheddata(selectedProductUid);
+        if (data && data.data && data.data.Humidity !== undefined) {
+          setSeries([{ name: 'Humidity', data: [data.data.Humidity] }]);
+        } else {
+          console.error("Humidity data not found in the API response");
+        }
+      } catch (error) {
+        console.error("Error fetching humidity data:", error);
+      }
+    };
+
+    // Fetch the humidity data once when the component mounts
+    fetchHumidityData();
+
+    // Optionally, you can set up an interval to refresh the data periodically
+    const intervalId = setInterval(fetchHumidityData, 1000); // Refresh every 1 seconds
+
+    return () => clearInterval(intervalId); // Clean up the interval on component unmount
+  }, [selectedProductUid]);
+
   const options = {
     chart: {
       type: 'bar',
@@ -54,7 +82,7 @@ const CurrentHumidity = () => {
     colors: ['var(--primary-color)'], // Use CSS variable for the bar color
   };
 
-  return(
+  return (
     <div className="progress-bar">
       <div className="progress-bar-info">
         <h4 className="progress-bar-title" style={{ color: 'var(--text-color)' }}>
