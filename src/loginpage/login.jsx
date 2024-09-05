@@ -1,19 +1,33 @@
-// src/Login.js
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Swal from "sweetalert2";
 import { loginUser } from "./loginapi";
 import "./login.scss";
-import logo from "./image.png";
+import logo from "./Logow.png";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
+  const [darkMode, setDarkMode] = useState(false);
+
+  // Check if user is already remembered and log them in automatically
+  useEffect(() => {
+    const savedEmail = localStorage.getItem("rememberedEmail");
+    if (savedEmail) {
+      setEmail(savedEmail);
+    }
+  }, []);
 
   const handleLogin = async (e) => {
     e.preventDefault();
     const result = await loginUser(email, password);
-    
+
     if (result.success) {
+      if (rememberMe) {
+        localStorage.setItem("rememberedEmail", email);
+      } else {
+        localStorage.removeItem("rememberedEmail");
+      }
       window.location.href = "/";
     } else {
       Swal.fire({
@@ -28,22 +42,26 @@ const Login = () => {
           confirmButton: "swal-confirm-button",
         },
         backdrop: true,
-        background: "rgba(0,0,0,0.8)", // Dark background for dark mode
-        color: "#fff", // White text color
-        confirmButtonColor: "#007bff", // Customize button color
+        background: "rgba(0,0,0,0.8)",
+        color: "#fff",
+        confirmButtonColor: "#007bff",
       });
     }
   };
 
+  // Toggle dark mode
+  const toggleDarkMode = () => {
+    setDarkMode(!darkMode);
+    document.body.classList.toggle("dark-mode");
+  };
+
   return (
-    <div className="login-page">
+    <div className={`login-page ${darkMode ? "dark-mode" : ""}`}>
       <div className="login-container">
         <div className="login-box">
           <div className="login-header">
             <img src={logo} alt="Company Logo" className="logo" />
             <h2>Login</h2>
-            <br />
-            <br />
           </div>
           <form onSubmit={handleLogin}>
             <div className="login-input">
@@ -65,12 +83,20 @@ const Login = () => {
               />
             </div>
             <div className="login-remember">
-              <input type="checkbox" id="rememberMe" />
+              <input
+                type="checkbox"
+                id="rememberMe"
+                checked={rememberMe}
+                onChange={() => setRememberMe(!rememberMe)}
+              />
               <label htmlFor="rememberMe">Remember me</label>
             </div>
-            <a href="#" className="forgot-password">
+            <button type="button" onClick={toggleDarkMode}>
+              {darkMode ? "Light Mode" : "Dark Mode"}
+            </button>
+            {/* <a href="#" className="forgot-password">
               Forgot your password?
-            </a>
+            </a> */}
             <br />
             <button type="submit" className="login-button">
               Login
