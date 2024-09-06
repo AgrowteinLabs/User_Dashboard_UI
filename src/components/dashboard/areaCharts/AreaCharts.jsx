@@ -11,10 +11,10 @@ const AreaCharts = () => {
     <section className="content-area-charts">
       <CurrentTemperature />
       <TemperatureHistory/>
-      <CurrentWaterLevel />
-      <HumidityLast7Days />
       <CurrentPHValue />
       <Last7DaysPHValue />
+      <CurrentWaterLevel />
+      <HumidityLast7Days />
     </section>
   );
 };

@@ -170,10 +170,12 @@ const Products = () => {
         <div className="product-details">
           <h2>{viewingProduct.productId.name} - Sensor Data</h2>
           <div className="content-area-charts">
+            
+            
             {hasSensor(viewingProduct, '66d442e2772a6d2e0d90aa5b') && (
               <div className="chart-row">
-                <CurrentWaterLevel selectedDates={selectedDates} />
-                <WaterLevelHistory selectedDates={selectedDates} />
+                <CurrentTemperature selectedDates={selectedDates} />
+                <TemperatureHistory selectedDates={selectedDates} />
               </div>
             )}
             {hasSensor(viewingProduct, '66d44324772a6d2e0d90aa5e') && (
@@ -184,8 +186,8 @@ const Products = () => {
             )}
             {hasSensor(viewingProduct, '66d442e2772a6d2e0d90aa5b') && (
               <div className="chart-row">
-                <CurrentTemperature selectedDates={selectedDates} />
-                <TemperatureHistory selectedDates={selectedDates} />
+                <CurrentWaterLevel selectedDates={selectedDates} />
+                <WaterLevelHistory selectedDates={selectedDates} />
               </div>
             )}
             {/* {hasSensor(viewingProduct, '66d44324772a6d2e0d90aa5e') && (
