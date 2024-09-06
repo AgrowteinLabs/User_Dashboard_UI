@@ -73,13 +73,18 @@ const AreaCard = ({ colors, cardInfo, type, controlName, controlKey }) => {
         return currentTime.toLocaleTimeString();
       case "temperature":
         if (temperature === null) {
-          return "Sensor Error";
+          return (
+            <span style={{ color: "red", fontWeight: "bold" }}>Sensor Error</span>
+          );
         }
         return temperature !== undefined ? `${temperature} °C` : "Loading...";
       case "humidity":
-        return humidity !== null && humidity !== undefined
-          ? `${humidity} %`
-          : "Loading...";
+        if (humidity === null) {
+          return (
+            <span style={{ color: "red", fontWeight: "bold" }}>Sensor Error</span>
+          );
+        }
+        return humidity !== undefined ? `${humidity} %` : "Loading...";
       case "power":
         return (
           <div className="power-switch">
@@ -96,6 +101,7 @@ const AreaCard = ({ colors, cardInfo, type, controlName, controlKey }) => {
         return cardInfo.value;
     }
   };
+  
 
   const renderIcon = () => {
     switch (type) {
@@ -139,3 +145,4 @@ AreaCard.propTypes = {
 };
 
 export default AreaCard;
+

@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { fetchSensorList } from '../api/fetchsensorlist';
-import { CircularProgress } from '@mui/material'; // Import CircularProgress
+import { CircularProgress } from '@mui/material';
 import "./AreaTable.scss";
 import { ProductContext } from '../../../context/ProductContext';
-
 
 const TABLE_HEADS = [
   "Sensors Used",
@@ -14,27 +13,34 @@ const TABLE_HEADS = [
 
 const AreaTable = () => {
   const [sensorData, setSensorData] = useState([]);
-  const [loading, setLoading] = useState(true); // State to manage loading
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null); // Error state
   const { selectedProductUid } = useContext(ProductContext);
 
   useEffect(() => {
     const fetchData = async () => {
+      if (!selectedProductUid) {
+        setError("Please select a product to view sensors.");
+        setLoading(false); // Stop loading if no product UID
+        return;
+      }
+
       try {
-        setLoading(true); // Set loading to true before fetching
+        setLoading(true);
+        setError(null); // Clear previous errors
         const data = await fetchSensorList(selectedProductUid);
-        // Transform fetched data into the desired format
         const formattedData = data.map(sensor => ({
           id: sensor._id,
           name: sensor.name,
-          sensor_id: sensor._id, // Assuming sensor ID is the same as _id
-          installation_date: new Date(sensor.createdAt).toLocaleDateString(), // Format date
-          status: sensor.errorCode ? "active" : "inactive", // Example status, adjust according to your actual logic
+          sensor_id: sensor._id,
+          installation_date: new Date(sensor.createdAt).toLocaleDateString(),
+          status: sensor.state === 'ON' ? "active" : "inactive",
         }));
         setSensorData(formattedData);
       } catch (error) {
-        console.error("Error fetching sensor data:", error);
+        setError("Failed to fetch sensor data.");
       } finally {
-        setLoading(false); // Set loading to false after fetching
+        setLoading(false);
       }
     };
 
@@ -51,6 +57,10 @@ const AreaTable = () => {
           <div className="loading-spinner">
             <CircularProgress />
           </div>
+        ) : error ? (
+          <div className="error-message">
+            <p>{error}</p>
+          </div>
         ) : (
           <table>
             <thead>
@@ -61,19 +71,27 @@ const AreaTable = () => {
               </tr>
             </thead>
             <tbody>
-              {sensorData.map((dataItem) => (
-                <tr key={dataItem.id}>
-                  <td>{dataItem.name}</td>
-                  <td>{dataItem.sensor_id}</td>
-                  <td>{dataItem.installation_date}</td>
-                  <td>
-                    <div className="dt-status">
-                      <span className={`dt-status-dot dot-${dataItem.status}`}></span>
-                      <span className="dt-status-text">{dataItem.status}</span>
-                    </div>
+              {sensorData.length > 0 ? (
+                sensorData.map((dataItem) => (
+                  <tr key={dataItem.id}>
+                    <td>{dataItem.name}</td>
+                    <td>{dataItem.sensor_id}</td>
+                    <td>{dataItem.installation_date}</td>
+                    <td>
+                      <div className="dt-status">
+                        <span className={`dt-status-dot dot-${dataItem.status}`}></span>
+                        <span className="dt-status-text">{dataItem.status}</span>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={4} style={{ textAlign: 'center' }}>
+                    No sensors found for this product.
                   </td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
         )}

@@ -31,8 +31,8 @@ const Last7DaysPHValue = () => {
     },
     markers: {
       size: 6,
-      colors: ['#FFA41B'],
-      strokeColors: '#fff',
+      colors: ['var(--primary-color)'], // Use dynamic color variable
+      strokeColors: 'var(--background-color)', // Adjust stroke color based on mode
       strokeWidth: 2,
       hover: {
         size: 8,
@@ -40,17 +40,32 @@ const Last7DaysPHValue = () => {
     },
     xaxis: {
       categories: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+      labels: {
+        style: {
+          colors: 'var(--text-color)', // Dynamic text color for light/dark mode
+        }
+      }
     },
     yaxis: {
       min: 6.5,
       max: 7.5,
       tickAmount: 5,
+      labels: {
+        style: {
+          colors: 'var(--text-color)', // Dynamic text color for light/dark mode
+        }
+      },
     },
     tooltip: {
       shared: true,
       intersect: false,
       y: {
         formatter: (val) => `${val.toFixed(1)}`,
+      },
+      style: {
+        fontSize: '12px',
+        fontFamily: undefined,
+        colors: ['var(--text-color)'], // Tooltip text color for light/dark mode
       },
     },
     fill: {
@@ -66,15 +81,15 @@ const Last7DaysPHValue = () => {
         stops: [0, 100],
       },
     },
-    colors: ['#00E396'],
+    colors: ['var(--primary-color)'], // Use primary color variable
   };
 
   return (
     <div className="bar-chart">
       <div className="bar-chart-info">
-        <h5 className="bar-chart-title">
-          <FaFlask style={{ marginRight: "8px" }} />
-          Last 7 Days pH Value
+        <h5 className="bar-chart-title" style={{ color: 'var(--text-color)' }}>
+          <FaFlask style={{ marginRight: "8px", color: 'var(--text-color)' }} />
+          pH Value History
         </h5>
       </div>
       <div className="chart-wrapper">

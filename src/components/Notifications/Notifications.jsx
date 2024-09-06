@@ -39,7 +39,6 @@ const Notifications = () => {
             <div className="notification-icon">{getIcon(notification.type)}</div>
             <div className="notification-content">
               <p className="notification-message">{notification.message}</p>
-              <p className="notification-time">{notification.time}</p>
             </div>
             {!notification.read && <div className="notification-badge">New</div>}
           </div>

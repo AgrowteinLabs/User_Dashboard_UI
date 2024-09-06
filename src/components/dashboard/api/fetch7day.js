@@ -1,23 +1,28 @@
 import axios from 'axios';
 
-async function fetchDataForDateRange() {
-  const endDate = new Date();
-  const startDate = new Date();
-  startDate.setDate(endDate.getDate() - 1);
+async function fetchLast7DaysData(uid = 'avi001') {
+  const endDate = new Date(); // Current date
+  const startDate = new Date(); 
+  startDate.setDate(endDate.getDate() - 7); // Set start date to 7 days ago
 
   const body = {
-    startDate: startDate.toISOString(),
-    endDate: endDate.toISOString(),
+    startDate: startDate.toISOString(), // Format the start date as ISO string
+    endDate: endDate.toISOString(), // Format the end date as ISO string
   };
 
   try {
-    const response = await axios.post('https://agrowteinlabs.onrender.com/api/v1/data/avi001/date', body);
-    console.log('Data received:', response.data);
+    const response = await axios.post(`https://agrowteinlabs.onrender.com/api/v1/data/${uid}/date`, body, {
+      headers: {
+        'Content-Type': 'application/json',
+        // Add authorization token here if needed
+      },
+    });
+    console.log('Data received for last 7 days:', response.data);
     return response.data;
   } catch (error) {
-    console.error('Error fetching data:', error);
+    console.error('Error fetching last 7 days data:', error);
     throw error;
   }
 }
 
-export default fetchDataForDateRange;
+export default fetchLast7DaysData;

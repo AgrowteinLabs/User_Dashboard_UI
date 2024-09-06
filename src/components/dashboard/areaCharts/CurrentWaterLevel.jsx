@@ -111,7 +111,7 @@ const CurrentHumidity = () => {
           <FaWater style={{ marginRight: "8px", color: 'var(--text-color)' }} />
           Current Humidity
         </h4>
-        <button
+        {/* <button
           onClick={openModal}
           style={{
             marginLeft: '15px',
@@ -124,17 +124,17 @@ const CurrentHumidity = () => {
           }}
         >
           Adjust Humidity
-        </button>
+        </button> */}
       </div>
       <div className="chart-wrapper">
-        {humidity === null ? (
-          <div style={{ color: 'red', fontSize: '18px', textAlign: 'center' }}>
-            Sensor Error
-          </div>
-        ) : (
-          <ReactApexChart options={options} series={series} type="radialBar" height={350} />
-        )}
-      </div>
+  {humidity === null ? (
+    <div className="sensor-error">
+      Sensor Error
+    </div>
+  ) : (
+    <ReactApexChart options={options} series={series} type="radialBar" height={350} />
+  )}
+</div>
 
       <Modal
         isOpen={modalIsOpen}

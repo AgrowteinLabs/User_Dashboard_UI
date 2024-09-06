@@ -1,16 +1,16 @@
 import React, { useState, useContext, useRef, useEffect } from 'react';
 import { MdViewHeadline } from 'react-icons/md';
 import { UserContext } from '../../context/UserContext';
-import CurrentPHValue from '../charts/pH/CurrentPHValue';
-import PHValueHistory from '../charts/pH/PHValueHistory';
-import CurrentWaterLevel from '../charts/waterlevel/CurrentWaterLevel';
-import WaterLevelHistory from '../charts/waterlevel/WaterLevelHistory';
-import CurrentTemperature from '../charts/temperature/CurrentTemperature';
-import TemperatureHistory from '../charts/temperature/TemperatureHistory';
-import CurrentHumidity from '../charts/humidity/CurrentHumidity';
-import HumidityHistory from '../charts/humidity/HumidityHistory';
-import CurrentCO2Level from '../charts/CO2/CurrentCO2Level';
-import CO2History from '../charts/CO2/CO2History';
+import CurrentPHValue from '../dashboard/areaCharts/CurrentPHValue';
+import PHValueHistory from '../dashboard/areaCharts/Last7DaysPHValue';
+import CurrentWaterLevel from '../dashboard/areaCharts/CurrentWaterLevel';
+import WaterLevelHistory from '../dashboard/areaCharts/WaterLevelLast7Days';
+import CurrentTemperature from '../dashboard/areaCharts/CurrentTemperature';
+import TemperatureHistory from '../dashboard/areaCharts/TemperatureHistory';
+import CurrentHumidity from '../dashboard/areaCharts/CurrentWaterLevel';
+import HumidityHistory from '../dashboard/areaCharts/WaterLevelLast7Days';
+import CurrentCO2Level from '../dashboard/areaCharts/CurrentPHValue';
+import CO2History from '../dashboard/areaCharts/CurrentPHValue';
 import { addDays } from 'date-fns';
 import { DateRange } from 'react-date-range';
 import './Products.scss';
@@ -188,7 +188,7 @@ const Products = () => {
                 <TemperatureHistory selectedDates={selectedDates} />
               </div>
             )}
-            {hasSensor(viewingProduct, '66d44324772a6d2e0d90aa5e') && (
+            {/* {hasSensor(viewingProduct, '66d44324772a6d2e0d90aa5e') && (
               <div className="chart-row">
                 <CurrentHumidity selectedDates={selectedDates} />
                 <HumidityHistory selectedDates={selectedDates} />
@@ -199,7 +199,7 @@ const Products = () => {
                 <CurrentCO2Level selectedDates={selectedDates} />
                 <CO2History selectedDates={selectedDates} />
               </div>
-            )}
+            )} */}
             {/* Add more sensor charts here */}
           </div>
           <button onClick={handleBackToProducts}>Back to Products</button>

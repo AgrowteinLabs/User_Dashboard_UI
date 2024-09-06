@@ -1,41 +1,26 @@
-import React, { useContext, useState } from 'react';
-import { SidebarContext } from '../../context/SidebarContext';
+import React, { useState } from 'react';
 import { MdMail, MdPerson, MdSubject, MdMessage } from 'react-icons/md';
 import "./Enquiries.scss";
 
 const Enquiries = () => {
-  const { closeSidebar } = useContext(SidebarContext);
   const [formStatus, setFormStatus] = useState('');
+  const [messageSent, setMessageSent] = useState(false); // To manage "Message sent" feedback
 
-  const handleFormSubmit = async (e) => {
+  const handleFormSubmit = (e) => {
     e.preventDefault();
 
-    const formData = {
-      name: e.target.name.value,
-      email: e.target.email.value,
-      subject: e.target.subject.value,
-      message: e.target.message.value,
-    };
+    // Set the form status directly without making any backend request
+    setFormStatus('Message sent successfully!');
+    setMessageSent(true); // Set message sent flag to true
 
-    try {
-      // Replace the URL with your server endpoint
-      const response = await fetch('https://your-server-endpoint.com/api/enquiries', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      });
+    // Reset the form after successful submission
+    e.target.reset();
 
-      if (response.ok) {
-        setFormStatus('Enquiry submitted successfully!');
-        e.target.reset(); // Reset the form after successful submission
-      } else {
-        setFormStatus('Failed to submit enquiry. Please try again.');
-      }
-    } catch (error) {
-      setFormStatus('An error occurred. Please try again.');
-    }
+    // Automatically remove the success message after 2 seconds
+    setTimeout(() => {
+      setMessageSent(false); // Hide the message
+      setFormStatus(''); // Clear the form status
+    }, 2000); // 2000ms = 2 seconds
   };
 
   return (
@@ -64,7 +49,11 @@ const Enquiries = () => {
           </div>
           <button type="submit" className="form-button">Submit</button>
         </form>
-        {formStatus && <p className="form-status">{formStatus}</p>}
+        {formStatus && (
+          <p className={`form-status ${messageSent ? 'success' : ''}`}>
+            {formStatus}
+          </p>
+        )}
       </div>
     </div>
   );

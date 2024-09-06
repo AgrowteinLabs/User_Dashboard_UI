@@ -19,13 +19,13 @@
 
     p {
       font-size: 1.2em;
-      color: var(--text-color); // Ensure this uses the correct text color variable
+      color: var(--text-color);
     }
   }
 
   .enquiries-form {
     background-color: var(--card-background-color);
-    color: var(--text-color); // Ensure this uses the correct text color variable
+    color: var(--text-color);
     padding: 20px;
     border-radius: 10px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
@@ -55,7 +55,7 @@
           border: 1px solid var(--border-color);
           border-radius: 5px;
           font-size: 1em;
-          color: var(--text-color); // Ensure this uses the correct text color variable
+          color: var(--text-color);
           background-color: var(--input-background-color);
           transition: border-color 0.3s ease-in-out;
 
@@ -87,10 +87,33 @@
       }
     }
 
-    @media (prefers-color-scheme: dark) {
+    .form-status {
+      margin-top: 20px;
+      padding: 10px;
+      font-size: 1.2em;
+      color: #fff;
+      background-color: var(--primary-color);
+      border: 1px solid var(--primary-color);
+      border-radius: 5px;
+      text-align: center;
+      transition: all 0.5s ease-in-out;
+      opacity: 0;
+      transform: translateY(20px);
 
+      &.success {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @media (prefers-color-scheme: dark) {
       background-color: var(--secondary-color);
       color: var(--secondary-text-color);
+
+      .form-status {
+        background-color: var(--primary-color);
+        color: #fff;
+      }
 
       form {
         .form-group {

@@ -32,7 +32,7 @@ const AreaTop = () => {
     <section className="content-area-top">
       <div className="area-top-l">
         
-        <h2 className="area-top-title">Dashboard</h2>
+        <h2 className="area-top-title">AGROWTRACK</h2>
       </div>
       <div className="area-top-r">
         <div

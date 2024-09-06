@@ -60,8 +60,8 @@ const CurrentPHValue = () => {
             show: true,
             fontSize: '36px',
             fontWeight: 'bold',
-            color: '#000',
             offsetY: 10,
+            color: 'var(--text-color)', // Dynamically set text color for light/dark mode
             formatter: function (val) {
               return val ? val.toFixed(2) : "N/A"; // Format to 2 decimal places, or show "N/A"
             },

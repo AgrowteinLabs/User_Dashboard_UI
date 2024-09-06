@@ -5,9 +5,11 @@
   gap: 16px;
 
   .dropdown-container {
-    margin-bottom: 16px; /* Add space between dropdown and AreaCards */
-    display: flex;
-    justify-content: center;
+    margin-bottom: 20px;
+    // background-color: var(--primary-color); /* Change to primary color */
+    padding: 10px;
+    border-radius: 5px;
+
 
     select {
       width: 100%;

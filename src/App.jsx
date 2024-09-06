@@ -21,6 +21,7 @@ import ProtectedRoute from "./components/ProtectedRoute";  // Import ProtectedRo
 function App() {
   const { theme, toggleTheme } = useContext(ThemeContext);
 
+  // Apply dark or light theme based on the selected theme in the context
   useEffect(() => {
     if (theme === DARK_THEME) {
       document.body.classList.add("dark-mode");
@@ -32,19 +33,22 @@ function App() {
   return (
     <Router>
       <Routes>
-        {/* Route for Login without providers */}
+        {/* Route for Login without wrapping with providers */}
         <Route path="/login" element={<Login />} />
 
-        {/* Routes for the main application with providers */}
-        <Route element={
-          <SidebarProvider>
-            <UserProvider>
-              <ProductProvider> {/* Add ProductProvider here */}
-                <BaseLayout />
-              </ProductProvider>
-            </UserProvider>
-          </SidebarProvider>
-        }>
+        {/* Main application routes with Sidebar, User, and Product context providers */}
+        <Route
+          element={
+            <SidebarProvider>
+              <UserProvider>
+                <ProductProvider> {/* Wrapping inside ProductProvider */}
+                  <BaseLayout />
+                </ProductProvider>
+              </UserProvider>
+            </SidebarProvider>
+          }
+        >
+          {/* Dashboard Route */}
           <Route
             path="/"
             element={
@@ -53,6 +57,8 @@ function App() {
               </ProtectedRoute>
             }
           />
+
+          {/* Products Route */}
           <Route
             path="/products"
             element={
@@ -61,6 +67,8 @@ function App() {
               </ProtectedRoute>
             }
           />
+
+          {/* Profile Route */}
           <Route
             path="/profile"
             element={
@@ -69,6 +77,8 @@ function App() {
               </ProtectedRoute>
             }
           />
+
+          {/* Notifications Route */}
           <Route
             path="/notifications"
             element={
@@ -77,6 +87,8 @@ function App() {
               </ProtectedRoute>
             }
           />
+
+          {/* Enquiries Route */}
           <Route
             path="/enquiries"
             element={
@@ -85,6 +97,8 @@ function App() {
               </ProtectedRoute>
             }
           />
+
+          {/* Logout Route */}
           <Route
             path="/logout"
             element={
@@ -93,10 +107,13 @@ function App() {
               </ProtectedRoute>
             }
           />
+
+          {/* 404 - Page Not Found Route */}
           <Route path="*" element={<PageNotFound />} />
         </Route>
       </Routes>
 
+      {/* Theme Toggle Button */}
       <button
         type="button"
         className="theme-toggle-btn"
