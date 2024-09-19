@@ -83,9 +83,9 @@
       .notification-card {
         background-color: var(--secondary-color); // Applying dark mode background
         .notification-content {
-          .notification-message {
-            color: #ffffff; // Adjust text color to white for dark mode
-          }
+          // .notification-message {
+          //   color: #ffffff; // Adjust text color to white for dark mode
+          // }
 
           .notification-time {
             color: #d3d3d3; // Adjust base text color for dark mode
