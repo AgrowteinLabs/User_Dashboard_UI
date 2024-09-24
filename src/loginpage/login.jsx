@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import Swal from "sweetalert2";
+import { useNavigate } from "react-router-dom";  // Import useNavigate
 import { loginUser } from "./loginapi";
 import "./login.scss";
 import logo from "./Logow.png";
@@ -9,6 +10,9 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
+
+  // Initialize navigate hook
+  const navigate = useNavigate();
 
   // Check if user is already remembered and log them in automatically
   useEffect(() => {
@@ -28,7 +32,7 @@ const Login = () => {
       } else {
         localStorage.removeItem("rememberedEmail");
       }
-      window.location.href = "/";
+      navigate("/");  // Use navigate instead of window.location.href
     } else {
       Swal.fire({
         icon: "error",
@@ -94,9 +98,6 @@ const Login = () => {
             <button type="button" onClick={toggleDarkMode}>
               {darkMode ? "Light Mode" : "Dark Mode"}
             </button>
-            {/* <a href="#" className="forgot-password">
-              Forgot your password?
-            </a> */}
             <br />
             <button type="submit" className="login-button">
               Login
