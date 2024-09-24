@@ -17,10 +17,17 @@ const Login = () => {
   // Check if user is already remembered and log them in automatically
   useEffect(() => {
     const savedEmail = localStorage.getItem("rememberedEmail");
+    const isAuthenticated = localStorage.getItem("isAuthenticated");
+
     if (savedEmail) {
       setEmail(savedEmail);
     }
-  }, []);
+
+    // Check if the user is authenticated, otherwise redirect to /login
+    if (!isAuthenticated) {
+      navigate("/login");
+    }
+  }, [navigate]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -32,7 +39,9 @@ const Login = () => {
       } else {
         localStorage.removeItem("rememberedEmail");
       }
-      navigate("/");  // Use navigate instead of window.location.href
+      // Set authentication flag to true
+      localStorage.setItem("isAuthenticated", "true");
+      navigate("/");  // Use navigate to redirect to homepage after login
     } else {
       Swal.fire({
         icon: "error",
