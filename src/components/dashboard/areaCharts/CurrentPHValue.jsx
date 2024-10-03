@@ -7,21 +7,29 @@ import "./AreaCharts.scss";
 
 const CurrentPHValue = () => {
   const [currentPH, setCurrentPH] = useState(7); // Default pH value
+  const [loading, setLoading] = useState(true); // Loading state
+  const [error, setError] = useState(null); // Error state
   const { selectedProductUid } = useContext(ProductContext);
 
   useEffect(() => {
     const fetchPHData = async () => {
       if (!selectedProductUid) return;
 
+      setLoading(true); // Start loading
+
       try {
         const data = await fetcheddata(selectedProductUid);
         if (data && data.data && data.data.pH !== undefined) {
           setCurrentPH(parseFloat(data.data.pH.toFixed(2))); // Format pH value to 2 decimal places
         } else {
+          setError("pH data not found ");
           console.error("pH data not found in the API response");
         }
       } catch (error) {
+        setError("Error fetching pH data");
         console.error("Error fetching pH data:", error);
+      } finally {
+        setLoading(false); // Stop loading
       }
     };
 
@@ -97,9 +105,16 @@ const CurrentPHValue = () => {
           Current pH Value
         </h4>
       </div>
-      <div className="chart-wrapper-center">
-        <ReactApexChart options={options} series={series} type="radialBar" height={350} />
-      </div>
+      {loading ? (
+        // Loading state
+        <div>Loading...</div> // Loading state
+          ) : error ? (
+            <div className="sensor-error">{error}</div> // Display error message
+      ) : (
+        <div className="chart-wrapper-center">
+          <ReactApexChart options={options} series={series} type="radialBar" height={350} />
+        </div>
+      )}
     </div>
   );
 };

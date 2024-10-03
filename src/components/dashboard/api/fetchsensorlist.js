@@ -1,6 +1,6 @@
 export async function fetchSensorList(uid) {
     try {
-      const url = `https://agrowteinlabs.onrender.com/api/v1/sensors/uid/${uid}`;
+      const url = `https://agrowtein-5u7w.onrender.com/api/v1/sensors/uid/${uid}`;
       const response = await fetch(url, { method: 'GET' });
   
       if (!response.ok) {

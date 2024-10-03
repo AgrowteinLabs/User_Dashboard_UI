@@ -1,6 +1,6 @@
 export async function PowerButton(uid, power) {
     try {
-        const API_URL = `https://agrowteinlabs.onrender.com/api/v1/command`;
+        const API_URL = `https://agrowtein-5u7w.onrender.com/api/v1/command`;
         const response = await fetch(API_URL, {
             method: 'POST',
             headers: {

@@ -1,22 +1,23 @@
-import React, { useContext, useEffect, useState } from 'react';
-import { UserContext } from '../../context/UserContext';
-import { ProductContext } from '../../context/ProductContext';  // Import ProductContext
-import AreaCards from './areaCards/AreaCards';
-import SensorChart from './SensorChart';
+import React, { useContext, useEffect, useState } from "react";
+import { UserContext } from "../../context/UserContext";
+import { ProductContext } from "../../context/ProductContext"; // Import ProductContext
+import AreaCards from "./areaCards/AreaCards";
+import SensorChart from "./SensorChart";
+import ErrorBoundary from "./ErrorBoundary"; // Adjust the import as needed
 
 const Dashboard = () => {
   const { user } = useContext(UserContext);
-  const { selectedProductUid } = useContext(ProductContext);  // Access selectedProductUid from ProductContext
+  const { selectedProductUid } = useContext(ProductContext); // Access selectedProductUid from ProductContext
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const userid = localStorage.getItem('userId');
+    const userid = localStorage.getItem("userId");
     confirm("User ID: " + userid);
 
     if (!userid) {
-      window.location.href = "/login";  // Redirect if userId not found
+      window.location.href = "/login"; // Redirect if userId not found
     } else {
-      setIsLoading(false);  // Set loading to false if userId exists
+      setIsLoading(false); // Set loading to false if userId exists
     }
   }, []);
 
@@ -30,19 +31,24 @@ const Dashboard = () => {
 
   return (
     <div className="dashboard">
-      <AreaCards />
+      <ErrorBoundary>
+        <AreaCards />
+      </ErrorBoundary>
       <div className="sensor-charts">
-        {user.sensors.includes('currentWaterLevel') && (
+        {user.sensors.includes("currentWaterLevel") && (
           <SensorChart title="Current Water Level" type="currentWaterLevel" />
         )}
-        {user.sensors.includes('currentPh') && (
+        {user.sensors.includes("currentPh") && (
           <SensorChart title="Current pH Value" type="currentPh" />
         )}
-        {user.sensors.includes('last7DaysPh') && (
+        {user.sensors.includes("last7DaysPh") && (
           <SensorChart title="Last 7 Days pH Levels" type="last7DaysPh" />
         )}
-        {user.sensors.includes('last7DaysWaterLevel') && (
-          <SensorChart title="Last 7 Days Water Levels" type="last7DaysWaterLevel" />
+        {user.sensors.includes("last7DaysWaterLevel") && (
+          <SensorChart
+            title="Last 7 Days Water Levels"
+            type="last7DaysWaterLevel"
+          />
         )}
       </div>
     </div>

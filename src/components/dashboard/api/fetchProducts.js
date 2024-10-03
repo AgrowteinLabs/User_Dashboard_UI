@@ -7,7 +7,7 @@ export default async function fetchProducts() {
     }
 
     try {
-        const API_URL = `https://agrowteinlabs.onrender.com/api/v1/user/product/${userId}`;
+        const API_URL = `https://agrowtein-5u7w.onrender.com/api/v1/user/product/${userId}`;
         
         // Add credentials: 'include' to send cookies
         const response = await fetch(API_URL, {

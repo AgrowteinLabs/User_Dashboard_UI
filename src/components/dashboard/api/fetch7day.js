@@ -11,7 +11,7 @@ async function fetchLast7DaysData(uid = 'avi001') {
   };
 
   try {
-    const response = await axios.post(`https://agrowteinlabs.onrender.com/api/v1/data/${uid}/date`, body, {
+    const response = await axios.post(`https://agrowtein-5u7w.onrender.com/api/v1/data/${uid}/date`, body, {
       headers: {
         'Content-Type': 'application/json',
         // Add authorization token here if needed

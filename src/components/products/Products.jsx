@@ -36,14 +36,19 @@ const Products = () => {
   useEffect(() => {
     const productsFetch = async () => {
       setLoading(true);
-      const data = await fetchProducts();
-      setLoading(false);
-      if (data.error) {
-        setError(data.error);
-      } else if (data.message) {
-        setMessage(data.message);
-      } else {
-        setProducts(data);
+      try {
+        const data = await fetchProducts();
+        setLoading(false);
+        if (data.error) {
+          setError(data.error);
+        } else if (data.message) {
+          setMessage(data.message);
+        } else {
+          setProducts(data);
+        }
+      } catch (error) {
+        setError('Failed to fetch products. Please try again.');
+        setLoading(false);
       }
     };
     productsFetch();
@@ -102,10 +107,10 @@ const Products = () => {
   if (error) {
     return (
       <div className="error-state">
-      <h1>{error}</h1>
-      <p>Go to the login page.</p>
-      <button onClick={() => window.location.href = '/login'}>Go to Login</button>
-    </div>
+        <h1>{error}</h1>
+        <p>Go to the login page.</p>
+        <button onClick={() => window.location.href = '/login'}>Go to Login</button>
+      </div>
     );
   }
 
@@ -170,8 +175,6 @@ const Products = () => {
         <div className="product-details">
           <h2>{viewingProduct.productId.name} - Sensor Data</h2>
           <div className="content-area-charts">
-            
-            
             {hasSensor(viewingProduct, '66d442e2772a6d2e0d90aa5b') && (
               <div className="chart-row">
                 <CurrentTemperature selectedDates={selectedDates} />
@@ -190,18 +193,6 @@ const Products = () => {
                 <WaterLevelHistory selectedDates={selectedDates} />
               </div>
             )}
-            {/* {hasSensor(viewingProduct, '66d44324772a6d2e0d90aa5e') && (
-              <div className="chart-row">
-                <CurrentHumidity selectedDates={selectedDates} />
-                <HumidityHistory selectedDates={selectedDates} />
-              </div>
-            )}
-            {hasSensor(viewingProduct, '66d44366772a6d2e0d90aa63') && (
-              <div className="chart-row">
-                <CurrentCO2Level selectedDates={selectedDates} />
-                <CO2History selectedDates={selectedDates} />
-              </div>
-            )} */}
             {/* Add more sensor charts here */}
           </div>
           <button onClick={handleBackToProducts}>Back to Products</button>
