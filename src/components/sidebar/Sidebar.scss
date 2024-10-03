@@ -185,3 +185,13 @@ img {
   width: 50px; /* Adjust the size as needed */
   height: auto;
 }
+
+
+.notification-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  background-color: red;
+  border-radius: 50%;
+  margin-left: 10px;
+}

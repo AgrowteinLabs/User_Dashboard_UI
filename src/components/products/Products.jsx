@@ -1,99 +1,92 @@
-import React, { useState, useContext, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MdViewHeadline } from 'react-icons/md';
-import { UserContext } from '../../context/UserContext';
+import { CircularProgress } from '@mui/material';
+import { FaCheck, FaProductHunt } from 'react-icons/fa';
+import { addDays, differenceInCalendarDays } from 'date-fns';
+import { DateRange } from 'react-date-range';
+import fetchProducts from '../dashboard/api/fetchProducts';
 import CurrentPHValue from '../dashboard/areaCharts/CurrentPHValue';
 import PHValueHistory from '../dashboard/areaCharts/Last7DaysPHValue';
 import CurrentWaterLevel from '../dashboard/areaCharts/CurrentWaterLevel';
 import WaterLevelHistory from '../dashboard/areaCharts/WaterLevelLast7Days';
 import CurrentTemperature from '../dashboard/areaCharts/CurrentTemperature';
 import TemperatureHistory from '../dashboard/areaCharts/TemperatureHistory';
-import CurrentHumidity from '../dashboard/areaCharts/CurrentWaterLevel';
-import HumidityHistory from '../dashboard/areaCharts/WaterLevelLast7Days';
-import CurrentCO2Level from '../dashboard/areaCharts/CurrentPHValue';
-import CO2History from '../dashboard/areaCharts/CurrentPHValue';
-import { addDays } from 'date-fns';
-import { DateRange } from 'react-date-range';
 import './Products.scss';
-import fetchProducts from '../dashboard/api/fetchProducts';
-import { CircularProgress } from '@mui/material';
 
 const Products = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [message, setMessage] = useState(null);
-  const [viewingProduct, setViewingProduct] = useState(() => {
-    const savedProduct = sessionStorage.getItem('viewingProduct');
-    return savedProduct ? JSON.parse(savedProduct) : null;
-  });
+  const [viewingProduct, setViewingProduct] = useState(null); // Conditional rendering for the product being viewed
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [selectedDates, setSelectedDates] = useState({
     startDate: new Date(),
-    endDate: addDays(new Date(), 7),
+    endDate: new Date(),
   });
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const dateRangeRef = useRef(null);
+  const [confirmedDates, setConfirmedDates] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const productsPerPage = 6;
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     const productsFetch = async () => {
       setLoading(true);
-      try {
-        const data = await fetchProducts();
-        setLoading(false);
-        if (data.error) {
-          setError(data.error);
-        } else if (data.message) {
-          setMessage(data.message);
-        } else {
-          setProducts(data);
-        }
-      } catch (error) {
-        setError('Failed to fetch products. Please try again.');
-        setLoading(false);
+      const data = await fetchProducts();
+      setLoading(false);
+      if (data.error) {
+        setError(data.error);
+      } else if (data.message) {
+        setMessage(data.message);
+      } else {
+        setProducts(data);
       }
     };
     productsFetch();
   }, []);
 
-  const { user } = useContext(UserContext);
-  const [currentPage, setCurrentPage] = useState(1);
-  const productsPerPage = 6;
+  const filteredProducts = products.filter(product =>
+    product.alias.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const indexOfLastProduct = currentPage * productsPerPage;
   const indexOfFirstProduct = indexOfLastProduct - productsPerPage;
-  const currentProducts = products.slice(indexOfFirstProduct, indexOfLastProduct);
-  const totalPages = Math.ceil(products.length / productsPerPage);
+  const currentProducts = filteredProducts.slice(indexOfFirstProduct, indexOfLastProduct);
+  const totalPages = Math.ceil(filteredProducts.length / productsPerPage);
 
   const handleViewProduct = (product) => {
-    setViewingProduct(product);
-    sessionStorage.setItem('viewingProduct', JSON.stringify(product));
-    setShowDatePicker(false);
+    setViewingProduct(product); // Set the selected product for detailed view
   };
 
   const handleBackToProducts = () => {
-    setViewingProduct(null);
-    sessionStorage.removeItem('viewingProduct');
-    setShowDatePicker(false);
+    setViewingProduct(null); // Go back to product list
   };
 
   const handlePageChange = (pageNumber) => {
     setCurrentPage(pageNumber);
   };
 
-  const handleClickOutside = (event) => {
-    if (dateRangeRef.current && !dateRangeRef.current.contains(event.target)) {
-      setShowDatePicker(false);
+  const hasSensor = (product) => {
+    return product.sensors && product.sensors.length > 0;
+  };
+
+  const handleDateSelection = (ranges) => {
+    const { startDate, endDate } = ranges.selection;
+    const daysDifference = differenceInCalendarDays(endDate, startDate);
+
+    if (daysDifference <= 7) {
+      setSelectedDates({
+        startDate,
+        endDate,
+      });
+    } else {
+      alert('Please select a date range of up to 7 days.');
     }
   };
 
-  useEffect(() => {
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, []);
-
-  const hasSensor = (product, sensorType) => {
-    return product.sensors && product.sensors.some(sensor => sensor.sensorId._id === sensorType);
+  const handleConfirmDates = () => {
+    setConfirmedDates(selectedDates);
+    setShowDatePicker(false); // Hide the date picker
   };
 
   if (loading) {
@@ -122,84 +115,110 @@ const Products = () => {
     );
   }
 
+  const currentOrConfirmedStart = confirmedDates ? confirmedDates.startDate : new Date();
+  const currentOrConfirmedEnd = confirmedDates ? confirmedDates.endDate : new Date();
+
   return (
     <div className="product-management-page">
-      <div className="products-header">
-        <h1>Products</h1>
-        {viewingProduct && (
-          <div className="date-picker-container" ref={dateRangeRef}>
+      {/* Conditionally show the product list or product details */}
+      {!viewingProduct ? (
+        <>
+          <h1 className="main-heading">Products and Services</h1>
+          <div className="products-header">
+            <input
+              type="text"
+              placeholder="Search Products..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+
+          <div className="product-grid">
+            {currentProducts.map((product) => (
+              <div key={product._id} className="product-card">
+                <div className="product-info">
+                  <div className="product-icon">
+                    <FaProductHunt size={40} />
+                  </div>
+                  <h2>{product.alias}</h2>
+                  <p>{product.productId.name}</p>
+                </div>
+                <div className="product-actions">
+                  {hasSensor(product) && (
+                    <button className="view-button" onClick={() => handleViewProduct(product)}>
+                      <MdViewHeadline size={20} className="view-icon" />
+                      <span>View Sensor Readings</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      ) : (
+        // Conditional rendering: show product alias and Sensor Data when viewing a product
+        <div className="product-details">
+          <h2>{viewingProduct.alias} - Sensor Data</h2>
+
+          <div className="sensor-data-actions">
+            <button className="back-button" onClick={handleBackToProducts}>Back</button>
             <button className="date-picker-button" onClick={() => setShowDatePicker(!showDatePicker)}>
               Select Date Range
             </button>
-            {showDatePicker && (
+          </div>
+
+          {/* Date Range Picker as an Overlay */}
+          {showDatePicker && (
+            <div className="date-range-overlay">
               <div className="date-range-wrapper">
                 <DateRange
                   editableDateInputs={true}
-                  onChange={(item) => setSelectedDates({
-                    startDate: item.selection.startDate,
-                    endDate: item.selection.endDate,
-                  })}
+                  onChange={handleDateSelection}
                   moveRangeOnFirstSelection={false}
-                  ranges={[selectedDates]}
-                  showMonthAndYearPickers={true}
+                  ranges={[{ startDate: selectedDates.startDate, endDate: selectedDates.endDate, key: 'selection' }]}
                   maxDate={new Date()}
-                  minDate={addDays(new Date(), -7)}
+                  minDate={addDays(new Date(), -30)}
+                  className="calendar-overlay"
                 />
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      {!viewingProduct ? (
-        <div className="product-grid">
-          {currentProducts.map((product) => (
-            <div key={product._id} className="product-card">
-              <div className="product-info">
-                <h2>{product.productId.name}</h2>
-                <p>{product.productId.description}</p>
-                <p>{product.alias}</p>
-                <p>{product.location}</p>
-                <p>{product.state}</p>
-              </div>
-              <div className="product-actions">
-                <button className="view-button" onClick={() => handleViewProduct(product)}>
-                  <MdViewHeadline size={20} />
-                  View
-                </button>
+                {/* Done Button inside the calendar */}
+                <div className="calendar-done-button">
+                  <button className="done-button" onClick={handleConfirmDates}>
+                    <FaCheck /> Done
+                  </button>
+                </div>
               </div>
             </div>
-          ))}
-        </div>
-      ) : (
-        <div className="product-details">
-          <h2>{viewingProduct.productId.name} - Sensor Data</h2>
+          )}
+
+          {/* Sensor Charts Display */}
           <div className="content-area-charts">
-            {hasSensor(viewingProduct, '66d442e2772a6d2e0d90aa5b') && (
-              <div className="chart-row">
-                <CurrentTemperature selectedDates={selectedDates} />
-                <TemperatureHistory selectedDates={selectedDates} />
-              </div>
+            {hasSensor(viewingProduct) && (
+              <>
+                {hasSensor(viewingProduct, '66d442e2772a6d2e0d90aa5b') && (
+                  <div className="chart-row">
+                    <CurrentTemperature startDate={currentOrConfirmedStart} endDate={currentOrConfirmedEnd} />
+                    <TemperatureHistory startDate={currentOrConfirmedStart} endDate={currentOrConfirmedEnd} />
+                  </div>
+                )}
+                {hasSensor(viewingProduct, '66d44324772a6d2e0d90aa5e') && (
+                  <div className="chart-row">
+                    <CurrentPHValue startDate={currentOrConfirmedStart} endDate={currentOrConfirmedEnd} />
+                    <PHValueHistory startDate={currentOrConfirmedStart} endDate={currentOrConfirmedEnd} />
+                  </div>
+                )}
+                {hasSensor(viewingProduct, '66d442e2772a6d2e0d90aa5b') && (
+                  <div className="chart-row">
+                    <CurrentWaterLevel startDate={currentOrConfirmedStart} endDate={currentOrConfirmedEnd} />
+                    <WaterLevelHistory startDate={currentOrConfirmedStart} endDate={currentOrConfirmedEnd} />
+                  </div>
+                )}
+              </>
             )}
-            {hasSensor(viewingProduct, '66d44324772a6d2e0d90aa5e') && (
-              <div className="chart-row">
-                <CurrentPHValue selectedDates={selectedDates} />
-                <PHValueHistory selectedDates={selectedDates} />
-              </div>
-            )}
-            {hasSensor(viewingProduct, '66d442e2772a6d2e0d90aa5b') && (
-              <div className="chart-row">
-                <CurrentWaterLevel selectedDates={selectedDates} />
-                <WaterLevelHistory selectedDates={selectedDates} />
-              </div>
-            )}
-            {/* Add more sensor charts here */}
           </div>
-          <button onClick={handleBackToProducts}>Back to Products</button>
         </div>
       )}
 
-      {!viewingProduct && totalPages > 1 && (
+      {totalPages > 1 && !viewingProduct && (
         <Pagination
           currentPage={currentPage}
           totalPages={totalPages}

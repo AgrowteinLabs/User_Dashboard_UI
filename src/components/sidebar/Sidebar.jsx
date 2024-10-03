@@ -1,9 +1,9 @@
-import { useContext, useEffect, useRef } from "react";
+import React, { useContext, useEffect, useRef } from "react";
 import { ThemeContext } from "../../context/ThemeContext";
+import { UserContext } from '../../context/UserContext'; // Import UserContext
 import { LIGHT_THEME } from "../../constants/themeConstants";
 import LogoBlue from "../../assets/images/Logo_leaf.png"; // Correct relative path
 import LogoWhite from "../../assets/images/Logo_leaf.png"; // Correct relative path
-
 import {
   MdOutlineClose,
   MdOutlineGridView,
@@ -20,6 +20,7 @@ import { SidebarContext } from "../../context/SidebarContext";
 
 const Sidebar = () => {
   const { theme } = useContext(ThemeContext);
+  const { user } = useContext(UserContext); // Fetch user from UserContext
   const { isSidebarOpen, toggleSidebar, closeSidebar } = useContext(SidebarContext);
   const navbarRef = useRef(null);
 
@@ -42,6 +43,10 @@ const Sidebar = () => {
 
   const getNavLinkClassName = ({ isActive }) =>
     isActive ? "menu-link active" : "menu-link";
+
+  if (!user) {
+    return <div>Loading...</div>; // Optional: handle loading state when user is null
+  }
 
   return (
     <>
@@ -79,7 +84,7 @@ const Sidebar = () => {
                   <span className="menu-link-icon">
                     <MdOutlineShoppingBag size={20} />
                   </span>
-                  <span className="menu-link-text">Products</span>
+                  <span className="menu-link-text">Products & Services</span>
                 </NavLink>
               </li>
               <li className="menu-item">
@@ -96,6 +101,9 @@ const Sidebar = () => {
                     <MdOutlineNotifications size={18} />
                   </span>
                   <span className="menu-link-text">Notifications</span>
+                  {user.notifications.some(notification => !notification.read) && (
+                    <span className="notification-dot"></span>
+                  )}
                 </NavLink>
               </li>
             </ul>
