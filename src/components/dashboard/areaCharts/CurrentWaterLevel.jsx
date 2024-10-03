@@ -17,6 +17,8 @@ const CurrentHumidity = () => {
     let isActive = true; // Flag to manage async operation
 
     const fetchData = async () => {
+      if (!selectedProductUid) return;
+
       try {
         setLoading(true);
         const data = await fetcheddata(selectedProductUid);

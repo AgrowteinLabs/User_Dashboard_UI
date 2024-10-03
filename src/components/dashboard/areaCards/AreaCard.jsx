@@ -11,6 +11,7 @@ const AreaCard = ({ colors, cardInfo, type, controlName, controlKey }) => {
   const [temperature, setTemperature] = useState(null); // Default to null
   const [humidity, setHumidity] = useState(null);
   const { selectedProductUid } = useContext(ProductContext);
+  const [isFetchingStopped, setIsFetchingStopped] = useState(false); // New state to stop fetching
 
   useEffect(() => {
     if (type === "time") {
@@ -23,37 +24,53 @@ const AreaCard = ({ colors, cardInfo, type, controlName, controlKey }) => {
 
   useEffect(() => {
     let isActive = true;
+    let intervalId;
 
     const fetchData = async () => {
-      if (!selectedProductUid) {
-        console.warn("Product UID is not set");
+      if (!selectedProductUid || isFetchingStopped) {
+        console.warn("Product UID is not set or fetching stopped");
         return;
       }
 
       try {
         const data = await fetcheddata(selectedProductUid);
-        if (data && data.data && isActive) {
-          const temp = data.data.Temperature;
-          setTemperature(temp !== null && temp !== undefined ? parseFloat(temp.toFixed(2)) : null);
-          setHumidity(data.data.Humidity);
-        } else {
-          throw new Error("Incomplete sensor data received");
+
+        if (data.error === 404) {
+          console.error("Error 404: Resource not found. Stopping fetch attempts.");
+          setTemperature(null);
+          setHumidity(null);
+          setIsFetchingStopped(true); // Stop further fetch attempts
+          clearInterval(intervalId); // Stop the interval
+          return;
         }
+
+        // Handle cases where fetched data is null or invalid
+        if (!data || !data.data) {
+          console.warn("No valid data returned from fetcheddata");
+          setTemperature(null); // Reset temperature on null data
+          setHumidity(null); // Reset humidity on null data
+          return;
+        }
+
+        const temp = data.data.Temperature;
+        setTemperature(temp !== null && temp !== undefined ? parseFloat(temp.toFixed(2)) : null);
+        setHumidity(data.data.Humidity);
       } catch (error) {
         if (isActive) {
-          setTemperature(null);
           console.error("Error fetching sensor data:", error);
+          setTemperature(null);
+          setHumidity(null); // Reset humidity on error
         }
       }
     };
 
-    const intervalId = setInterval(fetchData, 1000);
+    intervalId = setInterval(fetchData, 1000);
 
     return () => {
       isActive = false;
       clearInterval(intervalId);
     };
-  }, [selectedProductUid]);
+  }, [selectedProductUid, isFetchingStopped]);
 
   const handlePowerSwitch = async () => {
     const newPowerState = !isPowerOn;
@@ -101,7 +118,6 @@ const AreaCard = ({ colors, cardInfo, type, controlName, controlKey }) => {
         return cardInfo.value;
     }
   };
-  
 
   const renderIcon = () => {
     switch (type) {
@@ -145,4 +161,3 @@ AreaCard.propTypes = {
 };
 
 export default AreaCard;
-

@@ -16,6 +16,7 @@ const CurrentHumidity = () => {
     let isActive = true; // Flag to manage async operation
 
     const fetchData = async () => {
+      if (!selectedProductUid) return;
       try {
         const data = await fetcheddata(selectedProductUid);
         const humidityValue = data?.data?.Humidity; // Extracting the Humidity value from the data object
