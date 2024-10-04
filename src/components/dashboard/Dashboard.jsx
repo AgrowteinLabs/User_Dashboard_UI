@@ -50,6 +50,21 @@ const Dashboard = () => {
             type="last7DaysWaterLevel"
           />
         )}
+        {user.sensors.includes("currentHumidity") && (
+          <SensorChart title="Current Humidity" type="currentHumidity" />
+        )}
+        {user.sensors.includes("last7DaysHumidity") && (
+          <SensorChart
+            title="Last 7 Days Humidity Levels"
+            type="last7DaysHumidity"
+          />
+        )}
+        {user.sensors.includes("currentCo2") && (
+          <SensorChart title="Current CO₂ Levels" type="currentCo2" />
+        )}
+        {user.sensors.includes("last7DaysCo2") && (
+          <SensorChart title="Last 7 Days CO₂ Levels" type="last7DaysCo2" />
+        )}
       </div>
     </div>
   );

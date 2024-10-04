@@ -7,12 +7,7 @@ const userData = {
   bio: 'Agritech enthusiast, passionate about farming innovations.',
   interests: ['Agriculture', 'Aquaponics', 'IoT', 'Automation'],
   notifications: [
-      {
-          id: 1,
-          type: 'info',
-          message: 'Aeration Pump is Switched on.',
-          read: false,
-      },
+      
       {
           id: 2,
           type: 'success',

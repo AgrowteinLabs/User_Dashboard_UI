@@ -6,6 +6,10 @@ import CurrentWaterLevelChart from './charts/CurrentWaterLevelChart';
 import CurrentPhChart from './charts/CurrentPhChart';
 import Last7DaysPhChart from './charts/Last7DaysPhChart';
 import Last7DaysWaterLevelChart from './charts/Last7DaysWaterLevelChart';
+import CurrentHumidityChart from './charts/CurrentHumidityChart';
+import Last7DaysHumidityChart from './charts/Last7DaysHumidityChart';
+import CurrentCo2Chart from './charts/CurrentCo2Chart';
+import Last7DaysCo2Chart from './charts/Last7DaysCo2Chart';
 
 const SensorChart = ({ title, type }) => {
   const renderChart = () => {
@@ -18,6 +22,14 @@ const SensorChart = ({ title, type }) => {
         return <Last7DaysPhChart />;
       case 'last7DaysWaterLevel':
         return <Last7DaysWaterLevelChart />;
+      case 'currentHumidity':
+        return <CurrentHumidityChart />;
+      case 'last7DaysHumidity':
+        return <Last7DaysHumidityChart />;
+      case 'currentCo2':
+        return <CurrentCo2Chart />;
+      case 'last7DaysCo2':
+        return <Last7DaysCo2Chart />;
       default:
         return null;
     }

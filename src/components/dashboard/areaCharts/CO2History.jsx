@@ -1,17 +1,17 @@
 import React, { useEffect, useState, useContext } from 'react';
 import ReactApexChart from 'react-apexcharts';
-import { FaChartBar } from "react-icons/fa";
+import { FaLeaf } from "react-icons/fa";
 import axios from 'axios';
-import { ProductContext } from '../../../context/ProductContext';
+import { ProductContext } from '../../../context/ProductContext'; 
 import "./AreaCharts.scss";
 
-const TemperatureHistory = () => {
-  const [series, setSeries] = useState([{ name: 'Temperature', data: [] }]);
+const CO2History = () => {
+  const [series, setSeries] = useState([{ name: 'CO2 Level', data: [] }]);
   const [categories, setCategories] = useState([]);
   const { selectedProductUid } = useContext(ProductContext);
 
   useEffect(() => {
-    const fetchTemperatureHistory = async () => {
+    const fetchCO2History = async () => {
       if (!selectedProductUid) return;
 
       try {
@@ -22,20 +22,20 @@ const TemperatureHistory = () => {
 
         if (response.data && response.data.length > 0) {
           const filteredData = filterByThirtyMinutes(response.data);
-          const temperatures = filteredData.map(entry => entry.data.Temperature);
+          const co2Levels = filteredData.map(entry => entry.data.Co2);
           const timestamps = filteredData.map(entry => new Date(entry.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }));
           
-          setSeries([{ name: 'Temperature', data: temperatures }]);
+          setSeries([{ name: 'CO2 Level', data: co2Levels }]);
           setCategories(timestamps);
         } else {
           console.error("No data available for the selected date range.");
         }
       } catch (error) {
-        console.error("Error fetching temperature history:", error);
+        console.error("Error fetching CO2 history:", error);
       }
     };
 
-    fetchTemperatureHistory();
+    fetchCO2History();
   }, [selectedProductUid]);
 
   const filterByThirtyMinutes = (data) => {
@@ -55,33 +55,35 @@ const TemperatureHistory = () => {
 
   const options = {
     chart: {
-      type: 'bar', // Use 'bar' for column chart
+      type: 'line',
       animations: {
         enabled: true,
         easing: 'easeinout',
         speed: 800,
       },
     },
-    plotOptions: {
-      bar: {
-        columnWidth: '50%',
-        borderRadius: 4,
-      },
-    },
-    dataLabels: {
-      enabled: false, // Hide data labels by default
-    },
     xaxis: {
       categories: categories,
       labels: {
+        rotate: -45, // Rotates labels to prevent overlap
+        datetimeFormatter: {
+          hour: 'HH:mm' // Use a 24-hour time format, or 'hh:mm A' for 12-hour format
+        },
         style: {
           colors: 'var(--text-color)',
         },
       },
+      tickAmount: 'dataPoints', // Adjusts tick amount dynamically
+      title: {
+        text: 'Time',
+        style: {
+          color: 'var(--text-color)',
+        },
+      }
     },
     yaxis: {
       title: {
-        text: '°C',
+        text: 'ppm',
         style: {
           color: 'var(--text-color)',
         },
@@ -92,18 +94,22 @@ const TemperatureHistory = () => {
         },
       },
     },
-    fill: {
-      colors: ['#FF6347'], // Customize bar color
+    stroke: {
+      curve: 'smooth',
+      colors: ['var(--primary-color)'],
+    },
+    markers: {
+      size: 5,
+      colors: ['#A0C334'],
+      strokeColors: '#fff',
+      strokeWidth: 2,
     },
     tooltip: {
-      enabled: true, // Enable tooltip
-      shared: false, // Only show tooltip for the hovered bar
-      intersect: true, // Only display tooltip when directly over a bar
       x: {
-        show: true, // Show x-axis label on tooltip
+        format: 'HH:mm' // Tooltip format
       },
       y: {
-        formatter: val => `${val}°C`, // Format y-axis values
+        formatter: val => `${val} ppm`,
       },
       style: {
         fontSize: '12px',
@@ -112,19 +118,20 @@ const TemperatureHistory = () => {
     },
   };
 
+  
   return (
-    <div className="progress-bar">
-      <div className="progress-bar-info">
-        <h4 className="progress-bar-title" style={{ color: 'var(--text-color)' }}>
-          <FaChartBar style={{ marginRight: "8px", color: 'var(--text-color)' }} />
-          Temperature History (Last 24 Hours)
-        </h4>
+    <div className="bar-chart">
+      <div className="bar-chart-info">
+        <h5 className="bar-chart-title" style={{ color: 'var(--text-color)' }}>
+          <FaLeaf style={{ marginRight: "8px", color: 'var(--text-color)' }} />
+          CO2 Level History (Last 24 Hours)
+        </h5>
       </div>
       <div className="chart-wrapper">
-        <ReactApexChart options={options} series={series} type="bar" height={350} />
+        <ReactApexChart options={options} series={series} type="line" height={350} />
       </div>
     </div>
   );
 };
 
-export default TemperatureHistory;
+export default CO2History;

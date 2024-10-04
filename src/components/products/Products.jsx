@@ -5,12 +5,12 @@ import { FaCheck, FaProductHunt } from 'react-icons/fa';
 import { addDays, differenceInCalendarDays } from 'date-fns';
 import { DateRange } from 'react-date-range';
 import fetchProducts from '../dashboard/api/fetchProducts';
-import CurrentPHValue from '../dashboard/areaCharts/CurrentPHValue';
-import PHValueHistory from '../dashboard/areaCharts/Last7DaysPHValue';
-import CurrentWaterLevel from '../dashboard/areaCharts/CurrentWaterLevel';
-import WaterLevelHistory from '../dashboard/areaCharts/WaterLevelLast7Days';
 import CurrentTemperature from '../dashboard/areaCharts/CurrentTemperature';
 import TemperatureHistory from '../dashboard/areaCharts/TemperatureHistory';
+import CurrentHumidity from '../dashboard/areaCharts/CurrentHumidity';
+import HumidityHistory from '../dashboard/areaCharts/HumidityHistory';
+import CurrentCO2Level from '../dashboard/areaCharts/CurrentCO2Level';
+import CO2History from '../dashboard/areaCharts/CO2History';
 import './Products.scss';
 
 const Products = () => {
@@ -18,7 +18,7 @@ const Products = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [message, setMessage] = useState(null);
-  const [viewingProduct, setViewingProduct] = useState(null); // Conditional rendering for the product being viewed
+  const [viewingProduct, setViewingProduct] = useState(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [selectedDates, setSelectedDates] = useState({
     startDate: new Date(),
@@ -55,19 +55,22 @@ const Products = () => {
   const totalPages = Math.ceil(filteredProducts.length / productsPerPage);
 
   const handleViewProduct = (product) => {
-    setViewingProduct(product); // Set the selected product for detailed view
+    console.log('Selected Product:', product);
+    setViewingProduct(product);
   };
 
   const handleBackToProducts = () => {
-    setViewingProduct(null); // Go back to product list
+    setViewingProduct(null);
   };
 
   const handlePageChange = (pageNumber) => {
     setCurrentPage(pageNumber);
   };
 
-  const hasSensor = (product) => {
-    return product.sensors && product.sensors.length > 0;
+  const hasSensor = (product, sensorId) => {
+    const sensorExists = product.sensors?.some(sensor => sensor.sensorId && sensor.sensorId._id === sensorId);
+    console.log(`Checking for sensor ${sensorId} in product ${product.alias}: ${sensorExists}`);
+    return sensorExists;
   };
 
   const handleDateSelection = (ranges) => {
@@ -86,7 +89,7 @@ const Products = () => {
 
   const handleConfirmDates = () => {
     setConfirmedDates(selectedDates);
-    setShowDatePicker(false); // Hide the date picker
+    setShowDatePicker(false);
   };
 
   if (loading) {
@@ -120,7 +123,6 @@ const Products = () => {
 
   return (
     <div className="product-management-page">
-      {/* Conditionally show the product list or product details */}
       {!viewingProduct ? (
         <>
           <h1 className="main-heading">Products and Services</h1>
@@ -144,7 +146,7 @@ const Products = () => {
                   <p>{product.productId.name}</p>
                 </div>
                 <div className="product-actions">
-                  {hasSensor(product) && (
+                  {product.sensors?.length > 0 && (
                     <button className="view-button" onClick={() => handleViewProduct(product)}>
                       <MdViewHeadline size={20} className="view-icon" />
                       <span>View Sensor Readings</span>
@@ -156,10 +158,8 @@ const Products = () => {
           </div>
         </>
       ) : (
-        // Conditional rendering: show product alias and Sensor Data when viewing a product
         <div className="product-details">
           <h2>{viewingProduct.alias} - Sensor Data</h2>
-
           <div className="sensor-data-actions">
             <button className="back-button" onClick={handleBackToProducts}>Back</button>
             <button className="date-picker-button" onClick={() => setShowDatePicker(!showDatePicker)}>
@@ -167,7 +167,6 @@ const Products = () => {
             </button>
           </div>
 
-          {/* Date Range Picker as an Overlay */}
           {showDatePicker && (
             <div className="date-range-overlay">
               <div className="date-range-wrapper">
@@ -180,7 +179,6 @@ const Products = () => {
                   minDate={addDays(new Date(), -30)}
                   className="calendar-overlay"
                 />
-                {/* Done Button inside the calendar */}
                 <div className="calendar-done-button">
                   <button className="done-button" onClick={handleConfirmDates}>
                     <FaCheck /> Done
@@ -190,29 +188,24 @@ const Products = () => {
             </div>
           )}
 
-          {/* Sensor Charts Display */}
           <div className="content-area-charts">
-            {hasSensor(viewingProduct) && (
-              <>
-                {hasSensor(viewingProduct, '66d442e2772a6d2e0d90aa5b') && (
-                  <div className="chart-row">
-                    <CurrentTemperature startDate={currentOrConfirmedStart} endDate={currentOrConfirmedEnd} />
-                    <TemperatureHistory startDate={currentOrConfirmedStart} endDate={currentOrConfirmedEnd} />
-                  </div>
-                )}
-                {hasSensor(viewingProduct, '66d44324772a6d2e0d90aa5e') && (
-                  <div className="chart-row">
-                    <CurrentPHValue startDate={currentOrConfirmedStart} endDate={currentOrConfirmedEnd} />
-                    <PHValueHistory startDate={currentOrConfirmedStart} endDate={currentOrConfirmedEnd} />
-                  </div>
-                )}
-                {hasSensor(viewingProduct, '66d442e2772a6d2e0d90aa5b') && (
-                  <div className="chart-row">
-                    <CurrentWaterLevel startDate={currentOrConfirmedStart} endDate={currentOrConfirmedEnd} />
-                    <WaterLevelHistory startDate={currentOrConfirmedStart} endDate={currentOrConfirmedEnd} />
-                  </div>
-                )}
-              </>
+            {hasSensor(viewingProduct, '66d442e2772a6d2e0d90aa5b') && (
+              <div className="chart-row">
+                <CurrentTemperature />
+                <TemperatureHistory startDate={currentOrConfirmedStart} endDate={currentOrConfirmedEnd} />
+              </div>
+            )}
+            {hasSensor(viewingProduct, '66d442e2772a6d2e0d90aa5d') && (
+              <div className="chart-row">
+                <CurrentHumidity />
+                <HumidityHistory startDate={currentOrConfirmedStart} endDate={currentOrConfirmedEnd} />
+              </div>
+            )}
+            {hasSensor(viewingProduct, '66d442e2772a6d2e0d90aa5c') && (
+              <div className="chart-row">
+                <CurrentCO2Level />
+                <CO2History startDate={currentOrConfirmedStart} endDate={currentOrConfirmedEnd} />
+              </div>
             )}
           </div>
         </div>
@@ -230,11 +223,7 @@ const Products = () => {
 };
 
 const Pagination = ({ currentPage, totalPages, onPageChange }) => {
-  const pageNumbers = [];
-
-  for (let i = 1; i <= totalPages; i++) {
-    pageNumbers.push(i);
-  }
+  const pageNumbers = Array.from({ length: totalPages }, (_, i) => i + 1);
 
   return (
     <div className="pagination">

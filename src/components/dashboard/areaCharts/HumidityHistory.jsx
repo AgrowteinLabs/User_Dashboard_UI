@@ -1,17 +1,17 @@
 import React, { useEffect, useState, useContext } from 'react';
 import ReactApexChart from 'react-apexcharts';
-import { FaChartBar } from "react-icons/fa";
+import { FaTint } from "react-icons/fa";
 import axios from 'axios';
-import { ProductContext } from '../../../context/ProductContext';
+import { ProductContext } from '../../../context/ProductContext'; 
 import "./AreaCharts.scss";
 
-const TemperatureHistory = () => {
-  const [series, setSeries] = useState([{ name: 'Temperature', data: [] }]);
+const HumidityHistory = () => {
+  const [series, setSeries] = useState([{ name: 'Humidity', data: [] }]);
   const [categories, setCategories] = useState([]);
   const { selectedProductUid } = useContext(ProductContext);
 
   useEffect(() => {
-    const fetchTemperatureHistory = async () => {
+    const fetchHumidityHistory = async () => {
       if (!selectedProductUid) return;
 
       try {
@@ -22,20 +22,20 @@ const TemperatureHistory = () => {
 
         if (response.data && response.data.length > 0) {
           const filteredData = filterByThirtyMinutes(response.data);
-          const temperatures = filteredData.map(entry => entry.data.Temperature);
+          const humidityLevels = filteredData.map(entry => entry.data.Humidity);
           const timestamps = filteredData.map(entry => new Date(entry.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }));
           
-          setSeries([{ name: 'Temperature', data: temperatures }]);
+          setSeries([{ name: 'Humidity', data: humidityLevels }]);
           setCategories(timestamps);
         } else {
           console.error("No data available for the selected date range.");
         }
       } catch (error) {
-        console.error("Error fetching temperature history:", error);
+        console.error("Error fetching humidity history:", error);
       }
     };
 
-    fetchTemperatureHistory();
+    fetchHumidityHistory();
   }, [selectedProductUid]);
 
   const filterByThirtyMinutes = (data) => {
@@ -55,33 +55,24 @@ const TemperatureHistory = () => {
 
   const options = {
     chart: {
-      type: 'bar', // Use 'bar' for column chart
+      type: 'line',
       animations: {
         enabled: true,
         easing: 'easeinout',
         speed: 800,
       },
     },
-    plotOptions: {
-      bar: {
-        columnWidth: '50%',
-        borderRadius: 4,
-      },
-    },
-    dataLabels: {
-      enabled: false, // Hide data labels by default
-    },
     xaxis: {
       categories: categories,
       labels: {
         style: {
           colors: 'var(--text-color)',
-        },
-      },
+        }
+      }
     },
     yaxis: {
       title: {
-        text: '°C',
+        text: '%',
         style: {
           color: 'var(--text-color)',
         },
@@ -89,21 +80,22 @@ const TemperatureHistory = () => {
       labels: {
         style: {
           colors: 'var(--text-color)',
-        },
-      },
+        }
+      }
     },
-    fill: {
-      colors: ['#FF6347'], // Customize bar color
+    stroke: {
+      curve: 'smooth',
+      colors: ['var(--primary-color)'],
+    },
+    markers: {
+      size: 5,
+      colors: ['var(--primary-color)'],
+      strokeColors: 'var(--background-color)',
+      strokeWidth: 2,
     },
     tooltip: {
-      enabled: true, // Enable tooltip
-      shared: false, // Only show tooltip for the hovered bar
-      intersect: true, // Only display tooltip when directly over a bar
-      x: {
-        show: true, // Show x-axis label on tooltip
-      },
       y: {
-        formatter: val => `${val}°C`, // Format y-axis values
+        formatter: val => `${val}%`,
       },
       style: {
         fontSize: '12px',
@@ -116,15 +108,15 @@ const TemperatureHistory = () => {
     <div className="progress-bar">
       <div className="progress-bar-info">
         <h4 className="progress-bar-title" style={{ color: 'var(--text-color)' }}>
-          <FaChartBar style={{ marginRight: "8px", color: 'var(--text-color)' }} />
-          Temperature History (Last 24 Hours)
+          <FaTint style={{ marginRight: "8px", color: 'var(--text-color)' }} />
+          Humidity History (Last 24 Hours)
         </h4>
       </div>
       <div className="chart-wrapper">
-        <ReactApexChart options={options} series={series} type="bar" height={350} />
+        <ReactApexChart options={options} series={series} type="line" height={350} />
       </div>
     </div>
   );
 };
 
-export default TemperatureHistory;
+export default HumidityHistory;
