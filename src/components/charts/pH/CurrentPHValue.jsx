@@ -1,13 +1,38 @@
-import React from 'react';
+import React, { useEffect, useState, useContext } from 'react';
 import ReactApexChart from 'react-apexcharts';
 import { FaFlask } from "react-icons/fa";
-import "../AreaCharts.scss";
-import { _alignPixel } from 'chart.js/helpers';
-
-const currentPH = 7; // Example pH value
+import { fetcheddata } from '../../dashboard/api/fetchdata'; // Assuming you're using the same API to fetch pH data
+import { ProductContext } from '../../../context/ProductContext';
 
 const CurrentPHValue = () => {
-  const series = [currentPH];
+  const [series, setSeries] = useState([0]); // Initial pH value
+  const { selectedProductUid } = useContext(ProductContext);
+
+  useEffect(() => {
+    const fetchPHData = async () => {
+      if (!selectedProductUid) return;
+
+      try {
+        const data = await fetcheddata(selectedProductUid);
+        if (data && data.data && data.data.pHValue !== undefined) {
+          setSeries([data.data.pHValue]); // Update the series with the pH value
+        } else {
+          console.error("pH value data not found in the API response");
+        }
+      } catch (error) {
+        console.error("Error fetching pH data:", error);
+      }
+    };
+
+    // Fetch the pH data once when the component mounts
+    fetchPHData();
+
+    // Optionally, set up an interval to refresh the data periodically
+    const intervalId = setInterval(fetchPHData, 1000); // Refresh every 1 second
+
+    return () => clearInterval(intervalId); // Clean up the interval on component unmount
+  }, [selectedProductUid]);
+
   const options = {
     chart: {
       type: 'radialBar',

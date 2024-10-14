@@ -3,106 +3,117 @@ import AreaCard from "./AreaCard";
 import "./AreaCards.scss";
 import fetchProducts from "../api/fetchProducts";
 import { ProductContext } from "../../../context/ProductContext";
+import Slider from "@mui/material/Slider";
+import Stack from "@mui/material/Stack";
 
 const AreaCards = () => {
   const { selectedProductUid, setSelectedProductUid } = useContext(ProductContext);
   const [products, setProducts] = useState([]);
   const [selectedControls, setSelectedControls] = useState([]);
   const [selectedSensors, setSelectedSensors] = useState([]);
-  const [error, setError] = useState(null); // Error state for error handling
-  const [loading, setLoading] = useState(true); // Loading state
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  // Fetch products on component mount
   useEffect(() => {
     const fetchData = async () => {
-      setLoading(true); // Start loading
+      setLoading(true);
       try {
         const data = await fetchProducts();
         if (Array.isArray(data) && data.length > 0) {
           setProducts(data);
-          // Set default product if none is selected
-          // alert(selectedProductUid);
           if (!selectedProductUid) {
             setSelectedProductUid(data[0].uid);
-            // alert("Selected product: " + data[0].alias); // Alert default selected product
           }
         } else {
-          setProducts([]); // If the data is not an array or is empty, ensure the products array is empty
+          setProducts([]);
         }
       } catch (error) {
         console.error("Error fetching products:", error);
-        setError("Failed to load products."); // Set the error message
-        setProducts([]); // Set an empty array if there was an error
+        setError("Failed to load products.");
+        setProducts([]);
       } finally {
-        setLoading(false); // Stop loading
+        setLoading(false);
       }
     };
     fetchData();
   }, [selectedProductUid, setSelectedProductUid]);
 
-  // Update sensors and controls when the selected product changes
   useEffect(() => {
     if (products.length > 0) {
       const selectedProduct = products.find((product) => product.uid === selectedProductUid);
-
       if (selectedProduct) {
-        // Safeguard for controls
         if (Array.isArray(selectedProduct.controls)) {
           setSelectedControls(
             selectedProduct.controls.map((control) => Object.entries(control)[0])
           );
         } else {
-          setSelectedControls([]); // Ensure controls are empty if none are available
+          setSelectedControls([]);
         }
-
-        // Safeguard for sensors
         if (Array.isArray(selectedProduct.sensors)) {
           setSelectedSensors(
             selectedProduct.sensors.map((sensor) => ({
-              name: sensor.sensorId?.name || "Unknown Sensor", // Fallback to 'Unknown Sensor'
+              name: sensor.sensorId?.name || "Unknown Sensor",
               state: sensor.state,
-              unit: sensor.sensorId?.unit || "", // Fallback to empty string if unit is undefined
+              unit: sensor.sensorId?.unit || "",
             }))
           );
         } else {
-          setSelectedSensors([]); // Ensure sensors are empty if none are available
+          setSelectedSensors([]);
         }
       } else {
-        setSelectedControls([]); // Reset if no selected product
-        setSelectedSensors([]); // Reset if no selected product
+        setSelectedControls([]);
+        setSelectedSensors([]);
       }
     }
   }, [selectedProductUid, products]);
 
-  // Handling edge cases if no products or no sensors/controls are available
+  const handleThresholdChange = (controlKey, newThreshold) => {
+    setSelectedControls((prevControls) =>
+      prevControls.map(([key, control]) =>
+        key === controlKey
+          ? [
+              key,
+              {
+                ...control,
+                threshHold: parseFloat(newThreshold.toFixed(1)), // Ensure the threshold is a float with 1 decimal point
+              },
+            ]
+          : [key, control]
+      )
+    );
+  };
+
+  const handleInputChange = (controlKey, value) => {
+    const newValue = parseFloat(value);
+    if (!isNaN(newValue)) {
+      handleThresholdChange(controlKey, newValue);
+    }
+  };
+
   if (loading) {
-    return <div>Loading...</div>; // Show loading state
+    return <div>Loading...</div>;
   }
 
   if (error) {
-    return <div>{error}</div>; // Display error message if fetching products failed
+    return <div>{error}</div>;
   }
 
   if (!products.length) {
-    return( 
+    return (
       <section className="content-area-cards">
-      <div className="dropdown-container">
-      No products available
-      </div>
+        <div className="dropdown-container">No products available</div>
       </section>
-     ); 
+    );
   }
 
   return (
     <section className="content-area-cards">
       <div className="dropdown-container">
         <select
-          value={selectedProductUid || ""} // Use empty string if no product is selected
+          value={selectedProductUid || ""}
           onChange={(e) => {
             const selectedUid = e.target.value;
-            setSelectedProductUid(selectedUid); // Set the selected product's UID
-            const selectedProduct = products.find(product => product.uid === selectedUid);
-            
+            setSelectedProductUid(selectedUid);
           }}
         >
           <option value="" disabled>
@@ -133,40 +144,43 @@ const AreaCards = () => {
           className="center-card"
         />
 
-        {/* Uncomment this section if you want to display sensors */}
-        {/* {selectedSensors.length > 0 ? (
-          selectedSensors.map((sensor, index) => (
-            <AreaCard
-              key={index}
-              colors={["#e4e8ef", sensor.state === "ON" ? "#4ce13f" : "#f29a2e"]}
-              cardInfo={{
-                title: sensor.name,
-                value: sensor.state,
-                unit: sensor.unit,
-              }}
-              type="sensor"
-            />
-          ))
-        ) : (
-          <div>No sensors available</div>
-        )} */}
-
-        {selectedControls.length > 1 ? (
-          alert(selectedControls.length),
-          selectedControls.map(([controlKey, controlName], index) => (
+        {selectedControls.length > 0 ? (
+          selectedControls.map(([controlKey, control], index) => (
             <AreaCard
               key={index}
               colors={["#e4e8ef", "#f29a2e"]}
               cardInfo={{
-                title: controlName,
+                title: control.name,
+                value: control.threshHold,
+                unit: control.max ? `Max: ${control.max}, Min: ${control.min}` : "",
               }}
-              type="power"
-              controlName={controlName}
-              controlKey={controlKey}
-            />
+              type="control"
+            >
+              <Stack spacing={2} direction="row" sx={{ alignItems: "center", mb: 1 }}>
+                <Slider
+                  aria-label="Control Threshold"
+                  value={control.threshHold}
+                  min={control.min}
+                  max={control.max}
+                  step={0.1} // Allowing up to one decimal point
+                  onChange={(e, newValue) => handleThresholdChange(controlKey, newValue)}
+                />
+              </Stack>
+              <div>
+                Threshold:
+                <input
+                  type="number"
+                  step="0.1"
+                  value={control.threshHold} // Directly binding the numeric value
+                  onChange={(e) => handleInputChange(controlKey, e.target.value)}
+                  style={{ width: "60px", textAlign: "center", marginRight: "10px" }}
+                /> 
+                / {control.max}
+              </div>
+            </AreaCard>
           ))
         ) : (
-          <div></div>
+          <div>No controls available</div>
         )}
       </div>
     </section>

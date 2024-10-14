@@ -1,17 +1,17 @@
 import PropTypes from "prop-types";
-import { useState, useEffect, useContext } from "react";
+import { useState, useEffect, useContext, useCallback } from "react";
 import { FiClock, FiThermometer, FiPower } from "react-icons/fi";
 import { ProductContext } from "../../../context/ProductContext";
 import { fetcheddata } from "../api/fetchdata";
 import { PowerButton } from "../api/powerButton";
 
-const AreaCard = ({ colors, cardInfo, type, controlName, controlKey }) => {
+const AreaCard = ({ colors, cardInfo, type, controlKey, children }) => {
   const [isPowerOn, setIsPowerOn] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [temperature, setTemperature] = useState(null); // Default to null
+  const [temperature, setTemperature] = useState(null);
   const [humidity, setHumidity] = useState(null);
   const { selectedProductUid } = useContext(ProductContext);
-  const [isFetchingStopped, setIsFetchingStopped] = useState(false); // New state to stop fetching
+  const [isFetchingStopped, setIsFetchingStopped] = useState(false);
 
   useEffect(() => {
     if (type === "time") {
@@ -28,7 +28,6 @@ const AreaCard = ({ colors, cardInfo, type, controlName, controlKey }) => {
 
     const fetchData = async () => {
       if (!selectedProductUid || isFetchingStopped) {
-        console.warn("Product UID is not set or fetching stopped");
         return;
       }
 
@@ -36,30 +35,28 @@ const AreaCard = ({ colors, cardInfo, type, controlName, controlKey }) => {
         const data = await fetcheddata(selectedProductUid);
 
         if (data.error === 404) {
-          console.error("Error 404: Resource not found. Stopping fetch attempts.");
+          setIsFetchingStopped(true);
           setTemperature(null);
           setHumidity(null);
-          setIsFetchingStopped(true); // Stop further fetch attempts
-          clearInterval(intervalId); // Stop the interval
+          clearInterval(intervalId);
           return;
         }
 
-        // Handle cases where fetched data is null or invalid
         if (!data || !data.data) {
-          console.warn("No valid data returned from fetcheddata");
-          setTemperature(null); // Reset temperature on null data
-          setHumidity(null); // Reset humidity on null data
+          setTemperature(null);
+          setHumidity(null);
           return;
         }
 
         const temp = data.data.Temperature;
-        setTemperature(temp !== null && temp !== undefined ? parseFloat(temp.toFixed(2)) : null);
-        setHumidity(data.data.Humidity);
+        if (isActive) {
+          setTemperature(temp !== null && temp !== undefined ? parseFloat(temp.toFixed(2)) : null);
+          setHumidity(data.data.Humidity);
+        }
       } catch (error) {
         if (isActive) {
-          console.error("Error fetching sensor data:", error);
           setTemperature(null);
-          setHumidity(null); // Reset humidity on error
+          setHumidity(null);
         }
       }
     };
@@ -72,7 +69,7 @@ const AreaCard = ({ colors, cardInfo, type, controlName, controlKey }) => {
     };
   }, [selectedProductUid, isFetchingStopped]);
 
-  const handlePowerSwitch = async () => {
+  const handlePowerSwitch = useCallback(async () => {
     const newPowerState = !isPowerOn;
     const command = `${controlKey}${newPowerState ? "on" : "off"}`;
 
@@ -82,26 +79,20 @@ const AreaCard = ({ colors, cardInfo, type, controlName, controlKey }) => {
     } catch (error) {
       console.error("Error switching power:", error);
     }
-  };
+  }, [isPowerOn, selectedProductUid, controlKey]);
 
   const renderValue = () => {
     switch (type) {
       case "time":
         return currentTime.toLocaleTimeString();
       case "temperature":
-        if (temperature === null) {
-          return (
-            <span style={{ color: "red", fontWeight: "bold" }}>Sensor Error</span>
-          );
-        }
-        return temperature !== undefined ? `${temperature} °C` : "Loading...";
+        return temperature !== null
+          ? `${temperature} °C`
+          : <span className="error-text">Sensor Error</span>;
       case "humidity":
-        if (humidity === null) {
-          return (
-            <span style={{ color: "red", fontWeight: "bold" }}>Sensor Error</span>
-          );
-        }
-        return humidity !== undefined ? `${humidity} %` : "Loading...";
+        return humidity !== null
+          ? `${humidity} %`
+          : <span className="error-text">Sensor Error</span>;
       case "power":
         return (
           <div className="power-switch">
@@ -124,7 +115,6 @@ const AreaCard = ({ colors, cardInfo, type, controlName, controlKey }) => {
       case "time":
         return <FiClock size={48} color={colors[1]} />;
       case "temperature":
-        return <FiThermometer size={48} color={colors[1]} />;
       case "humidity":
         return <FiThermometer size={48} color={colors[1]} />;
       case "power":
@@ -146,6 +136,7 @@ const AreaCard = ({ colors, cardInfo, type, controlName, controlKey }) => {
       <div className="area-card-info">
         <h5 className="info-title">{cardInfo.title}</h5>
         <div className="info-value">{renderValue()}</div>
+        {children && <div className="area-card-children">{children}</div>}
       </div>
       <div className="area-card-icon">{renderIcon()}</div>
     </div>
@@ -156,8 +147,8 @@ AreaCard.propTypes = {
   colors: PropTypes.array.isRequired,
   cardInfo: PropTypes.object.isRequired,
   type: PropTypes.string.isRequired,
-  controlName: PropTypes.string,
   controlKey: PropTypes.string,
+  children: PropTypes.node, // New prop type for children
 };
 
 export default AreaCard;

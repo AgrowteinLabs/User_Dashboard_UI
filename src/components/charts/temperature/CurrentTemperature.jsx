@@ -1,9 +1,38 @@
-import React from 'react';
+import React, { useEffect, useState, useContext } from 'react';
 import ReactApexChart from 'react-apexcharts';
 import { FaThermometerHalf } from "react-icons/fa";
+import { fetcheddata } from '../../dashboard/api/fetchdata'; // Assuming the API function is the same
+import { ProductContext } from '../../../context/ProductContext';
 
 const CurrentTemperature = () => {
-  const series = [{ name: 'Temperature', data: [23] }]; // Example current temperature value
+  const [series, setSeries] = useState([{ name: 'Temperature', data: [0] }]); // Initial temperature value
+  const { selectedProductUid } = useContext(ProductContext);
+
+  useEffect(() => {
+    const fetchTemperatureData = async () => {
+      if (!selectedProductUid) return;
+
+      try {
+        const data = await fetcheddata(selectedProductUid);
+        if (data && data.data && data.data.Temperature !== undefined) {
+          setSeries([{ name: 'Temperature', data: [data.data.Temperature] }]); // Update with API data
+        } else {
+          console.error("Temperature data not found in the API response");
+        }
+      } catch (error) {
+        console.error("Error fetching temperature data:", error);
+      }
+    };
+
+    // Fetch the temperature data once when the component mounts
+    fetchTemperatureData();
+
+    // Optionally, set up an interval to refresh the data periodically
+    const intervalId = setInterval(fetchTemperatureData, 1000); // Refresh every 1 second
+
+    return () => clearInterval(intervalId); // Clean up the interval on component unmount
+  }, [selectedProductUid]);
+
   const options = {
     chart: {
       type: 'line',
@@ -57,7 +86,7 @@ const CurrentTemperature = () => {
     },
   };
 
-  return(
+  return (
     <div className="progress-bar">
       <div className="progress-bar-info">
         <h4 className="progress-bar-title" style={{ color: 'var(--text-color)' }}>
