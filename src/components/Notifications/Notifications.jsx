@@ -17,6 +17,17 @@ const getIcon = (type) => {
   }
 };
 
+const markAsRead = (id) => {
+  // Here you would send a request to your backend to mark this notification as read.
+  const updatedNotifications = user.notifications.map(notification =>
+    notification.id === id ? { ...notification, read: true } : notification
+  );
+
+  // Update the user's notification data in the context or state (assuming a function to do so)
+  updateUser({ ...user, notifications: updatedNotifications });
+};
+
+
 const Notifications = () => {
   const { user } = useContext(UserContext);
 
@@ -38,8 +49,14 @@ const Notifications = () => {
           >
             <div className="notification-icon">{getIcon(notification.type)}</div>
             <div className="notification-content">
-              <p className="notification-message">{notification.message}</p>
-            </div>
+  <p className="notification-message">{notification.message}</p>
+  {!notification.read && (
+    <button onClick={() => markAsRead(notification.id)} className="mark-as-read-btn">
+      Mark as Read
+    </button>
+  )}
+</div>
+
             {!notification.read && <div className="notification-badge">New</div>}
           </div>
         ))}

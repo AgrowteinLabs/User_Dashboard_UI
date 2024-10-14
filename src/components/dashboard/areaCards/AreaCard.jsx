@@ -32,27 +32,32 @@ const AreaCard = ({ colors, cardInfo, type, controlKey, children }) => {
       }
 
       try {
-        const data = await fetcheddata(selectedProductUid);
+        const { data } = await fetcheddata(selectedProductUid);
 
         if (data.error === 404) {
           setIsFetchingStopped(true);
           setTemperature(null);
           setHumidity(null);
+          setIsFetchingStopped(true);
           clearInterval(intervalId);
           return;
         }
 
         if (!data || !data.data) {
+          console.warn("No valid data returned from fetcheddata");
           setTemperature(null);
           setHumidity(null);
           return;
         }
 
-        const temp = data.data.Temperature;
-        if (isActive) {
-          setTemperature(temp !== null && temp !== undefined ? parseFloat(temp.toFixed(2)) : null);
-          setHumidity(data.data.Humidity);
+        if (type === "temperature" && data.data.Temperature !== undefined) {
+          setTemperature(Number(data.data.Temperature).toFixed(2)); // Format to 2 decimal places
         }
+
+        if (type === "humidity" && data.data.Humidity !== undefined) {
+          setHumidity(Number(data.data.Humidity));
+        }
+
       } catch (error) {
         if (isActive) {
           setTemperature(null);
@@ -61,13 +66,16 @@ const AreaCard = ({ colors, cardInfo, type, controlKey, children }) => {
       }
     };
 
-    intervalId = setInterval(fetchData, 1000);
+    if (type === "temperature" || type === "humidity") {
+      intervalId = setInterval(fetchData, 5000);
+      fetchData();
+    }
 
     return () => {
       isActive = false;
       clearInterval(intervalId);
     };
-  }, [selectedProductUid, isFetchingStopped]);
+  }, [selectedProductUid, type, isFetchingStopped]);
 
   const handlePowerSwitch = useCallback(async () => {
     const newPowerState = !isPowerOn;
@@ -86,13 +94,9 @@ const AreaCard = ({ colors, cardInfo, type, controlKey, children }) => {
       case "time":
         return currentTime.toLocaleTimeString();
       case "temperature":
-        return temperature !== null
-          ? `${temperature} °C`
-          : <span className="error-text">Sensor Error</span>;
+        return temperature !== null ? `${temperature} °C` : <span style={{ color: "red", fontWeight: "bold" }}>Sensor Error</span>;
       case "humidity":
-        return humidity !== null
-          ? `${humidity} %`
-          : <span className="error-text">Sensor Error</span>;
+        return humidity !== null ? `${humidity} %` : <span style={{ color: "red", fontWeight: "bold" }}>Sensor Error</span>;
       case "power":
         return (
           <div className="power-switch">

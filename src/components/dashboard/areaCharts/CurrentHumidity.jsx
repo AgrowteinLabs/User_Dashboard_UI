@@ -1,41 +1,40 @@
 import React, { useEffect, useState, useContext } from 'react';
 import ReactApexChart from 'react-apexcharts';
-import { FaThermometerHalf } from "react-icons/fa";
+import { FaTint } from "react-icons/fa";
 import { fetcheddata } from '../../dashboard/api/fetchdata';
 import { ProductContext } from '../../../context/ProductContext';
 import "./AreaCharts.scss";
 
-const CurrentTemperature = () => {
-  const [currentTemperature, setCurrentTemperature] = useState(0);
+const CurrentHumidity = () => {
+  const [series, setSeries] = useState([{ name: 'Humidity', data: [0] }]);
   const { selectedProductUid } = useContext(ProductContext);
 
   useEffect(() => {
-    const fetchTemperatureData = async () => {
+    const fetchHumidityData = async () => {
       if (!selectedProductUid) return;
 
       try {
         const { data } = await fetcheddata(selectedProductUid);
         console.log(data); // Check the fetched data structure
-        if (data && data.data && data.data.Temperature !== undefined) {
-          setCurrentTemperature(Number(data.data.Temperature));
+        if (data && data.data && data.data.Humidity !== undefined) {
+          setSeries([{ name: 'Humidity', data: [Number(data.data.Humidity)] }]);
         } else {
-          console.error("Temperature data not found in the API response");
+          console.error("Humidity data not found in the API response");
         }
       } catch (error) {
-        console.error("Error fetching temperature data:", error);
+        console.error("Error fetching humidity data:", error);
       }
     };
 
-    fetchTemperatureData();
-    const intervalId = setInterval(fetchTemperatureData, 5000);
+    fetchHumidityData();
+    const intervalId = setInterval(fetchHumidityData, 5000);
 
     return () => clearInterval(intervalId);
   }, [selectedProductUid]);
 
-  const series = [{ name: 'Temperature', data: [currentTemperature] }];
   const options = {
     chart: {
-      type: 'line',
+      type: 'bar',
       animations: {
         enabled: true,
         easing: 'easeout',
@@ -52,7 +51,7 @@ const CurrentTemperature = () => {
     },
     yaxis: {
       title: {
-        text: '°C',
+        text: '%',
         style: {
           color: 'var(--text-color)',
         },
@@ -63,41 +62,37 @@ const CurrentTemperature = () => {
         }
       }
     },
-    stroke: {
-      width: 8,
-      curve: 'smooth',
-      colors: ['var(--primary-color)'],
-    },
-    markers: {
-      size: 8,
-      colors: ['var(--primary-color)'],
-      strokeColors: 'var(--background-color)',
-      strokeWidth: 2,
+    plotOptions: {
+      bar: {
+        horizontal: false,
+        columnWidth: '50%',
+      },
     },
     tooltip: {
       y: {
-        formatter: val => `${val}°C`,
+        formatter: val => `${val}%`,
       },
       style: {
         fontSize: '12px',
         colors: ['var(--text-color)'],
       },
     },
+    colors: ['var(--primary-color)'],
   };
 
   return (
     <div className="progress-bar">
       <div className="progress-bar-info">
         <h4 className="progress-bar-title" style={{ color: 'var(--text-color)' }}>
-          <FaThermometerHalf style={{ marginRight: "8px", color: 'var(--text-color)' }} />
-          Current Temperature
+          <FaTint style={{ marginRight: "8px", color: 'var(--text-color)' }} />
+          Current Humidity
         </h4>
       </div>
       <div className="chart-wrapper">
-        <ReactApexChart options={options} series={series} type="line" height={350} />
+        <ReactApexChart options={options} series={series} type="bar" height={350} />
       </div>
     </div>
   );
 };
 
-export default CurrentTemperature;
+export default CurrentHumidity;
