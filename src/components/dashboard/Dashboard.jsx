@@ -4,11 +4,13 @@ import { ProductContext } from "../../context/ProductContext"; // Import Product
 import AreaCards from "./areaCards/AreaCards";
 import SensorChart from "./SensorChart";
 import ErrorBoundary from "./ErrorBoundary"; // Adjust the import as needed
+import { fetchSensorList } from "./api/fetchsensorlist";
 
 const Dashboard = () => {
   const { user } = useContext(UserContext);
   const { selectedProductUid } = useContext(ProductContext); // Access selectedProductUid from ProductContext
   const [isLoading, setIsLoading] = useState(true);
+  const [fetchedSensors, setFetchedSensors] = useState([]); // Store fetched sensors
 
   useEffect(() => {
     const userid = localStorage.getItem("userId");
@@ -19,6 +21,15 @@ const Dashboard = () => {
     } else {
       setIsLoading(false); // Set loading to false if userId exists
     }
+
+    // Fetch sensor list when component mounts
+    fetchSensorList()
+      .then((data) => {
+        setFetchedSensors(data);
+      })
+      .catch((error) => {
+        console.error("Error fetching sensors:", error);
+      });
   }, []);
 
   if (isLoading) {
@@ -29,42 +40,30 @@ const Dashboard = () => {
     return <div>Loading user data...</div>;
   }
 
+  // Create a function to check if a sensor is active in the fetched sensor list
+  const isSensorActive = (sensorName) => {
+    return fetchedSensors.some((sensor) => sensor.name.toLowerCase() === sensorName.toLowerCase() && sensor.state === "ON");
+  };
+
   return (
     <div className="dashboard">
       <ErrorBoundary>
         <AreaCards />
       </ErrorBoundary>
       <div className="sensor-charts">
-        {user.sensors.includes("currentWaterLevel") && (
-          <SensorChart title="Current Water Level" type="currentWaterLevel" />
+        {isSensorActive("Humidity") && (
+          <>
+            <SensorChart title="Current Humidity" type="currentHumidity" />
+            <SensorChart title="Last 7 Days Humidity Levels" type="last7DaysHumidity" />
+          </>
         )}
-        {user.sensors.includes("currentPh") && (
-          <SensorChart title="Current pH Value" type="currentPh" />
+        {isSensorActive("Co2") && (
+          <>
+            <SensorChart title="Current CO₂ Levels" type="currentCo2" />
+            <SensorChart title="Last 7 Days CO₂ Levels" type="last7DaysCo2" />
+          </>
         )}
-        {user.sensors.includes("last7DaysPh") && (
-          <SensorChart title="Last 7 Days pH Levels" type="last7DaysPh" />
-        )}
-        {user.sensors.includes("last7DaysWaterLevel") && (
-          <SensorChart
-            title="Last 7 Days Water Levels"
-            type="last7DaysWaterLevel"
-          />
-        )}
-        {user.sensors.includes("currentHumidity") && (
-          <SensorChart title="Current Humidity" type="currentHumidity" />
-        )}
-        {user.sensors.includes("last7DaysHumidity") && (
-          <SensorChart
-            title="Last 7 Days Humidity Levels"
-            type="last7DaysHumidity"
-          />
-        )}
-        {user.sensors.includes("currentCo2") && (
-          <SensorChart title="Current CO₂ Levels" type="currentCo2" />
-        )}
-        {user.sensors.includes("last7DaysCo2") && (
-          <SensorChart title="Last 7 Days CO₂ Levels" type="last7DaysCo2" />
-        )}
+        {/* Add other sensors as needed in a similar way */}
       </div>
     </div>
   );

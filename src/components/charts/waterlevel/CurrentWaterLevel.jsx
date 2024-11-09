@@ -8,7 +8,7 @@ import { ProductContext } from '../../../context/ProductContext';
 
 Modal.setAppElement('#root'); // This is to avoid accessibility issues
 
-const CurrentHumidity = () => {
+const CurrentWaterlevel = () => {
   const [humidity, setHumidity] = useState(null);
   const { selectedProductUid } = useContext(ProductContext);
 
@@ -187,4 +187,4 @@ const CurrentHumidity = () => {
   );
 };
 
-export default CurrentHumidity;
+export default CurrentWaterlevel;
