@@ -1,13 +1,58 @@
-import React from 'react';
+import React, { useEffect, useState, useContext } from 'react';
 import ReactApexChart from 'react-apexcharts';
 import { FaLeaf } from "react-icons/fa";
-import "../AreaCharts.scss"
+import axios from 'axios';
+import { ProductContext } from '../../../context/ProductContext'; 
+import "../AreaCharts.scss";
 
 const CO2History = () => {
-  const series = [{
-    name: 'CO2 Level',
-    data: [410, 400, 405, 390, 420, 415, 398] // Example last 7 days CO2 values
-  }];
+  const [series, setSeries] = useState([{ name: 'CO2 Level', data: [] }]);
+  const [categories, setCategories] = useState([]);
+  const { selectedProductUid } = useContext(ProductContext);
+
+  useEffect(() => {
+    const fetchCO2History = async () => {
+      if (!selectedProductUid) return;
+
+      try {
+        const response = await axios.post(`https://agrowtein-5u7w.onrender.com/api/v1/data/${selectedProductUid}/date`, {
+          startDate: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), // 24 hours ago
+          endDate: new Date().toISOString() // current date
+        });
+
+        if (response.data && response.data.length > 0) {
+          const filteredData = filterByThirtyMinutes(response.data);
+          const co2Levels = filteredData.map(entry => entry.data.Co2);
+          const timestamps = filteredData.map(entry => new Date(entry.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }));
+          
+          setSeries([{ name: 'CO2 Level', data: co2Levels }]);
+          setCategories(timestamps);
+        } else {
+          console.error("No data available for the selected date range.");
+        }
+      } catch (error) {
+        console.error("Error fetching CO2 history:", error);
+      }
+    };
+
+    fetchCO2History();
+  }, [selectedProductUid]);
+
+  const filterByThirtyMinutes = (data) => {
+    const result = [];
+    let lastTimestamp = null;
+
+    data.forEach((entry) => {
+      const entryTime = new Date(entry.timestamp);
+      if (!lastTimestamp || entryTime - lastTimestamp >= 30 * 60 * 1000) {
+        result.push(entry);
+        lastTimestamp = entryTime;
+      }
+    });
+
+    return result;
+  };
+
   const options = {
     chart: {
       type: 'line',
@@ -18,29 +63,40 @@ const CO2History = () => {
       },
     },
     xaxis: {
-      categories: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+      categories: categories,
       labels: {
+        rotate: -45, // Rotates labels to prevent overlap
+        datetimeFormatter: {
+          hour: 'HH:mm' // Use a 24-hour time format, or 'hh:mm A' for 12-hour format
+        },
         style: {
-          colors: 'var(--text-color)', // Use CSS variable for text color
-        }
+          colors: 'var(--text-color)',
+        },
+      },
+      tickAmount: 'dataPoints', // Adjusts tick amount dynamically
+      title: {
+        text: 'Time',
+        style: {
+          color: 'var(--text-color)',
+        },
       }
     },
     yaxis: {
       title: {
         text: 'ppm',
         style: {
-          color: 'var(--text-color)', // Use CSS variable for axis title color
+          color: 'var(--text-color)',
         },
       },
       labels: {
         style: {
-          colors: 'var(--text-color)', // Use CSS variable for text color
-        }
-      }
+          colors: 'var(--text-color)',
+        },
+      },
     },
     stroke: {
       curve: 'smooth',
-      colors: ['var(--primary-color)'], // Use CSS variable for line color
+      colors: ['var(--primary-color)'],
     },
     markers: {
       size: 5,
@@ -49,23 +105,26 @@ const CO2History = () => {
       strokeWidth: 2,
     },
     tooltip: {
+      x: {
+        format: 'HH:mm' // Tooltip format
+      },
       y: {
         formatter: val => `${val} ppm`,
       },
       style: {
         fontSize: '12px',
-        fontFamily: undefined,
-        colors: ['var(--text-color)'], // Tooltip text color for dark mode
+        colors: ['var(--text-color)'],
       },
     },
   };
 
-  return(
+  
+  return (
     <div className="bar-chart">
       <div className="bar-chart-info">
         <h5 className="bar-chart-title" style={{ color: 'var(--text-color)' }}>
           <FaLeaf style={{ marginRight: "8px", color: 'var(--text-color)' }} />
-          CO2 Level History
+          CO2 Level History (Last 24 Hours)
         </h5>
       </div>
       <div className="chart-wrapper">

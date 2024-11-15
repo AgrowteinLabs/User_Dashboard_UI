@@ -42,7 +42,7 @@
   }
 }
 
-
+/* Styles for error message display */
 .sensor-error {
   display: flex;
   justify-content: center;
@@ -53,3 +53,46 @@
   font-weight: bold;
   text-align: center;
 }
+
+/* Additional two-column chart layout for side-by-side display */
+.chart-pair {
+  display: flex;
+  gap: 16px;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+  }
+
+  .chart-wrapper {
+    flex: 1; /* Each chart takes equal space */
+  }
+}
+.content-area-charts {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.data-table-diagram {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.chart-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;  /* Creates two equal columns */
+  gap: 16px;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;  /* Stack in one column on smaller screens */
+  }
+}
+
+.chart-item {
+  background-color: var(--secondary-color);
+  padding: 16px;
+  border-radius: 5px;
+  box-shadow: var(--light-shadow1);
+}
+
