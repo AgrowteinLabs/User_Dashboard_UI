@@ -204,3 +204,22 @@ h2 {
     transform: translateY(0);
   }
 }
+
+.password-input {
+  position: relative; // Required to position the eye icon
+}
+
+.eye-icon {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.7);
+  transition: color 0.3s ease;
+
+  &:hover {
+    color: #007bff; // Change color on hover
+  }
+}
+

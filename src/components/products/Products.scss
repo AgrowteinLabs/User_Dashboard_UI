@@ -39,7 +39,7 @@
   }
 
   .product-card {
-    background-color: var(--card-background-color);
+    background-color: var(--secondary-color);
     border-radius: 10px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     padding: 20px;
@@ -67,7 +67,7 @@
 
       p {
         font-size: 0.9em;
-        color: var(--text-secondary-color);
+        color: var(--text-color);
       }
     }
 
