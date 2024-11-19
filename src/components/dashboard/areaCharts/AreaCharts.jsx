@@ -11,7 +11,7 @@ import CurrentCO2 from "../../charts/CO2/CurrentCO2Level";
 import Last7DaysCO2 from "../../charts/CO2/CO2History";
 import CurrentPHValue from "../../charts/pH/CurrentPHValue";
 import Last7DaysPHValue from "../../charts/pH/PHValueHistory";
-import CurrentWaterLevel from "../../charts/waterLevel/CurrentWaterLevel";
+// import CurrentWaterLevel from "../../charts/waterLevel/CurrentWaterLevel";
 // import WaterLevelLast7Days from "../../charts/waterLevel/WaterLevelHistory";
 
 const AreaCharts = () => {
