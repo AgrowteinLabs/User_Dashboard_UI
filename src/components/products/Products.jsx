@@ -1,17 +1,18 @@
-import React, { useState, useEffect } from 'react';
-import { MdViewHeadline } from 'react-icons/md';
-import { CircularProgress } from '@mui/material';
-import { FaCheck, FaProductHunt } from 'react-icons/fa';
-import { addDays, differenceInCalendarDays } from 'date-fns';
-import { DateRange } from 'react-date-range';
-import fetchProducts from '../dashboard/api/fetchProducts';
-import CurrentTemperature from '../dashboard/areaCharts/CurrentTemperature';
-import TemperatureHistory from '../dashboard/areaCharts/TemperatureHistory';
-import CurrentHumidity from '../dashboard/areaCharts/CurrentHumidity';
-import HumidityHistory from '../dashboard/areaCharts/HumidityHistory';
-import CurrentCO2Level from '../dashboard/areaCharts/CurrentCO2Level';
-import CO2History from '../dashboard/areaCharts/CO2History';
-import './Products.scss';
+import React, { useState, useEffect } from "react";
+import { MdViewHeadline } from "react-icons/md";
+import { CircularProgress } from "@mui/material";
+import { FaCheck } from "react-icons/fa";
+import AgricultureIcon from "../../assets/images/agriculture.png";
+import { addDays, differenceInCalendarDays } from "date-fns";
+import { DateRange } from "react-date-range";
+import fetchProducts from "../dashboard/api/fetchProducts";
+import CurrentTemperature from "../charts/temperature/CurrentTemperature";
+import TemperatureHistory from "../charts/temperature/TemperatureHistory";
+import CurrentHumidity from "../charts/humidity/CurrentHumidity";
+import HumidityHistory from "../charts/humidity/HumidityHistory";
+import CurrentCO2Level from "../charts/CO2/CurrentCO2Level";
+import CO2History from "../charts/CO2/CO2History";
+import "./Products.scss";
 
 const Products = () => {
   const [products, setProducts] = useState([]);
@@ -45,17 +46,20 @@ const Products = () => {
     productsFetch();
   }, []);
 
-  const filteredProducts = products.filter(product =>
+  const filteredProducts = products.filter((product) =>
     product.alias.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const indexOfLastProduct = currentPage * productsPerPage;
   const indexOfFirstProduct = indexOfLastProduct - productsPerPage;
-  const currentProducts = filteredProducts.slice(indexOfFirstProduct, indexOfLastProduct);
+  const currentProducts = filteredProducts.slice(
+    indexOfFirstProduct,
+    indexOfLastProduct
+  );
   const totalPages = Math.ceil(filteredProducts.length / productsPerPage);
 
   const handleViewProduct = (product) => {
-    console.log('Selected Product:', product);
+    console.log("Selected Product:", product);
     setViewingProduct(product);
   };
 
@@ -67,9 +71,13 @@ const Products = () => {
     setCurrentPage(pageNumber);
   };
 
-  const hasSensor = (product, sensorId) => {
-    const sensorExists = product.sensors?.some(sensor => sensor.sensorId && sensor.sensorId._id === sensorId);
-    console.log(`Checking for sensor ${sensorId} in product ${product.alias}: ${sensorExists}`);
+  const hasSensor = (product, sensorName) => {
+    const sensorExists = product.sensors?.some(
+      (sensor) => sensor.sensorId && sensor.sensorId.name === sensorName
+    );
+    console.log(
+      `Checking for sensor ${sensorName} in product ${product.alias}: ${sensorExists}`
+    );
     return sensorExists;
   };
 
@@ -83,7 +91,7 @@ const Products = () => {
         endDate,
       });
     } else {
-      alert('Please select a date range of up to 7 days.');
+      alert("Please select a date range of up to 7 days.");
     }
   };
 
@@ -105,7 +113,9 @@ const Products = () => {
       <div className="error-state">
         <h1>{error}</h1>
         <p>Go to the login page.</p>
-        <button onClick={() => window.location.href = '/login'}>Go to Login</button>
+        <button onClick={() => (window.location.href = "/login")}>
+          Go to Login
+        </button>
       </div>
     );
   }
@@ -118,8 +128,12 @@ const Products = () => {
     );
   }
 
-  const currentOrConfirmedStart = confirmedDates ? confirmedDates.startDate : new Date();
-  const currentOrConfirmedEnd = confirmedDates ? confirmedDates.endDate : new Date();
+  const currentOrConfirmedStart = confirmedDates
+    ? confirmedDates.startDate
+    : new Date();
+  const currentOrConfirmedEnd = confirmedDates
+    ? confirmedDates.endDate
+    : new Date();
 
   return (
     <div className="product-management-page">
@@ -140,14 +154,21 @@ const Products = () => {
               <div key={product._id} className="product-card">
                 <div className="product-info">
                   <div className="product-icon">
-                    <FaProductHunt size={40} />
+                    <img
+                      src={AgricultureIcon}
+                      alt="Agriculture Icon"
+                      className="agriculture-icon"
+                    />
                   </div>
                   <h2>{product.alias}</h2>
                   <p>{product.productId.name}</p>
                 </div>
                 <div className="product-actions">
                   {product.sensors?.length > 0 && (
-                    <button className="view-button" onClick={() => handleViewProduct(product)}>
+                    <button
+                      className="view-button"
+                      onClick={() => handleViewProduct(product)}
+                    >
                       <MdViewHeadline size={20} className="view-icon" />
                       <span>View Sensor Readings</span>
                     </button>
@@ -159,10 +180,17 @@ const Products = () => {
         </>
       ) : (
         <div className="product-details">
-          <h2>{viewingProduct.alias} - Sensor Data</h2>
+          <h2 className="sensor-heading">
+            {viewingProduct.alias} - Sensor Data
+          </h2>
           <div className="sensor-data-actions">
-            <button className="back-button" onClick={handleBackToProducts}>Back</button>
-            <button className="date-picker-button" onClick={() => setShowDatePicker(!showDatePicker)}>
+            <button className="back-button" onClick={handleBackToProducts}>
+              Back
+            </button>
+            <button
+              className="date-picker-button"
+              onClick={() => setShowDatePicker(!showDatePicker)}
+            >
               Select Date Range
             </button>
           </div>
@@ -174,7 +202,13 @@ const Products = () => {
                   editableDateInputs={true}
                   onChange={handleDateSelection}
                   moveRangeOnFirstSelection={false}
-                  ranges={[{ startDate: selectedDates.startDate, endDate: selectedDates.endDate, key: 'selection' }]}
+                  ranges={[
+                    {
+                      startDate: selectedDates.startDate,
+                      endDate: selectedDates.endDate,
+                      key: "selection",
+                    },
+                  ]}
                   maxDate={new Date()}
                   minDate={addDays(new Date(), -30)}
                   className="calendar-overlay"
@@ -188,26 +222,58 @@ const Products = () => {
             </div>
           )}
 
-          <div className="content-area-charts">
-            {hasSensor(viewingProduct, '66d442e2772a6d2e0d90aa5b') && (
-              <div className="chart-row">
-                <CurrentTemperature />
-                <TemperatureHistory startDate={currentOrConfirmedStart} endDate={currentOrConfirmedEnd} />
+          <section className="sensor-readings-section">
+            {hasSensor(viewingProduct, "Temperature Sensor") && (
+              <div className="sensor-card">
+                <div className="sensor-header">
+                  <h4>Temperature</h4>
+                </div>
+                <div className="sensor-body">
+                  <CurrentTemperature />
+                </div>
+                <div className="sensor-footer">
+                  <TemperatureHistory
+                    startDate={currentOrConfirmedStart}
+                    endDate={currentOrConfirmedEnd}
+                  />
+                </div>
               </div>
             )}
-            {hasSensor(viewingProduct, '66d442e2772a6d2e0d90aa5d') && (
-              <div className="chart-row">
-                <CurrentHumidity />
-                <HumidityHistory startDate={currentOrConfirmedStart} endDate={currentOrConfirmedEnd} />
+
+            {hasSensor(viewingProduct, "Humidity") && (
+              <div className="sensor-card">
+                <div className="sensor-header">
+                  <h4>Humidity</h4>
+                </div>
+                <div className="sensor-body">
+                  <CurrentHumidity />
+                </div>
+                <div className="sensor-footer">
+                  <HumidityHistory
+                    startDate={currentOrConfirmedStart}
+                    endDate={currentOrConfirmedEnd}
+                  />
+                </div>
               </div>
             )}
-            {hasSensor(viewingProduct, '66d442e2772a6d2e0d90aa5c') && (
-              <div className="chart-row">
-                <CurrentCO2Level />
-                <CO2History startDate={currentOrConfirmedStart} endDate={currentOrConfirmedEnd} />
+
+            {hasSensor(viewingProduct, "Co2") && (
+              <div className="sensor-card">
+                <div className="sensor-header">
+                  <h4>CO2 Levels</h4>
+                </div>
+                <div className="sensor-body">
+                  <CurrentCO2Level />
+                </div>
+                <div className="sensor-footer">
+                  <CO2History
+                    startDate={currentOrConfirmedStart}
+                    endDate={currentOrConfirmedEnd}
+                  />
+                </div>
               </div>
             )}
-          </div>
+          </section>
         </div>
       )}
 
@@ -227,7 +293,7 @@ const Pagination = ({ currentPage, totalPages, onPageChange }) => {
 
   return (
     <div className="pagination">
-      {pageNumbers.map(number => (
+      {pageNumbers.map((number) => (
         <button
           key={number}
           className={`page-button ${number === currentPage ? "active" : ""}`}

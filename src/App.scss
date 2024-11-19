@@ -32,7 +32,7 @@
   --background-color: #fafafa;
   --side-link-hover-color: #f6f6f6;
   --side-text-color: #808191;
-  --logo-color: var(--primary-color);
+  --logo-color: #0000;
   --xl-text-color: #292929;
   --lg-text-color: #525252;
   --base-text-color: #676767;
@@ -51,9 +51,9 @@
 
 @mixin darkMode {
   --primary-color:#03856d;
-  --secondary-color: #191924;
-  --background-color: #1e1e2d;
-  --side-link-hover-color: #525270;
+  --secondary-color: #0f221e77;
+  --background-color: #000000;
+  --side-link-hover-color: #000000;
   --side-text-color: #e1e1e1;
   --logo-color: #fff;
   --xl-text-color: #ffff;
@@ -66,10 +66,10 @@
   --toggle-btn-border-color: #525270;
   --toggle-btn-bg-color: #525270;
   --toggle-btn-icon-color: #bdbdbd;
-  --thead-bg-color: #383854;
+  --thead-bg-color: #20202e;
   --tbl-border-color: ##383854;
-  --scroll-track-bg-color: #2e2e48;
-  --scroll-thumb-bg-color: #575777;
+  --scroll-track-bg-color: #041d0d;
+  --scroll-thumb-bg-color: #0c3223;
 }
 
 * {
@@ -233,4 +233,17 @@ ul {
       transform: translateY(0);
     }
   }
+}
+
+:root {
+  --icon-color-light: black;
+  --icon-color-dark: white;
+}
+
+body.light-mode {
+  --icon-color: var(--icon-color-light);
+}
+
+body.dark-mode {
+  --icon-color: var(--icon-color-dark);
 }

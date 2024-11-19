@@ -1,31 +1,27 @@
 export async function fetcheddata(uid) {
   try {
     const url = `https://agrowtein-5u7w.onrender.com/api/v1/data/realtime/${uid}`;
-    
     const response = await fetch(url, {
       method: 'GET',
-      credentials: 'include', // Ensures cookies are sent with the request
+      credentials: 'include',
     });
 
-    // If response is not ok, handle the error based on status code
     if (!response.ok) {
       if (response.status === 404) {
-        throw new Error('404'); // Throw a 404 error
+        throw new Error('404'); // Handle 404
       } else {
-        throw new Error(`Error: ${response.status}`); // Other errors
+        throw new Error(`Error: ${response.status}`); // Handle other errors
       }
     }
 
     const data = await response.json();
-    return { data }; // Return the data inside an object
+    console.log("API Raw Response:", JSON.stringify(data, null, 2)); // Log raw API response
+    return data; // Return raw response
   } catch (error) {
-    // Log the error and return the error code or message
-    // console.error('Error fetching data:', error);
-
+    console.error('Error fetching data:', error);
     if (error.message === '404') {
-      return { error: 404 }; // Return an error object with 404 code
+      return { error: 404 }; // Return 404
     }
-    
-    return { error: 'Failed to fetch data' }; // Return a generic error object for other errors
+    return { error: 'Failed to fetch data' };
   }
-}
+} 

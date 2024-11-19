@@ -9,49 +9,58 @@
 
   .notifications-header {
     text-align: center;
-    margin-bottom: 20px;
+    margin-bottom: 30px;
 
     h1 {
       font-size: 2.5em;
+      font-weight: 700;
       margin-bottom: 10px;
       color: var(--primary-color);
     }
 
     p {
-      font-size: 1.2em;
-      color: var(--text-color); // Use text color variable
+      font-size: 1.1em;
+      color: var(--text-color);
+      font-weight: 500;
     }
   }
 
   .notifications-list {
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 15px;
     width: 100%;
     max-width: 900px;
 
     .notification-card {
       background-color: var(--card-background-color);
-      padding: 20px;
-      border-radius: 10px;
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      padding: 20px 25px;
+      border-radius: 12px;
+      box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
       display: flex;
-      align-items: center;
+      align-items: flex-start;
+      gap: 20px;
       transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
 
       &:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+        transform: translateY(-4px);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
       }
 
       &.unread {
-        border-left: 5px solid var(--primary-color);
+        border-left: 6px solid var(--primary-color);
       }
 
       .notification-icon {
-        font-size: 2em;
-        margin-right: 20px;
+        font-size: 2.5em;
+        margin-right: 15px;
         color: var(--primary-color);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: var(--secondary-color);
+        border-radius: 50%;
+        padding: 10px;
       }
 
       .notification-content {
@@ -59,36 +68,40 @@
 
         .notification-message {
           font-size: 1.2em;
-          color: var(--text-color); // Use text color variable
-          margin-bottom: 5px;
+          color: var(--text-color);
+          // font-weight: 600;
+          margin-bottom: 8px;
         }
 
         .notification-time {
           font-size: 0.9em;
-          color: var(--base-text-color); // Use base text color variable
+          color: var(--text-color);
+          font-style: italic;
         }
       }
 
       .notification-badge {
         background-color: var(--primary-color);
         color: white;
-        padding: 5px 10px;
-        border-radius: 5px;
+        padding: 6px 12px;
+        border-radius: 50px;
         font-size: 0.8em;
         font-weight: bold;
+        white-space: nowrap;
       }
     }
 
     @media (prefers-color-scheme: dark) {
       .notification-card {
-        background-color: var(--secondary-color); // Applying dark mode background
+        background-color: var(--secondary-color);
+
         .notification-content {
-          // .notification-message {
-          //   color: #ffffff; // Adjust text color to white for dark mode
-          // }
+          .notification-message {
+            color: var(--text-color);
+          }
 
           .notification-time {
-            color: #d3d3d3; // Adjust base text color for dark mode
+            color: var(--text-color);
           }
         }
       }
@@ -105,30 +118,32 @@
   }
 }
 
-
 .mark-as-read-btn {
   display: inline-block;
-  padding: 6px 12px;
-  background-color: #007bff;
+  padding: 8px 16px;
+  background-color: var(--primary-color);
   color: #fff;
   border: none;
-  border-radius: 4px;
+  border-radius: 25px;
   cursor: pointer;
   font-size: 14px;
   font-weight: bold;
-  transition: background-color 0.3s ease;
-  margin-top: 8px;
+  transition: all 0.3s ease;
   text-align: center;
+  margin-top: 10px;
 
   &:hover {
     background-color: #0056b3;
+    transform: scale(1.05);
   }
 
   &:focus {
     outline: none;
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.5);
   }
 
   &:active {
     background-color: #00408a;
+    transform: scale(0.95);
   }
 }

@@ -39,7 +39,7 @@
   }
 
   .product-card {
-    background-color: var(--card-background-color);
+    background-color: var(--secondary-color);
     border-radius: 10px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     padding: 20px;
@@ -67,7 +67,7 @@
 
       p {
         font-size: 0.9em;
-        color: var(--text-secondary-color);
+        color: var(--text-color);
       }
     }
 
@@ -260,10 +260,10 @@
 
 
 .product-details {
-  h2 {
-    text-align: center; /* Center-align the heading */
-    color: var(--primary-color);
+  .sensor-heading {
+    text-align: center;
     font-size: 2em;
+    color: var(--primary-color);
     margin-bottom: 20px;
   }
 
@@ -287,66 +287,53 @@
       }
     }
   }
-}
 
+  .sensor-readings-section {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
 
+    @media (max-width: 768px) {
+      grid-template-columns: 1fr;
+    }
 
-// ------------------------------------------------------
+    .sensor-card {
+      background-color: var(--secondary-color);
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
 
+      .sensor-header {
+        text-align: center;
+        margin-bottom: 10px;
 
+        h4 {
+          font-size: 1.5em;
+          color: var(--primary-color);
+        }
+      }
 
-.content-area-charts {
-  display: grid;
-  grid-template-columns: 1fr 2fr;
-  grid-template-rows: auto auto;
-  gap: 16px;
+      .sensor-body {
+        flex: 1;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
 
-  @media (max-width: 992px) {
-    grid-template-columns: 100%;
+      .sensor-footer {
+        margin-top: 15px;
+      }
+    }
   }
 }
 
-.progress-bar, .bar-chart {
-  background-color: var(--secondary-color);
-  padding: 16px;
-  border-radius: 5px;
-  box-shadow: var(--light-shadow1);
-  position: relative;
-  overflow: hidden;
-
-  @media (max-width: 768px) {
-    padding: 12px;
-  }
-
-  .progress-bar-title, .bar-chart-title {
-    font-size: 20px;
-    font-weight: 700;
-    color: var(--text-color-inverted);
-    margin-bottom: 16px;
-    display: flex;
-    align-items: center;
-  }
-
-  .chart-wrapper, .chart-wrapper-center {
-    width: 100%;
-    height: 350px;
-  }
-
-  .chart-wrapper-center {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-  }
-}
-
-
-.sensor-error {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 350px; /* Matches the chart height */
-  color: red;
-  font-size: 20px;
-  font-weight: bold;
-  text-align: center;
+.agriculture-icon {
+  width: 60px;
+  height: 60px;
+  object-fit: cover; /* Ensures the image fits within the box */
+  border-radius: 50%; /* Makes the icon circular */
+  background-color: var(--icon-bg); /* Optional: Add a background color */
 }

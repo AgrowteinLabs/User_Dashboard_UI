@@ -4,12 +4,15 @@ import { useNavigate } from "react-router-dom";  // Import useNavigate
 import { loginUser } from "./loginapi";
 import "./login.scss";
 import logo from "./Logow.png";
+// Import Font Awesome Icons
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faEye, faEyeSlash } from "@fortawesome/free-solid-svg-icons";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
+  const [showPassword, setShowPassword] = useState(false); // State to toggle password visibility
 
   // Initialize navigate hook
   const navigate = useNavigate();
@@ -62,14 +65,8 @@ const Login = () => {
     }
   };
 
-  // Toggle dark mode
-  const toggleDarkMode = () => {
-    setDarkMode(!darkMode);
-    document.body.classList.toggle("dark-mode");
-  };
-
   return (
-    <div className={`login-page ${darkMode ? "dark-mode" : ""}`}>
+    <div className="login-page">
       <div className="login-container">
         <div className="login-box">
           <div className="login-header">
@@ -86,13 +83,18 @@ const Login = () => {
                 required
               />
             </div>
-            <div className="login-input">
+            <div className="login-input password-input">
               <input
-                type="password"
+                type={showPassword ? "text" : "password"} // Toggle input type
                 placeholder="Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+              />
+              <FontAwesomeIcon
+                icon={showPassword ? faEyeSlash : faEye} // Switch icon
+                className="eye-icon"
+                onClick={() => setShowPassword(!showPassword)} // Toggle state
               />
             </div>
             <div className="login-remember">
@@ -104,10 +106,6 @@ const Login = () => {
               />
               <label htmlFor="rememberMe">Remember me</label>
             </div>
-            <button type="button" onClick={toggleDarkMode}>
-              {darkMode ? "Light Mode" : "Dark Mode"}
-            </button>
-            <br />
             <button type="submit" className="login-button">
               Login
             </button>

@@ -2,6 +2,7 @@ import React, { useEffect, useState, useContext } from "react";
 import AreaCard from "./AreaCard";
 import "./AreaCards.scss";
 import fetchProducts from "../api/fetchProducts";
+import { fetchUser } from "../api/fetchuser"; // Named import
 import { ProductContext } from "../../../context/ProductContext";
 import Slider from "@mui/material/Slider";
 import Stack from "@mui/material/Stack";
@@ -14,10 +15,13 @@ const AreaCards = () => {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  const [location, setLocation] = useState("Loading location...");
+
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       try {
+        // Fetch products data
         const data = await fetchProducts();
         if (Array.isArray(data) && data.length > 0) {
           setProducts(data);
@@ -27,9 +31,15 @@ const AreaCards = () => {
         } else {
           setProducts([]);
         }
+
+        // Fetch user data to get the location (city)
+        const userData = await fetchUser();
+        if (userData && userData.address) {
+          setLocation(userData.address.city); // Set city as the location
+        }
       } catch (error) {
-        console.error("Error fetching products:", error);
-        setError("Failed to load products.");
+        console.error("Error fetching data:", error);
+        setError("Failed to load products or user data.");
         setProducts([]);
       } finally {
         setLoading(false);
@@ -75,7 +85,7 @@ const AreaCards = () => {
               key,
               {
                 ...control,
-                threshHold: parseFloat(newThreshold.toFixed(1)), // Ensure the threshold is a float with 1 decimal point
+                threshHold: parseFloat(newThreshold.toFixed(1)),
               },
             ]
           : [key, control]
@@ -135,12 +145,14 @@ const AreaCards = () => {
           }}
           type="time"
         />
+
         <AreaCard
           colors={["#e4e8ef", "#4ce13f"]}
           cardInfo={{
-            title: "Current Temperature",
+            title: "Current Location",
+            value: location, // Display the city name
           }}
-          type="temperature"
+          type="location"
           className="center-card"
         />
 
@@ -171,16 +183,18 @@ const AreaCards = () => {
                 <input
                   type="number"
                   step="0.1"
-                  value={control.threshHold} // Directly binding the numeric value
+                  value={control.threshHold}
                   onChange={(e) => handleInputChange(controlKey, e.target.value)}
                   style={{ width: "60px", textAlign: "center", marginRight: "10px" }}
-                /> 
+                />
                 / {control.max}
               </div>
             </AreaCard>
           ))
         ) : (
-          <div>No controls available</div>
+<div style={{ fontWeight: 'bold', fontSize: '1.2rem', color: 'black', textAlign: 'center' }}>
+  No controls available
+</div>
         )}
       </div>
     </section>

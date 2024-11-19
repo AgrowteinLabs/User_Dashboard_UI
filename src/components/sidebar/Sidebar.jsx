@@ -101,9 +101,9 @@ const Sidebar = () => {
                     <MdOutlineNotifications size={18} />
                   </span>
                   <span className="menu-link-text">Notifications</span>
-                  {user.notifications.some(notification => !notification.read) && (
+                  {/* {user.notifications.some(notification => !notification.read) && (
                     <span className="notification-dot"></span>
-                  )}
+                  )} */}
                 </NavLink>
               </li>
             </ul>

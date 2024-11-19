@@ -6,7 +6,7 @@
   animation: fadeIn 0.8s ease-in-out;
 
   .logout-container {
-    background-color: #ffffff; // White card
+    background-color: var(--secondary-color);
     padding: 40px;
     border-radius: 12px; // Rounded corners for a modern look
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); // Soft shadow for depth
@@ -24,7 +24,7 @@
     .logout-title {
       font-size: 1.8em;
       margin-bottom: 10px;
-      color: #333333;
+      color: var(--text-color);
     }
 
     .logout-description {
