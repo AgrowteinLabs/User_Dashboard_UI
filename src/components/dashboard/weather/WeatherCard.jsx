@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { fetchUser } from "../../dashboard/api/fetchuser";
-import { FaTemperatureHigh, FaWind, FaCompass, FaTint } from 'react-icons/fa'; // Import icons for temperature, wind, direction, and humidity
+import { FaTemperatureHigh, FaWind, FaCompass, FaTint } from 'react-icons/fa'; // Import icons
 import './WeatherCard.scss';
 
 const WeatherCard = () => {
@@ -27,7 +27,7 @@ const WeatherCard = () => {
                     const longitude = geocodeData[0].lon;
 
                     const weatherResponse = await fetch(
-                        `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true&timezone=auto`
+                        `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true&timezone=auto&relative_humidity_2m=true`
                     );
                     const weatherData = await weatherResponse.json();
 
@@ -36,7 +36,7 @@ const WeatherCard = () => {
                             temperature: weatherData.current_weather.temperature,
                             windSpeed: weatherData.current_weather.windspeed,
                             windDirection: weatherData.current_weather.winddirection,
-                            humidity: weatherData.current_weather.relative_humidity,
+                            humidity: weatherData.current_weather.relative_humidity_2m, // Updated for humidity
                             weatherCode: weatherData.current_weather.weathercode,
                         });
                     }
@@ -85,7 +85,7 @@ const WeatherCard = () => {
                                 <FaTint className="icon humidity-icon" />
                                 <div>
                                     <p className="data-label">Humidity</p>
-                                    <p className="data-value">{currentWeather.humidity}%</p>
+                                    <p className="data-value">{currentWeather.humidity || "N/A"}%</p> {/* Default to N/A if missing */}
                                 </div>
                             </div>
                             <div className="weather-detail">

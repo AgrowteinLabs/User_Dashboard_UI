@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { MdViewHeadline } from "react-icons/md";
 import { CircularProgress } from "@mui/material";
-import { FaCheck, FaProductHunt } from "react-icons/fa";
+import { FaCheck } from "react-icons/fa";
+import AgricultureIcon from "../../assets/images/agriculture.png";
 import { addDays, differenceInCalendarDays } from "date-fns";
 import { DateRange } from "react-date-range";
 import fetchProducts from "../dashboard/api/fetchProducts";
@@ -153,7 +154,11 @@ const Products = () => {
               <div key={product._id} className="product-card">
                 <div className="product-info">
                   <div className="product-icon">
-                    <FaProductHunt size={40} />
+                    <img
+                      src={AgricultureIcon}
+                      alt="Agriculture Icon"
+                      className="agriculture-icon"
+                    />
                   </div>
                   <h2>{product.alias}</h2>
                   <p>{product.productId.name}</p>
@@ -175,7 +180,9 @@ const Products = () => {
         </>
       ) : (
         <div className="product-details">
-          <h2>{viewingProduct.alias} - Sensor Data</h2>
+          <h2 className="sensor-heading">
+            {viewingProduct.alias} - Sensor Data
+          </h2>
           <div className="sensor-data-actions">
             <button className="back-button" onClick={handleBackToProducts}>
               Back
@@ -215,35 +222,58 @@ const Products = () => {
             </div>
           )}
 
-          <div className="content-area-charts">
-            {hasSensor(viewingProduct, "Temperature") && (
-              <div className="chart-group">
-                <CurrentTemperature />
-                <TemperatureHistory
-                  startDate={currentOrConfirmedStart}
-                  endDate={currentOrConfirmedEnd}
-                />
+          <section className="sensor-readings-section">
+            {hasSensor(viewingProduct, "Temperature Sensor") && (
+              <div className="sensor-card">
+                <div className="sensor-header">
+                  <h4>Temperature</h4>
+                </div>
+                <div className="sensor-body">
+                  <CurrentTemperature />
+                </div>
+                <div className="sensor-footer">
+                  <TemperatureHistory
+                    startDate={currentOrConfirmedStart}
+                    endDate={currentOrConfirmedEnd}
+                  />
+                </div>
               </div>
             )}
+
             {hasSensor(viewingProduct, "Humidity") && (
-              <div className="chart-group">
-                <CurrentHumidity />
-                <HumidityHistory
-                  startDate={currentOrConfirmedStart}
-                  endDate={currentOrConfirmedEnd}
-                />
+              <div className="sensor-card">
+                <div className="sensor-header">
+                  <h4>Humidity</h4>
+                </div>
+                <div className="sensor-body">
+                  <CurrentHumidity />
+                </div>
+                <div className="sensor-footer">
+                  <HumidityHistory
+                    startDate={currentOrConfirmedStart}
+                    endDate={currentOrConfirmedEnd}
+                  />
+                </div>
               </div>
             )}
+
             {hasSensor(viewingProduct, "Co2") && (
-              <div className="chart-group">
-                <CurrentCO2Level />
-                <CO2History
-                  startDate={currentOrConfirmedStart}
-                  endDate={currentOrConfirmedEnd}
-                />
+              <div className="sensor-card">
+                <div className="sensor-header">
+                  <h4>CO2 Levels</h4>
+                </div>
+                <div className="sensor-body">
+                  <CurrentCO2Level />
+                </div>
+                <div className="sensor-footer">
+                  <CO2History
+                    startDate={currentOrConfirmedStart}
+                    endDate={currentOrConfirmedEnd}
+                  />
+                </div>
               </div>
             )}
-          </div>
+          </section>
         </div>
       )}
 

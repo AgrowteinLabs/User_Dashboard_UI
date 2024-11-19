@@ -1,59 +1,51 @@
 .content-area-top {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  flex-wrap: wrap;
-
-  .area-top-title {
-    color: var(--text-color-inverted);
-  }
+  align-items: center; /* Align items vertically in the center */
+  justify-content: space-between; /* Distribute space between logo and date picker */
+  padding: 16px;
+  background-color: var(--background-color); /* Optional: Add background color */
 
   .area-top-l {
     display: flex;
     align-items: center;
-    column-gap: 6px;
+    gap: 12px; /* Adjust spacing between elements */
   }
 
-  .sidebar-open-btn {
-    display: inline-flex;
+  .area-top-logo {
+    height: 30%; /* Adjust the height of the logo */
+    width: 30%; /* Maintain aspect ratio */
+  }
+
+  .area-top-r {
+    display: flex;
     align-items: center;
-    display: none;
-    margin-bottom: -1px;
-    color: var(--text-color-inverted);
+    gap: 12px; /* Adjust spacing between date picker and other elements */
 
-    @media (max-width: 768px) {
-      display: inline-flex;
-    }
-  }
+    .date-picker-wrapper {
+      position: relative;
 
-  .date-picker-wrapper {
-    position: relative;
-    display: inline-block;
-    box-shadow: var(--light-shadow1);
+      .date-input {
+        padding: 8px 12px;
+        border-radius: 4px;
+        border: 1px solid var(--border-color);
+        background-color: var(--secondary-color);
+        color: var(--base-text-color);
+        cursor: pointer;
+      }
 
-    .date-input {
-      padding: 8px;
-      border-radius: 4px;
-      border: 1px solid var(--border-color);
-      background-color: var(--secondary-color);
-      color: var(--base-text-color);
-      cursor: pointer;
-    }
+      .rdrCalendarWrapper {
+        position: absolute;
+        top: 50px; /* Adjust top position to ensure it's below the input */
+        left: 0;
+        z-index: 1000;
+        background-color: var(--light-color);
+        border-radius: 4px;
+        box-shadow: var(--light-shadow1);
+      }
 
-    .rdrCalendarWrapper {
-      position: absolute;
-      top: 50px; // Adjust top position to ensure it's below the input
-      left: 0; // Aligns the left edge with the input
-      transform: translateX(-50%); // Centers the calendar horizontally
-      z-index: 1000;
-      background-color: var(--light-color);
-      border-radius: 4px;
-      box-shadow: var(--light-shadow1);
-    }
-
-    &.hide-date-picker .rdrCalendarWrapper {
-      display: none;
+      &.hide-date-picker .rdrCalendarWrapper {
+        display: none;
+      }
     }
   }
 }

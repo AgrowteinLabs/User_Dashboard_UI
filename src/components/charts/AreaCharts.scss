@@ -41,3 +41,23 @@
     align-items: center;
   }
 }
+
+
+.chart-wrapper-c {
+  position: relative; /* Ensure proper positioning for the error message */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 350px; /* Match the chart height */
+}
+
+.error-message {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%); /* Center the text */
+  color: red; /* Red color for the error message */
+  font-size: 1.5rem;
+  font-weight: bold;
+  text-align: center;
+}

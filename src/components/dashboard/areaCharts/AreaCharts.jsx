@@ -45,7 +45,7 @@ const AreaCharts = () => {
 
   const isSensorAvailable = (sensorName) => {
     return sensors.some(sensor => sensor.name.toLowerCase() === sensorName.toLowerCase());
-  };
+  };  
 
   return (
     <section className="content-area-charts">
@@ -59,12 +59,12 @@ const AreaCharts = () => {
         </div>
       ) : (
         <>
-          {isSensorAvailable("Temperature") && (
-            <>
-              <CurrentTemperature />
-              <TemperatureHistory />
-            </>
-          )}
+          {isSensorAvailable("Temperature Sensor") && (
+  <>
+    <CurrentTemperature />
+    <TemperatureHistory />
+  </>
+)}
 
           {isSensorAvailable("pH Sensor") && (
             <>
