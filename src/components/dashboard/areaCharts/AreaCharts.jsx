@@ -11,6 +11,9 @@ import CurrentCO2 from "../../charts/CO2/CurrentCO2Level";
 import Last7DaysCO2 from "../../charts/CO2/CO2History";
 import CurrentPHValue from "../../charts/pH/CurrentPHValue";
 import Last7DaysPHValue from "../../charts/pH/PHValueHistory";
+import CurrentPressure from "../../charts/pressure/CurrentPressure";
+import PressureHistory from "../../charts/pressure/PressureLevel";
+
 // import CurrentWaterLevel from "../../charts/waterLevel/CurrentWaterLevel";
 // import WaterLevelLast7Days from "../../charts/waterLevel/WaterLevelHistory";
 
@@ -44,8 +47,10 @@ const AreaCharts = () => {
   }, [selectedProductUid]);
 
   const isSensorAvailable = (sensorName) => {
-    return sensors.some(sensor => sensor.name.toLowerCase() === sensorName.toLowerCase());
-  };  
+    return sensors.some(
+      (sensor) => sensor.name.toLowerCase() === sensorName.toLowerCase()
+    );
+  };
 
   return (
     <section className="content-area-charts">
@@ -59,12 +64,19 @@ const AreaCharts = () => {
         </div>
       ) : (
         <>
-          {isSensorAvailable("Temperature Sensor") && (
-  <>
-    <CurrentTemperature />
-    <TemperatureHistory />
-  </>
-)}
+          {isSensorAvailable("Temperature Sensor_1") && (
+            <>
+              <CurrentTemperature />
+              <TemperatureHistory />
+            </>
+          )}
+
+          {isSensorAvailable("Temperature Sensor_2") && (
+            <>
+              <CurrentTemperature />
+              <TemperatureHistory />
+            </>
+          )}
 
           {isSensorAvailable("pH Sensor") && (
             <>
@@ -91,6 +103,13 @@ const AreaCharts = () => {
             <>
               <CurrentCO2 />
               <Last7DaysCO2 />
+            </>
+          )}
+
+          {isSensorAvailable("Pressure Sensor") && (
+            <>
+              <CurrentPressure />
+              <PressureHistory />
             </>
           )}
         </>
