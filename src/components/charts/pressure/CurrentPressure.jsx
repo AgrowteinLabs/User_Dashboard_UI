@@ -12,34 +12,34 @@ const CurrentPressure = () => {
 
   useEffect(() => {
     const fetchPressureData = async () => {
-      if (!selectedProductUid) return;
-
-      try {
-        const data = await fetcheddata(selectedProductUid);
-        console.log("Fetched Pressure Data:", JSON.stringify(data, null, 2)); // Debugging
-
-        if (data && data.data && data.data.Pressure !== undefined && data.timestamp) {
-          const serverTimestamp = new Date(data.timestamp).getTime(); // Convert server timestamp to milliseconds
-          const currentTime = Date.now();
-
-          // Check if the data is fresh (within the last 30 minutes)
-          if (currentTime - serverTimestamp <= 30 * 60 * 1000) {
-            const formattedPressure = parseFloat(data.data.Pressure).toFixed(2); // Format to 2 decimal places
-            setSeries([formattedPressure]); // Update the series with fresh data
-            setError(false); // Clear error state
+        if (!selectedProductUid) return;
+      
+        try {
+          const data = await fetcheddata(selectedProductUid);
+          console.log("Fetched Pressure Data:", JSON.stringify(data, null, 2)); // Debugging
+      
+          if (data && data.data && data.data.Pressure_Sensor !== undefined) {
+            const pressure = parseFloat(data.data.Pressure_Sensor).toFixed(2); // Get the pressure value
+            const serverTimestamp = new Date(data.timestamp).getTime(); // Convert server timestamp to milliseconds
+            const currentTime = Date.now();
+      
+            // Check if the data is fresh (within the last 30 minutes)
+            if (currentTime - serverTimestamp <= 30 * 60 * 1000) {
+              setSeries([pressure]); // Update the series with fresh data
+              setError(false); // Clear error state
+            } else {
+              setError(true); // Mark data as stale
+            }
           } else {
-            setError(true); // Mark data as stale
+            console.error("Pressure data not found or invalid format in the API response");
+            setError(true); // Handle missing or invalid data
           }
-        } else {
-          console.error("Pressure data not found or invalid format in the API response");
-          setError(true); // Handle missing or invalid data
+        } catch (error) {
+          console.error("Error fetching pressure data:", error);
+          setError(true); // Handle fetch errors
         }
-      } catch (error) {
-        console.error("Error fetching pressure data:", error);
-        setError(true); // Handle fetch errors
-      }
-    };
-
+      };
+      
     // Fetch the pressure data when the component mounts
     fetchPressureData();
 

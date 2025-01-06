@@ -13,19 +13,20 @@ const CurrentTemperature = () => {
   useEffect(() => {
     const fetchTemperatureData = async () => {
       if (!selectedProductUid) return;
-
+    
       try {
         const data = await fetcheddata(selectedProductUid);
         console.log("Fetched Temperature Data:", JSON.stringify(data, null, 2)); // Debugging
-
-        if (data && data.data && data.data.Temperature !== undefined && data.timestamp) {
+    
+        if (data && data.data) {
+          const temperature1 = parseFloat(data.data.Temperature_Sensor_1).toFixed(2); // Get the first temperature sensor
+          const temperature2 = parseFloat(data.data.Temperature_Sensor_2).toFixed(2); // Get the second temperature sensor
           const serverTimestamp = new Date(data.timestamp).getTime(); // Convert server timestamp to milliseconds
           const currentTime = Date.now();
-
+    
           // Check if the data is fresh (within the last 30 minutes)
           if (currentTime - serverTimestamp <= 30 * 60 * 1000) {
-            const formattedTemperature = parseFloat(data.data.Temperature).toFixed(2); // Format to 2 decimal places
-            setSeries([formattedTemperature]); // Update the series with fresh data
+            setSeries([temperature1, temperature2]); // Update the series with fresh data
             setError(false); // Clear error state
           } else {
             setError(true); // Mark data as stale
@@ -39,6 +40,7 @@ const CurrentTemperature = () => {
         setError(true); // Handle fetch errors
       }
     };
+    
 
     // Fetch the temperature data when the component mounts
     fetchTemperatureData();
