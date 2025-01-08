@@ -12,7 +12,14 @@ import CurrentHumidity from "../charts/humidity/CurrentHumidity";
 import HumidityHistory from "../charts/humidity/HumidityHistory";
 import CurrentCO2Level from "../charts/CO2/CurrentCO2Level";
 import CO2History from "../charts/CO2/CO2History";
+import BedTemperatureCurrent from "../charts/BedTemp/BedTemperatureCurrent"; // New import
+import BedTemperatureHistory from "../charts/BedTemp/BedTemperatureHistory"; // New import
+import BoilerTemperatureCurrent from "../charts/BoilerTemp/BoilerTemperatureCurrent"; // New import
+import BoilerTemperatureHistory from "../charts/BoilerTemp/BoilerTemperatureHistory"; // New import
+
 import "./Products.scss";
+import CurrentPressure from "../charts/pressure/CurrentPressure";
+import PressureHistory from "../charts/pressure/PressureHistory";
 
 const Products = () => {
   const [products, setProducts] = useState([]);
@@ -267,6 +274,57 @@ const Products = () => {
                 </div>
                 <div className="sensor-footer">
                   <CO2History
+                    startDate={currentOrConfirmedStart}
+                    endDate={currentOrConfirmedEnd}
+                  />
+                </div>
+              </div>
+            )}
+
+            {hasSensor(viewingProduct, "Bed_Temperature") && (
+              <div className="sensor-card">
+                <div className="sensor-header">
+                  <h4>Bed Temperature</h4>
+                </div>
+                <div className="sensor-body">
+                  <BedTemperatureCurrent />
+                </div>
+                <div className="sensor-footer">
+                  <BedTemperatureHistory
+                    startDate={currentOrConfirmedStart}
+                    endDate={currentOrConfirmedEnd}
+                  />
+                </div>
+              </div>
+            )}
+
+            {hasSensor(viewingProduct, "Boiler_Temperature") && (
+              <div className="sensor-card">
+                <div className="sensor-header">
+                  <h4>Boiler Temperature</h4>
+                </div>
+                <div className="sensor-body">
+                  <BoilerTemperatureCurrent />
+                </div>
+                <div className="sensor-footer">
+                  <BoilerTemperatureHistory
+                    startDate={currentOrConfirmedStart}
+                    endDate={currentOrConfirmedEnd}
+                  />
+                </div>
+              </div>
+            )}
+
+            {hasSensor(viewingProduct, "Boiler_Temperature") && (
+              <div className="sensor-card">
+                <div className="sensor-header">
+                  <h4>Pressure</h4>
+                </div>
+                <div className="sensor-body">
+                  <CurrentPressure />
+                </div>
+                <div className="sensor-footer">
+                  <PressureHistory
                     startDate={currentOrConfirmedStart}
                     endDate={currentOrConfirmedEnd}
                   />

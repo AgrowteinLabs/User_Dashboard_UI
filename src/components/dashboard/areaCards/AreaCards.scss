@@ -6,30 +6,44 @@
 
   .dropdown-container {
     margin-bottom: 20px;
-    // background-color: var(--primary-color); /* Change to primary color */
+    width: 100%;
+    display: flex;
+    justify-content: center;
     padding: 10px;
-    border-radius: 5px;
+  }
 
+  .loading-container {
+    display: flex;
+    justify-content: center;
+    margin-top: 30px;
+  }
 
-    select {
-      width: 100%;
-      max-width: 300px;
-      padding: 8px;
-      border-radius: 5px;
-      border: 1px solid var(--light-border-color);
-      background-color: var(--secondary-color);
-      color: var(--lg-text-color);
-      font-size: 16px;
-      font-weight: bold;
-      box-shadow: var(--light-shadow1);
-      appearance: none;
-      cursor: pointer;
+  .MuiSelect-root {
+    background-color: #810022; /* Light background for the dropdown */
+    color: #2c3e50;
+    font-size: 16px;
+    font-weight: 600;
+    padding: 12px;
+    border-radius: 8px;
+    transition: 0.3s ease;
 
-      &:focus {
-        outline: none;
-        border-color: var(--primary-color);
-      }
+    &:hover {
+      background-color: #e9eff3; /* Slight hover effect */
     }
+
+    &:focus {
+      outline: none;
+      border-color: #03856d;
+    }
+  }
+
+  .MuiInputLabel-root {
+    font-weight: 500;
+    color: #7f8c8d;
+  }
+
+  .MuiMenuItem-root {
+    font-weight: 600;
   }
 
   .area-cards-row {
@@ -84,43 +98,10 @@
         font-size: 18px;
       }
     }
+
     .error-text {
       color: red;
       font-weight: bold;
     }
-    
-    
   }
-}
-/* Assuming you have a main .area-card class or similar structure */
-.area-card input[type="number"] {
-  width: 60px;
-  padding: 5px;
-  font-size: 14px;
-  text-align: center;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  margin-right: 10px;
-  transition: border-color 0.2s, box-shadow 0.2s;
-}
-
-.area-card input[type="number"]:focus {
-  outline: none;
-  border-color: #4ce13f; /* Highlight color on focus */
-  box-shadow: 0 0 5px rgba(76, 225, 63, 0.5); /* Subtle shadow effect */
-}
-
-.area-card input[type="number"]:hover {
-  border-color: #84bc45; /* Change border color slightly on hover */
-}
-
-.area-card input[type="number"]:disabled {
-  background-color: #f5f5f5; /* Disable state color */
-  border-color: #ddd;
-  cursor: not-allowed;
-}
-
-.control {
-text-align: center;
-text-decoration: solid;
 }

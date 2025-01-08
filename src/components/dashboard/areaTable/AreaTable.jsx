@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { fetchSensorList } from '../api/fetchsensorlist';
+import { fetcheddata } from '../api/fetchdata'; // Assuming this is the function that fetches real-time data
 import { CircularProgress } from '@mui/material';
 import "./AreaTable.scss";
 import { ProductContext } from '../../../context/ProductContext';
@@ -17,8 +18,42 @@ const AreaTable = () => {
   const [error, setError] = useState(null); // Error state
   const { selectedProductUid } = useContext(ProductContext);
 
+  // Function to check the sensor status based on the received data
+  const checkSensorStatus = (sensor, realTimeData) => {
+    // If real-time data is missing for the sensor, mark it as inactive
+    if (!realTimeData || !realTimeData[sensor.name]) {
+      return 'inactive';
+    }
+
+    // If the data value is an error code (e.g., "bot-er"), mark the sensor as inactive
+    const sensorData = realTimeData[sensor.name];
+    if (typeof sensorData === 'string' && sensorData.includes('-er')) {
+      return 'inactive'; // Error code in data, mark as inactive
+    }
+
+    // Get the timestamp of the most recent data for the sensor
+    const sensorDataTimestamp = realTimeData[sensor.name]?.timestamp;
+
+    if (sensorDataTimestamp) {
+      // Get the current time and the time of the most recent data
+      const currentTime = new Date();
+      const dataTimestamp = new Date(sensorDataTimestamp);
+
+      // Calculate the difference in time in minutes
+      const timeDifference = (currentTime - dataTimestamp) / (1000 * 60); // Difference in minutes
+
+      // If more than 30 minutes have passed since the last data update, mark as inactive
+      if (timeDifference > 30) {
+        return 'inactive';
+      }
+    }
+
+    // If real-time data is present and within the last 30 minutes, mark the sensor as active
+    return 'active';
+  };
+
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchedData = async () => {
       if (!selectedProductUid) {
         setError("Please select a product to view sensors.");
         setLoading(false); // Stop loading if no product UID
@@ -28,14 +63,32 @@ const AreaTable = () => {
       try {
         setLoading(true);
         setError(null); // Clear previous errors
-        const data = await fetchSensorList(selectedProductUid);
-        const formattedData = data.map(sensor => ({
-          id: sensor._id,
-          name: sensor.name,
-          sensor_id: sensor._id,
-          installation_date: new Date(sensor.createdAt).toLocaleDateString(),
-          status: sensor.state === 'ON' ? "active" : "inactive",
-        }));
+        
+        // Fetch sensor list
+        const sensorList = await fetchSensorList(selectedProductUid);
+
+        // Fetch real-time sensor data
+        const realTimeData = await fetcheddata(selectedProductUid);
+
+        if (!sensorList || sensorList.error) {
+          setError("Failed to fetch sensor data.");
+          setSensorData([]);
+          return;
+        }
+
+        const formattedData = sensorList.map(sensor => {
+          // Get the status based on real-time data and the time check
+          const status = checkSensorStatus(sensor, realTimeData.data);
+          
+          return {
+            id: sensor._id,
+            name: sensor.name,
+            sensor_id: sensor._id,
+            installation_date: new Date(sensor.createdAt).toLocaleDateString(),
+            status: status, // Set the status based on the check
+          };
+        });
+
         setSensorData(formattedData);
       } catch (error) {
         setError("Failed to fetch sensor data.");
@@ -44,7 +97,7 @@ const AreaTable = () => {
       }
     };
 
-    fetchData();
+    fetchedData();
   }, [selectedProductUid]);
 
   return (

@@ -13,6 +13,10 @@ import CurrentPHValue from "../../charts/pH/CurrentPHValue";
 import Last7DaysPHValue from "../../charts/pH/PHValueHistory";
 import CurrentPressure from "../../charts/pressure/CurrentPressure";
 import PressureHistory from "../../charts/pressure/PressureHistory";
+import BedTemperatureCurrent from "../../charts/BedTemp/BedTemperatureCurrent"; // New import
+import BedTemperatureHistory from "../../charts/BedTemp/BedTemperatureHistory"; // New import
+import BoilerTemperatureCurrent from "../../charts/BoilerTemp/BoilerTemperatureCurrent"; // New import
+import BoilerTemperatureHistory from "../../charts/BoilerTemp/BoilerTemperatureHistory"; // New import
 
 // import CurrentWaterLevel from "../../charts/waterLevel/CurrentWaterLevel";
 // import WaterLevelLast7Days from "../../charts/waterLevel/WaterLevelHistory";
@@ -106,12 +110,29 @@ const AreaCharts = () => {
             </>
           )}
 
-          {isSensorAvailable("Pressure Sensor") && (
+
+          {/* Add charts for Bed and Boiler Temperature */}
+          {isSensorAvailable("Bed_Temperature") && (
+            <>
+              <BedTemperatureCurrent />
+              <BedTemperatureHistory />
+            </>
+          )}
+
+          {isSensorAvailable("Boiler_Temperature") && (
+            <>
+              <BoilerTemperatureCurrent />
+              <BoilerTemperatureHistory />
+            </>
+          )}
+
+{isSensorAvailable("Pressure") && (
             <>
               <CurrentPressure />
               <PressureHistory />
             </>
           )}
+          
         </>
       )}
     </section>

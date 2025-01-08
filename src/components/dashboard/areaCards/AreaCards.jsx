@@ -2,19 +2,17 @@ import React, { useEffect, useState, useContext } from "react";
 import AreaCard from "./AreaCard";
 import "./AreaCards.scss";
 import fetchProducts from "../api/fetchProducts";
-import { fetchUser } from "../api/fetchuser"; // Named import
+import { fetchUser } from "../api/fetchuser";
 import { ProductContext } from "../../../context/ProductContext";
 import Slider from "@mui/material/Slider";
 import Stack from "@mui/material/Stack";
+import { Select, MenuItem, CircularProgress, InputLabel, FormControl } from "@mui/material";
 
 const AreaCards = () => {
   const { selectedProductUid, setSelectedProductUid } = useContext(ProductContext);
   const [products, setProducts] = useState([]);
-  const [selectedControls, setSelectedControls] = useState([]);
-  const [selectedSensors, setSelectedSensors] = useState([]);
-  const [error, setError] = useState(null);
+  const [selectedControls, setSelectedControls] = useState([]); // Initializing selectedControls
   const [loading, setLoading] = useState(true);
-
   const [location, setLocation] = useState("Loading location...");
 
   useEffect(() => {
@@ -39,8 +37,6 @@ const AreaCards = () => {
         }
       } catch (error) {
         console.error("Error fetching data:", error);
-        setError("Failed to load products or user data.");
-        setProducts([]);
       } finally {
         setLoading(false);
       }
@@ -48,35 +44,7 @@ const AreaCards = () => {
     fetchData();
   }, [selectedProductUid, setSelectedProductUid]);
 
-  useEffect(() => {
-    if (products.length > 0) {
-      const selectedProduct = products.find((product) => product.uid === selectedProductUid);
-      if (selectedProduct) {
-        if (Array.isArray(selectedProduct.controls)) {
-          setSelectedControls(
-            selectedProduct.controls.map((control) => Object.entries(control)[0])
-          );
-        } else {
-          setSelectedControls([]);
-        }
-        if (Array.isArray(selectedProduct.sensors)) {
-          setSelectedSensors(
-            selectedProduct.sensors.map((sensor) => ({
-              name: sensor.sensorId?.name || "Unknown Sensor",
-              state: sensor.state,
-              unit: sensor.sensorId?.unit || "",
-            }))
-          );
-        } else {
-          setSelectedSensors([]);
-        }
-      } else {
-        setSelectedControls([]);
-        setSelectedSensors([]);
-      }
-    }
-  }, [selectedProductUid, products]);
-
+  // Handle the changes in control thresholds
   const handleThresholdChange = (controlKey, newThreshold) => {
     setSelectedControls((prevControls) =>
       prevControls.map(([key, control]) =>
@@ -93,48 +61,47 @@ const AreaCards = () => {
     );
   };
 
-  const handleInputChange = (controlKey, value) => {
-    const newValue = parseFloat(value);
-    if (!isNaN(newValue)) {
-      handleThresholdChange(controlKey, newValue);
-    }
-  };
-
   if (loading) {
-    return <div>Loading...</div>;
-  }
-
-  if (error) {
-    return <div>{error}</div>;
-  }
-
-  if (!products.length) {
     return (
-      <section className="content-area-cards">
-        <div className="dropdown-container">No products available</div>
-      </section>
+      <div className="loading-container">
+        <CircularProgress color="primary" />
+      </div>
     );
   }
 
   return (
     <section className="content-area-cards">
       <div className="dropdown-container">
-        <select
-          value={selectedProductUid || ""}
-          onChange={(e) => {
-            const selectedUid = e.target.value;
-            setSelectedProductUid(selectedUid);
-          }}
-        >
-          <option value="" disabled>
-            Select a product
-          </option>
-          {products.map((product) => (
-            <option key={product._id} value={product.uid}>
-              {product.alias}
-            </option>
-          ))}
-        </select>
+        <FormControl fullWidth>
+          <InputLabel id="product-select-label" sx={{ Color: 'var(--text-color)', padding: '0 8px', color: 'var(--text-color)' }}>
+            Select Product
+          </InputLabel>
+          <Select
+            labelId="product-select-label"
+            value={selectedProductUid || ""}
+            onChange={(e) => setSelectedProductUid(e.target.value)}
+            displayEmpty
+            label="Select Product"
+            sx={{
+              borderRadius: 2,
+              backgroundColor: 'var(--secondary-color)',
+              padding: 1,
+              color: 'var(--text-color)', // Change text color of selected item
+              "& .MuiSelect-icon": {
+                color: 'var(--text-color)', // Change icon color
+              }
+            }}
+          >
+            <MenuItem value="" disabled>
+              Choose a product
+            </MenuItem>
+            {products.map((product) => (
+              <MenuItem key={product._id} value={product.uid}>
+                {product.alias}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
       </div>
 
       <div className="area-cards-row">
@@ -174,7 +141,7 @@ const AreaCards = () => {
                   value={control.threshHold}
                   min={control.min}
                   max={control.max}
-                  step={0.1} // Allowing up to one decimal point
+                  step={0.1}
                   onChange={(e, newValue) => handleThresholdChange(controlKey, newValue)}
                 />
               </Stack>
@@ -184,7 +151,7 @@ const AreaCards = () => {
                   type="number"
                   step="0.1"
                   value={control.threshHold}
-                  onChange={(e) => handleInputChange(controlKey, e.target.value)}
+                  onChange={(e) => handleThresholdChange(controlKey, e.target.value)}
                   style={{ width: "60px", textAlign: "center", marginRight: "10px" }}
                 />
                 / {control.max}
@@ -192,9 +159,9 @@ const AreaCards = () => {
             </AreaCard>
           ))
         ) : (
-<div style={{ fontWeight: 'bold', fontSize: '1.2rem', color: 'black', textAlign: 'center' }}>
-  No controls available
-</div>
+          <div style={{ fontWeight: 'bold', fontSize: '1.2rem', color: 'var(--text-color)', textAlign: 'center' }}>
+            No controls available
+          </div>
         )}
       </div>
     </section>

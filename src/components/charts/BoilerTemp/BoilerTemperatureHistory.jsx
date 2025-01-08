@@ -5,15 +5,15 @@ import axios from 'axios';
 import { ProductContext } from '../../../context/ProductContext';
 import "../AreaCharts.scss";
 
-const PressureHistory = () => {
-  const [series, setSeries] = useState([{ name: 'Pressure', data: [] }]);
+const BoilerTemperatureHistory = () => {
+  const [series, setSeries] = useState([{ name: 'Boiler Temperature', data: [] }]);
   const [categories, setCategories] = useState([]);
   const { selectedProductUid } = useContext(ProductContext);
 
   useEffect(() => {
-    const fetchPressureHistory = async () => {
+    const fetchTemperatureHistory = async () => {
       if (!selectedProductUid) return;
-
+    
       try {
         const response = await axios.post(
           `https://agrowtein-5u7w.onrender.com/api/v1/data/${selectedProductUid}/date`,
@@ -22,11 +22,11 @@ const PressureHistory = () => {
             endDate: new Date().toISOString(), // Current date
           }
         );
-
+    
         if (response.data && response.data.length > 0) {
           const filteredData = filterByThirtyMinutes(response.data);
-          const pressures = filteredData.map(entry =>
-            parseFloat(entry.data.Pressure).toFixed(2) // Format to 2 decimal points
+          const temperatures = filteredData.map(entry =>
+            parseFloat(entry.data.Boiler_Temperature).toFixed(2) // Format to 2 decimal points
           );
           const timestamps = filteredData.map(entry =>
             new Date(entry.timestamp).toLocaleTimeString('en-US', {
@@ -34,18 +34,18 @@ const PressureHistory = () => {
               minute: '2-digit',
             })
           );
-
-          setSeries([{ name: 'Pressure', data: pressures }]);
+    
+          setSeries([{ name: 'Boiler Temperature', data: temperatures }]);
           setCategories(timestamps);
         } else {
-          console.error('No pressure data available for the selected date range.');
+          console.error('No temperature data available for the selected date range.');
         }
       } catch (error) {
-        console.error('Error fetching pressure history:', error);
+        console.error('Error fetching temperature history:', error);
       }
     };
 
-    fetchPressureHistory();
+    fetchTemperatureHistory();
   }, [selectedProductUid]);
 
   const filterByThirtyMinutes = (data) => {
@@ -75,22 +75,21 @@ const PressureHistory = () => {
     xaxis: {
       categories: categories,
       labels: {
-        rotate: -45, // Rotate labels to prevent overlap
         style: {
           colors: 'var(--text-color)', // Use CSS variable for text color
         },
       },
-      tickAmount: 'dataPoints', // Adjust tick amount dynamically
+      tickAmount: 'dataPoints',
       title: {
-        text: 'Time',
+        text: 'Time (Last 24 Hours)',
         style: {
-          color: 'var(--text-color)', // Axis title color
+          color: 'var(--text-color)',
         },
       },
     },
     yaxis: {
       title: {
-        text: 'hPa', // Pressure unit
+        text: '°C',
         style: {
           color: 'var(--text-color)', // Axis title color
         },
@@ -104,35 +103,45 @@ const PressureHistory = () => {
     stroke: {
       curve: 'smooth', // Smooth line curve
       width: 3,
-      colors: ['#A0C334'], // Line color for Pressure
+      colors: ['#03856d'], // Line color for Boiler Temperature
+    },
+    fill: {
+      type: 'gradient', // Use gradient fill
+      gradient: {
+        shade: 'light', // Light or dark gradient shade
+        type: 'horizontal', // Horizontal gradient
+        shadeIntensity: 0.5,
+        gradientToColors: ['#81c784'], // Color at the end of the gradient
+        opacityFrom: 0.5, // Initial opacity
+        opacityTo: 0, // Final opacity
+        stops: [0, 100], // Gradient stops
+      },
     },
     markers: {
       size: 5,
-      colors: ['#A0C334'],
+      colors: ['#4caf50'],
       strokeColors: 'var(--background-color)',
       strokeWidth: 2,
     },
     tooltip: {
-      x: {
-        format: 'HH:mm', // Tooltip time format
-      },
       y: {
-        formatter: val => `${val} hPa`, // Tooltip pressure format
+        formatter: val => `${val}°C`,
       },
       style: {
         fontSize: '12px',
-        colors: ['var(--text-color)'], // Tooltip text color
+        colors: ['var(--text-color)'],
       },
     },
   };
+  
 
   return (
-    <div className="bar-chart">
-      <div className="bar-chart-info">
-        <h5 className="bar-chart-title" style={{ color: 'var(--text-color)' }}>
-          <FaChartArea style={{ marginRight: "8px", color: 'var(--text-color)' }} />
-          Pressure History (Last 24 Hours)
-        </h5>
+    <div className="progress-bar">
+      <div className="progress-bar-info">
+        <h4 className="progress-bar-title" style={{ color: 'var(--text-color)' }}>
+          <FaChartArea style={{ marginRight: '8px', color: 'var(--text-color)' }} />
+          Boiler Temperature History (Last 24 Hours)
+        </h4>
       </div>
       <div className="chart-wrapper">
         <ReactApexChart options={options} series={series} type="line" height={350} />
@@ -141,4 +150,4 @@ const PressureHistory = () => {
   );
 };
 
-export default PressureHistory;
+export default BoilerTemperatureHistory;
