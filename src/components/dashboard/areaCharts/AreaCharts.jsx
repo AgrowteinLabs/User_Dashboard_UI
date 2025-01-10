@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useContext } from "react";
-import { fetchSensorList } from "../api/fetchsensorlist";
+import { fetchSensorList } from "../../../api/fetchsensorlist";
 import "./AreaCharts.scss";
 import { CircularProgress } from "@mui/material";
 import { ProductContext } from "../../../context/ProductContext";

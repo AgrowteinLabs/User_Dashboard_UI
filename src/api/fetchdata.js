@@ -1,6 +1,6 @@
 export async function fetcheddata(uid) {
   try {
-    const url = `https://agrowtein-5u7w.onrender.com/api/v1/data/realtime/${uid}`;
+    const url = `http://13.233.45.54:4500/api/v1/data/realtime/${uid}`;
     const response = await fetch(url, {
       method: 'GET',
       credentials: 'include',
@@ -28,7 +28,7 @@ export async function fetcheddata(uid) {
 
 export async function fetchdata(uid) {
   try {
-    const url = `https://agrowtein-5u7w.onrender.com/api/v1/data/${uid}`;
+    const url = `http://13.233.45.54:4500/api/v1/data/${uid}`;
     const response = await fetch(url, {
       method: 'GET',
       credentials: 'include',

@@ -1,17 +1,17 @@
-const userid = localStorage.getItem('userId');
-
-export const fetchUser = async () => {
+// src/api/fetchuser.js
+const fetchUser = async () => {
+    const userid = localStorage.getItem('userId');
+    
     if (!userid) {
         return { error: 'User ID not found, try logging in again' };
     }
 
     try {
-        const API_URL = `https://agrowtein-5u7w.onrender.com/api/v1/users/${userid}`;
+        const API_URL = `http://13.233.45.54:4500/api/v1/users/${userid}`;
 
-        // Add credentials: 'include' to send cookies with the request
         const response = await fetch(API_URL, {
             method: 'GET',
-            credentials: 'include', // Ensures cookies are sent with the request
+            credentials: 'include',
         });
 
         if (!response.ok) {
@@ -19,7 +19,6 @@ export const fetchUser = async () => {
         }
 
         const data = await response.json();
-        console.log(data);
         return data;
 
     } catch (error) {
@@ -27,3 +26,5 @@ export const fetchUser = async () => {
         return { error: 'Error fetching user' };
     }
 };
+
+export default fetchUser;  // Default export

@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useContext } from 'react';
 import ReactApexChart from 'react-apexcharts';
 import { FaThermometerHalf } from "react-icons/fa";
-import { fetcheddata } from '../../dashboard/api/fetchdata'; // Assuming the API function is correct
+import { fetcheddata } from '../../../api/fetchdata'; // Assuming the API function is correct
 import { ProductContext } from '../../../context/ProductContext';
 import '../AreaCharts.scss'
 

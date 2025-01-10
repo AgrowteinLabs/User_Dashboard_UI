@@ -5,7 +5,7 @@ import axios from "axios";
 export const loginUser = async (email, password) => {
   try {
     const response = await axios.post(
-      "https://agrowtein-5u7w.onrender.com/api/v1/auth/login",
+      "http://13.233.45.54:4500/api/v1/auth/login",
       { email, password },
       { withCredentials: true }
     );

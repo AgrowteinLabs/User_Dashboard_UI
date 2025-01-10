@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useContext } from 'react';
 import ReactApexChart from 'react-apexcharts';
 import { FaChartArea } from "react-icons/fa";
-import axios from 'axios';
 import { ProductContext } from '../../../context/ProductContext';
+import { fetchHistoryData } from '../../../api/fetchHistoryData'; // Import the common function
 import "../AreaCharts.scss";
 
 const PressureHistory = () => {
@@ -14,58 +14,38 @@ const PressureHistory = () => {
     const fetchPressureHistory = async () => {
       if (!selectedProductUid) return;
 
-      try {
-        const response = await axios.post(
-          `https://agrowtein-5u7w.onrender.com/api/v1/data/${selectedProductUid}/date`,
-          {
-            startDate: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), // 24 hours ago
-            endDate: new Date().toISOString(), // Current date
-          }
+      const startDate = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(); // 24 hours ago
+      const endDate = new Date().toISOString(); // Current date
+
+      const filteredData = await fetchHistoryData(
+        selectedProductUid,
+        'Pressure',
+        startDate,
+        endDate
+      );
+
+      if (filteredData.length > 0) {
+        const pressures = filteredData.map(entry =>
+          parseFloat(entry.data.Pressure).toFixed(2) // Format to 2 decimal points
+        );
+        const timestamps = filteredData.map(entry =>
+          new Date(entry.timestamp).toLocaleTimeString('en-US', {
+            hour: '2-digit',
+            minute: '2-digit',
+          })
         );
 
-        if (response.data && response.data.length > 0) {
-          const filteredData = filterByThirtyMinutes(response.data);
-          const pressures = filteredData.map(entry =>
-            parseFloat(entry.data.Pressure).toFixed(2) // Format to 2 decimal points
-          );
-          const timestamps = filteredData.map(entry =>
-            new Date(entry.timestamp).toLocaleTimeString('en-US', {
-              hour: '2-digit',
-              minute: '2-digit',
-            })
-          );
-
-          setSeries([{ name: 'Pressure', data: pressures }]);
-          setCategories(timestamps);
-        } else {
-          console.error('No pressure data available for the selected date range.');
-        }
-      } catch (error) {
-        console.error('Error fetching pressure history:', error);
+        setSeries([{ name: 'Pressure', data: pressures }]);
+        setCategories(timestamps);
       }
     };
 
     fetchPressureHistory();
   }, [selectedProductUid]);
 
-  const filterByThirtyMinutes = (data) => {
-    const result = [];
-    let lastTimestamp = null;
-
-    data.forEach((entry) => {
-      const entryTime = new Date(entry.timestamp);
-      if (!lastTimestamp || entryTime - lastTimestamp >= 30 * 60 * 1000) {
-        result.push(entry);
-        lastTimestamp = entryTime;
-      }
-    });
-
-    return result;
-  };
-
   const options = {
     chart: {
-      type: 'line', // Change to line chart
+      type: 'line', // Line chart for pressure
       animations: {
         enabled: true,
         easing: 'easeinout',
