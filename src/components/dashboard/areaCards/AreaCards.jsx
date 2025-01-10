@@ -11,7 +11,7 @@ import { Select, MenuItem, CircularProgress, InputLabel, FormControl } from "@mu
 const AreaCards = () => {
   const { selectedProductUid, setSelectedProductUid } = useContext(ProductContext);
   const [products, setProducts] = useState([]);
-  const [selectedControls, setSelectedControls] = useState([]); // Initializing selectedControls
+  const [selectedControls, setSelectedControls] = useState([]);
   const [loading, setLoading] = useState(true);
   const [location, setLocation] = useState("Loading location...");
 
@@ -23,8 +23,13 @@ const AreaCards = () => {
         const data = await fetchProducts();
         if (Array.isArray(data) && data.length > 0) {
           setProducts(data);
-          if (!selectedProductUid) {
-            setSelectedProductUid(data[0].uid);
+
+          // Check if a product is saved in localStorage
+          const savedProductUid = localStorage.getItem("selectedProductUid");
+          if (savedProductUid) {
+            setSelectedProductUid(savedProductUid); // Restore from localStorage
+          } else {
+            setSelectedProductUid(data[0].uid); // Default to the first product if none is saved
           }
         } else {
           setProducts([]);
@@ -44,7 +49,13 @@ const AreaCards = () => {
     fetchData();
   }, [selectedProductUid, setSelectedProductUid]);
 
-  // Handle the changes in control thresholds
+  useEffect(() => {
+    // Save selected product UID to localStorage
+    if (selectedProductUid) {
+      localStorage.setItem("selectedProductUid", selectedProductUid);
+    }
+  }, [selectedProductUid]);
+
   const handleThresholdChange = (controlKey, newThreshold) => {
     setSelectedControls((prevControls) =>
       prevControls.map(([key, control]) =>
@@ -86,9 +97,9 @@ const AreaCards = () => {
               borderRadius: 2,
               backgroundColor: 'var(--secondary-color)',
               padding: 1,
-              color: 'var(--text-color)', // Change text color of selected item
+              color: 'var(--text-color)', 
               "& .MuiSelect-icon": {
-                color: 'var(--text-color)', // Change icon color
+                color: 'var(--text-color)',
               }
             }}
           >
