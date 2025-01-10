@@ -30,7 +30,6 @@ const BedTemperatureCurrent = () => {
 
           const formattedTemperature = parseFloat(bedTemperature).toFixed(2);
 
-          // Check if the data is fresh (within 30 minutes)
           if (currentTime - serverTimestamp <= 30 * 60 * 1000) {
             setSeries([formattedTemperature]);
             setError(false);
