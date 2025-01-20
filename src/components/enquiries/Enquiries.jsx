@@ -1,26 +1,65 @@
-import React, { useState } from 'react';
-import { MdMail, MdPerson, MdSubject, MdMessage } from 'react-icons/md';
+import React, { useState } from "react";
+import { MdMail, MdPerson, MdSubject, MdMessage } from "react-icons/md";
 import "./Enquiries.scss";
+import Swal from "sweetalert2";
 
 const Enquiries = () => {
-  const [formStatus, setFormStatus] = useState('');
-  const [messageSent, setMessageSent] = useState(false); // To manage "Message sent" feedback
+  const [formStatus, setFormStatus] = useState("");
+  const [messageSent, setMessageSent] = useState(false);
 
-  const handleFormSubmit = (e) => {
+  // The URL of the existing JSON Blob
+  const JSON_BLOB_URL = "https://jsonblob.com/api/jsonBlob/1330617753689841664";
+
+  const handleFormSubmit = async (e) => {
     e.preventDefault();
 
-    // Set the form status directly without making any backend request
-    setFormStatus('Message sent successfully!');
-    setMessageSent(true); // Set message sent flag to true
+    // Extract form data
+    const formData = new FormData(e.target);
+    const newMessage = Object.fromEntries(formData);
 
-    // Reset the form after successful submission
-    e.target.reset();
+    try {
+      // Step 1: Fetch existing data from the blob
+      const response = await fetch(JSON_BLOB_URL);
+      if (!response.ok) throw new Error("Failed to fetch existing data");
 
-    // Automatically remove the success message after 2 seconds
-    setTimeout(() => {
-      setMessageSent(false); // Hide the message
-      setFormStatus(''); // Clear the form status
-    }, 2000); // 2000ms = 2 seconds
+      const existingData = await response.json();
+
+      // Ensure the existing data is an array (handle cases where the blob is empty or not initialized as an array)
+      const updatedData = Array.isArray(existingData)
+        ? [...existingData, newMessage]
+        : [newMessage];
+
+      // Step 2: Update the blob with the new data
+      const updateResponse = await fetch(JSON_BLOB_URL, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updatedData),
+      });
+
+      if (!updateResponse.ok) throw new Error("Failed to update the blob");
+
+      // Step 3: Success feedback
+      setFormStatus("Message sent successfully!");
+      setMessageSent(true);
+
+      // Reset the form
+      e.target.reset();
+
+      Swal.fire({
+        icon: "success",
+        title: "Message Sent",
+        text: "Your message has been sent successfully!",
+      });
+
+      // // Automatically clear the success message after 2 seconds
+      // setTimeout(() => {
+      //   setMessageSent(false);
+      //   setFormStatus("");
+      // }, 2000);
+    } catch (error) {
+      console.error(error);
+      setFormStatus("An error occurred. Please try again later.");
+    }
   };
 
   return (
@@ -49,11 +88,11 @@ const Enquiries = () => {
           </div>
           <button type="submit" className="form-button">Submit</button>
         </form>
-        {formStatus && (
-          <p className={`form-status ${messageSent ? 'success' : ''}`}>
+        {/* {formStatus && (
+          <p className={`form-status ${messageSent ? "success" : ""}`}>
             {formStatus}
           </p>
-        )}
+        )} */}
       </div>
     </div>
   );

@@ -55,8 +55,10 @@ const AreaTable = () => {
   useEffect(() => {
     const fetchedData = async () => {
       if (!selectedProductUid) {
-        setError("Please select a product to view sensors.");
-        setLoading(false); // Stop loading if no product UID
+        setTimeout(() => {
+          // setError("Please select a product to view sensors.");
+          setLoading(false); // Stop loading if no product UID
+        }, 3000);
         return;
       }
 
@@ -71,7 +73,8 @@ const AreaTable = () => {
         const realTimeData = await fetcheddata(selectedProductUid);
 
         if (!sensorList || sensorList.error) {
-          setError("Failed to fetch sensor data.");
+            // setError("Failed to fetch sensor data.");
+            swal("Error", "Failed to fetch sensor data.", "error");
           setSensorData([]);
           return;
         }
@@ -91,7 +94,7 @@ const AreaTable = () => {
 
         setSensorData(formattedData);
       } catch (error) {
-        setError("Failed to fetch sensor data.");
+        swal("Error", "Failed to fetch sensor data.", "error");
       } finally {
         setLoading(false);
       }
