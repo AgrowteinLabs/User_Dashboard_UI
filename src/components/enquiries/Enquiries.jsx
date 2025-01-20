@@ -49,6 +49,9 @@ const Enquiries = () => {
         icon: "success",
         title: "Message Sent",
         text: "Your message has been sent successfully!",
+        position: "center",
+        showConfirmButton: false,
+        timer: 1500,
       });
 
       // // Automatically clear the success message after 2 seconds
@@ -76,7 +79,12 @@ const Enquiries = () => {
           </div>
           <div className="form-group">
             <MdMail className="form-icon" />
-            <input type="email" name="email" placeholder="Your Email" required />
+            <input
+              type="email"
+              name="email"
+              placeholder="Your Email"
+              required
+            />
           </div>
           <div className="form-group">
             <MdSubject className="form-icon" />
@@ -84,9 +92,15 @@ const Enquiries = () => {
           </div>
           <div className="form-group">
             <MdMessage className="form-icon" />
-            <textarea name="message" placeholder="Your Message" required></textarea>
+            <textarea
+              name="message"
+              placeholder="Your Message"
+              required
+            ></textarea>
           </div>
-          <button type="submit" className="form-button">Submit</button>
+          <button type="submit" className="form-button">
+            Submit
+          </button>
         </form>
         {/* {formStatus && (
           <p className={`form-status ${messageSent ? "success" : ""}`}>
