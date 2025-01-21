@@ -9,7 +9,7 @@ const Enquiries = () => {
   const [messageSent, setMessageSent] = useState(false); // To track if the message was sent
 
   // The URL of the existing JSON Blob
-  const JSON_BLOB_URL = "https://jsonblob.com/api/jsonBlob/1330617753689841664";
+  const JSON_BLOB_URL = `${import.meta.env.VITE_ENQUIRY_API_URL}`;
 
   const handleFormSubmit = async (e) => {
     e.preventDefault();  // Prevent the default form submission
@@ -70,7 +70,15 @@ const Enquiries = () => {
       });
     } catch (error) {
       console.error(error);
-      setFormStatus("An error occurred. Please try again later.");
+      // setFormStatus("An error occurred. Please try again later.");
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "An error occurred. Please try again later.",
+        position: "center",
+        showConfirmButton: false,
+        timer: 1500,
+      });
     }
   };
 
