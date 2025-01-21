@@ -1,11 +1,13 @@
-// src/api.js
 import axios from "axios";
 
 // Function to handle the login API call
 export const loginUser = async (email, password) => {
   try {
+    // Use the environment variable for the API URL
+    const API_URL = `${import.meta.env.VITE_REACT_APP_API_URL}/api/v1/auth/login`;
+
     const response = await axios.post(
-      "https://agrowtein-5u7w.onrender.com/api/v1/auth/login",
+      API_URL, // Use the dynamic API URL
       { email, password },
       { withCredentials: true }
     );

@@ -1,6 +1,8 @@
+// Fetch real-time data
 export async function fetcheddata(uid) {
   try {
-    const url = `https://agrowtein-5u7w.onrender.com/api/v1/data/realtime/${uid}`;
+    const url = `${import.meta.env.VITE_REACT_APP_API_URL}/api/v1/data/realtime/${uid}`;
+
     const response = await fetch(url, {
       method: 'GET',
       credentials: 'include',
@@ -26,9 +28,11 @@ export async function fetcheddata(uid) {
   }
 }
 
+// Fetch general data
 export async function fetchdata(uid) {
   try {
-    const url = `https://agrowtein-5u7w.onrender.com/api/v1/data/${uid}`;
+    const url = `${import.meta.env.VITE_REACT_APP_API_URL}/api/v1/data/${uid}`;
+
     const response = await fetch(url, {
       method: 'GET',
       credentials: 'include',
