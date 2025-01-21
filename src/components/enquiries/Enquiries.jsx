@@ -1,24 +1,25 @@
 import React, { useState } from "react";
 import { MdMail, MdPerson, MdSubject, MdMessage } from "react-icons/md";
-import "./Enquiries.scss";
 import Swal from "sweetalert2";
+import emailjs from "emailjs-com";  // Import EmailJS SDK
+import "./Enquiries.scss";
 
 const Enquiries = () => {
-  const [formStatus, setFormStatus] = useState("");
-  const [messageSent, setMessageSent] = useState(false);
+  const [formStatus, setFormStatus] = useState("");  // To manage the status message
+  const [messageSent, setMessageSent] = useState(false); // To track if the message was sent
 
   // The URL of the existing JSON Blob
   const JSON_BLOB_URL = "https://jsonblob.com/api/jsonBlob/1330617753689841664";
 
   const handleFormSubmit = async (e) => {
-    e.preventDefault();
+    e.preventDefault();  // Prevent the default form submission
 
     // Extract form data
     const formData = new FormData(e.target);
-    const newMessage = Object.fromEntries(formData);
+    const newMessage = Object.fromEntries(formData);  // Convert the form data into an object
 
     try {
-      // Step 1: Fetch existing data from the blob
+      // Step 1: Fetch existing data from the JSON blob
       const response = await fetch(JSON_BLOB_URL);
       if (!response.ok) throw new Error("Failed to fetch existing data");
 
@@ -38,13 +39,27 @@ const Enquiries = () => {
 
       if (!updateResponse.ok) throw new Error("Failed to update the blob");
 
-      // Step 3: Success feedback
-      setFormStatus("Message sent successfully!");
+      // Step 3: Send the email using EmailJS
+      await emailjs.send(
+        "service_zj2578e", //EmailJS service ID
+        "template_7jcwwa8", //EmailJS template ID
+        {
+          name: newMessage.name,
+          email: newMessage.email,
+          subject: newMessage.subject,
+          message: newMessage.message,
+        },
+        "NjbtDEHRzArKJGL0u" // Replace with your EmailJS user ID
+      );
+
+      // Step 4: Success feedback
+      // setFormStatus("Message sent successfully!");
       setMessageSent(true);
 
       // Reset the form
       e.target.reset();
 
+      // Show SweetAlert success popup
       Swal.fire({
         icon: "success",
         title: "Message Sent",
@@ -53,12 +68,6 @@ const Enquiries = () => {
         showConfirmButton: false,
         timer: 1500,
       });
-
-      // // Automatically clear the success message after 2 seconds
-      // setTimeout(() => {
-      //   setMessageSent(false);
-      //   setFormStatus("");
-      // }, 2000);
     } catch (error) {
       console.error(error);
       setFormStatus("An error occurred. Please try again later.");
@@ -102,11 +111,13 @@ const Enquiries = () => {
             Submit
           </button>
         </form>
-        {/* {formStatus && (
+
+        {/* Displaying form status */}
+        {formStatus && (
           <p className={`form-status ${messageSent ? "success" : ""}`}>
             {formStatus}
           </p>
-        )} */}
+        )}
       </div>
     </div>
   );
