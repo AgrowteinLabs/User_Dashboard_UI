@@ -41,15 +41,15 @@ const Enquiries = () => {
 
       // Step 3: Send the email using EmailJS
       await emailjs.send(
-        "service_zj2578e", //EmailJS service ID
-        "template_7jcwwa8", //EmailJS template ID
+        "service_m88uuog", //EmailJS service ID
+        "template_vh789hg", //EmailJS template ID
         {
           name: newMessage.name,
           email: newMessage.email,
           subject: newMessage.subject,
           message: newMessage.message,
         },
-        "NjbtDEHRzArKJGL0u" // Replace with your EmailJS user ID
+        "r28uZv866nupniblv" // Replace with your EmailJS user ID
       );
 
       // Step 4: Success feedback
