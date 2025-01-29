@@ -17,7 +17,7 @@ import { UserProvider } from "./context/UserContext";
 import { ProductProvider } from "./context/ProductContext";  // Import ProductProvider
 import Login from "./loginpage/login";
 import ProtectedRoute from "./components/ProtectedRoute";  // Import ProtectedRoute
-import Loader from "./components/loader/loader";
+import Loader from "./components/loader/Loader";
 
 function App() {
   const { theme, toggleTheme } = useContext(ThemeContext);
