@@ -3,7 +3,7 @@
   align-items: center; /* Align items vertically in the center */
   justify-content: space-between; /* Distribute space between logo and date picker */
   padding: 16px;
-  background-color: var(--background-color); /* Optional: Add background color */
+  background-color: var(--background-color); /* Adjust for light/dark mode */
 
   .area-top-l {
     display: flex;
@@ -23,12 +23,13 @@
 
     .date-picker-wrapper {
       position: relative;
+      width: 200px;
 
       .date-input {
         padding: 8px 12px;
         border-radius: 4px;
         border: 1px solid var(--border-color);
-        background-color: var(--secondary-color);
+        background-color: var(--secondary-color); /* Adjust for dark mode */
         color: var(--base-text-color);
         cursor: pointer;
       }
@@ -38,13 +39,46 @@
         top: 50px; /* Adjust top position to ensure it's below the input */
         left: 0;
         z-index: 1000;
-        background-color: var(--light-color);
+        background-color: var(--light-color); /* Light mode calendar background */
         border-radius: 4px;
         box-shadow: var(--light-shadow1);
+
+        .rdrMonthAndYearWrapper,
+        .rdrDay {
+          color: var(--text-color); /* Light mode text color */
+        }
       }
 
       &.hide-date-picker .rdrCalendarWrapper {
         display: none;
+      }
+    }
+
+    /* Dark Mode Styling */
+    .dark-mode & {
+      .date-picker-wrapper {
+        .date-input {
+          background-color: var(--dark-secondary-color); /* Dark mode input background */
+          border: 1px solid var(--dark-border-color); /* Dark mode input border */
+          color: var(--dark-base-text-color); /* Dark mode text color */
+        }
+
+        .rdrCalendarWrapper {
+          background-color: var(--dark-color); /* Dark mode calendar background */
+          box-shadow: var(--dark-shadow1);
+
+          .rdrMonthAndYearWrapper,
+          .rdrDay {
+            color: var(--dark-text-color); /* Dark mode text color */
+          }
+
+          .rdrDayHovered,
+          .rdrDayToday,
+          .rdrDaySelected {
+            background-color: var(--dark-accent-color); /* Highlighted day background */
+            color: var(--dark-highlight-text-color); /* Highlighted day text color */
+          }
+        }
       }
     }
   }

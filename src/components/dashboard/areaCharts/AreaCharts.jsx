@@ -17,6 +17,7 @@ import BedTemperatureCurrent from "../../charts/BedTemp/BedTemperatureCurrent"; 
 import BedTemperatureHistory from "../../charts/BedTemp/BedTemperatureHistory"; // New import
 import BoilerTemperatureCurrent from "../../charts/BoilerTemp/BoilerTemperatureCurrent"; // New import
 import BoilerTemperatureHistory from "../../charts/BoilerTemp/BoilerTemperatureHistory"; // New import
+import Swal from "sweetalert2";
 
 // import CurrentWaterLevel from "../../charts/waterLevel/CurrentWaterLevel";
 // import WaterLevelLast7Days from "../../charts/waterLevel/WaterLevelHistory";
@@ -29,11 +30,14 @@ const AreaCharts = () => {
 
   useEffect(() => {
     const fetchData = async () => {
-      if (!selectedProductUid) {
-        setError("Please select a product to view sensors.");
-        setLoading(false);
-        return;
-      }
+      // if (!selectedProductUid) {
+      //   setLoading(true);
+      //   setTimeout(() => {
+      //     setError("Please select a product to view sensors.");
+      //     setLoading(false);
+      //   }, 3000);
+      //   return;
+      // }
 
       try {
         setLoading(true);
@@ -41,7 +45,7 @@ const AreaCharts = () => {
         const data = await fetchSensorList(selectedProductUid);
         setSensors(data);
       } catch (error) {
-        setError("Failed to fetch sensor data.");
+        swal("Error", "Failed to fetch sensor data.", "error");
       } finally {
         setLoading(false);
       }

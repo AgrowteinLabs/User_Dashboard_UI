@@ -11,7 +11,10 @@ async function fetchLast7DaysData(uid = 'avi001') {
   };
 
   try {
-    const response = await axios.post(`https://agrowtein-5u7w.onrender.com/api/v1/data/${uid}/date`, body, {
+    // Use the environment variable for the API URL
+    const apiUrl = `${import.meta.env.VITE_REACT_APP_API_URL}/api/v1/data/${uid}/date`;
+
+    const response = await axios.post(apiUrl, body, {
       headers: {
         'Content-Type': 'application/json',
         // Add authorization token here if needed

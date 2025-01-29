@@ -1,26 +1,85 @@
-import React, { useState } from 'react';
-import { MdMail, MdPerson, MdSubject, MdMessage } from 'react-icons/md';
+import React, { useState } from "react";
+import { MdMail, MdPerson, MdSubject, MdMessage } from "react-icons/md";
+import Swal from "sweetalert2";
+import emailjs from "emailjs-com";  // Import EmailJS SDK
 import "./Enquiries.scss";
 
 const Enquiries = () => {
-  const [formStatus, setFormStatus] = useState('');
-  const [messageSent, setMessageSent] = useState(false); // To manage "Message sent" feedback
+  const [formStatus, setFormStatus] = useState("");  // To manage the status message
+  const [messageSent, setMessageSent] = useState(false); // To track if the message was sent
 
-  const handleFormSubmit = (e) => {
-    e.preventDefault();
+  // The URL of the existing JSON Blob
+  const JSON_BLOB_URL = `${import.meta.env.VITE_ENQUIRY_API_URL}`;
 
-    // Set the form status directly without making any backend request
-    setFormStatus('Message sent successfully!');
-    setMessageSent(true); // Set message sent flag to true
+  const handleFormSubmit = async (e) => {
+    e.preventDefault();  // Prevent the default form submission
 
-    // Reset the form after successful submission
-    e.target.reset();
+    // Extract form data
+    const formData = new FormData(e.target);
+    const newMessage = Object.fromEntries(formData);  // Convert the form data into an object
 
-    // Automatically remove the success message after 2 seconds
-    setTimeout(() => {
-      setMessageSent(false); // Hide the message
-      setFormStatus(''); // Clear the form status
-    }, 2000); // 2000ms = 2 seconds
+    try {
+      // Step 1: Fetch existing data from the JSON blob
+      const response = await fetch(JSON_BLOB_URL);
+      if (!response.ok) throw new Error("Failed to fetch existing data");
+
+      const existingData = await response.json();
+
+      // Ensure the existing data is an array (handle cases where the blob is empty or not initialized as an array)
+      const updatedData = Array.isArray(existingData)
+        ? [...existingData, newMessage]
+        : [newMessage];
+
+      // Step 2: Update the blob with the new data
+      const updateResponse = await fetch(JSON_BLOB_URL, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updatedData),
+      });
+
+      if (!updateResponse.ok) throw new Error("Failed to update the blob");
+
+      // Step 3: Send the email using EmailJS
+      await emailjs.send(
+        "service_m88uuog", //EmailJS service ID
+        "template_vh789hg", //EmailJS template ID
+        {
+          name: newMessage.name,
+          email: newMessage.email,
+          subject: newMessage.subject,
+          message: newMessage.message,
+        },
+        "r28uZv866nupniblv" // Replace with your EmailJS user ID
+      );
+
+      // Step 4: Success feedback
+      // setFormStatus("Message sent successfully!");
+      setMessageSent(true);
+
+      // Reset the form
+      e.target.reset();
+
+      // Show SweetAlert success popup
+      Swal.fire({
+        icon: "success",
+        title: "Message Sent",
+        text: "Your message has been sent successfully!",
+        position: "center",
+        showConfirmButton: false,
+        timer: 1500,
+      });
+    } catch (error) {
+      console.error(error);
+      // setFormStatus("An error occurred. Please try again later.");
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "An error occurred. Please try again later.",
+        position: "center",
+        showConfirmButton: false,
+        timer: 1500,
+      });
+    }
   };
 
   return (
@@ -37,7 +96,12 @@ const Enquiries = () => {
           </div>
           <div className="form-group">
             <MdMail className="form-icon" />
-            <input type="email" name="email" placeholder="Your Email" required />
+            <input
+              type="email"
+              name="email"
+              placeholder="Your Email"
+              required
+            />
           </div>
           <div className="form-group">
             <MdSubject className="form-icon" />
@@ -45,12 +109,20 @@ const Enquiries = () => {
           </div>
           <div className="form-group">
             <MdMessage className="form-icon" />
-            <textarea name="message" placeholder="Your Message" required></textarea>
+            <textarea
+              name="message"
+              placeholder="Your Message"
+              required
+            ></textarea>
           </div>
-          <button type="submit" className="form-button">Submit</button>
+          <button type="submit" className="form-button">
+            Submit
+          </button>
         </form>
+
+        {/* Displaying form status */}
         {formStatus && (
-          <p className={`form-status ${messageSent ? 'success' : ''}`}>
+          <p className={`form-status ${messageSent ? "success" : ""}`}>
             {formStatus}
           </p>
         )}

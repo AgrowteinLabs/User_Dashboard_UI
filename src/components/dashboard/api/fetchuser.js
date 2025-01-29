@@ -6,7 +6,8 @@ export const fetchUser = async () => {
     }
 
     try {
-        const API_URL = `https://agrowtein-5u7w.onrender.com/api/v1/users/${userid}`;
+        // Use the environment variable for the API URL
+        const API_URL = `${import.meta.env.VITE_REACT_APP_API_URL}/api/v1/users/${userid}`;
 
         // Add credentials: 'include' to send cookies with the request
         const response = await fetch(API_URL, {

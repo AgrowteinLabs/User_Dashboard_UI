@@ -1,6 +1,8 @@
 export async function PowerButton(uid, power) {
     try {
-        const API_URL = `https://agrowtein-5u7w.onrender.com/api/v1/command`;
+        // Use the environment variable for the API URL
+        const API_URL = `${import.meta.env.VITE_REACT_APP_API_URL}/api/v1/command`;
+
         const response = await fetch(API_URL, {
             method: 'POST',
             headers: {
@@ -8,9 +10,11 @@ export async function PowerButton(uid, power) {
             },
             body: JSON.stringify({ command: power, uid: uid }),  // Construct the body with command and uid
         });
+
         if (!response.ok) {
             throw new Error('Network response was not ok');
         }
+
         const data = await response.json();
         console.log(data);
         return data;
