@@ -1,36 +1,31 @@
 import React, { useState } from "react";
 import { MdMail, MdPerson, MdSubject, MdMessage } from "react-icons/md";
 import Swal from "sweetalert2";
-import emailjs from "emailjs-com";  // Import EmailJS SDK
+import emailjs from "emailjs-com";
 import "./Enquiries.scss";
 
 const Enquiries = () => {
-  const [formStatus, setFormStatus] = useState("");  // To manage the status message
-  const [messageSent, setMessageSent] = useState(false); // To track if the message was sent
+  const [formStatus, setFormStatus] = useState("");
+  const [messageSent, setMessageSent] = useState(false);
 
-  // The URL of the existing JSON Blob
   const JSON_BLOB_URL = `${import.meta.env.VITE_ENQUIRY_API_URL}`;
 
   const handleFormSubmit = async (e) => {
-    e.preventDefault();  // Prevent the default form submission
+    e.preventDefault();
 
-    // Extract form data
     const formData = new FormData(e.target);
-    const newMessage = Object.fromEntries(formData);  // Convert the form data into an object
+    const newMessage = Object.fromEntries(formData);
 
     try {
-      // Step 1: Fetch existing data from the JSON blob
       const response = await fetch(JSON_BLOB_URL);
       if (!response.ok) throw new Error("Failed to fetch existing data");
 
       const existingData = await response.json();
 
-      // Ensure the existing data is an array (handle cases where the blob is empty or not initialized as an array)
       const updatedData = Array.isArray(existingData)
         ? [...existingData, newMessage]
         : [newMessage];
 
-      // Step 2: Update the blob with the new data
       const updateResponse = await fetch(JSON_BLOB_URL, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -39,27 +34,24 @@ const Enquiries = () => {
 
       if (!updateResponse.ok) throw new Error("Failed to update the blob");
 
-      // Step 3: Send the email using EmailJS
+      let ejuserId = import.meta.env.VITE_EMAILJS_USER_ID;
+
       await emailjs.send(
         "service_m88uuog", //EmailJS service ID
-        "template_vh789hg", //EmailJS template ID
+        "template_vh789hg",//EmailJS template ID
         {
           name: newMessage.name,
           email: newMessage.email,
           subject: newMessage.subject,
           message: newMessage.message,
         },
-        "r28uZv866nupniblv" // Replace with your EmailJS user ID
+        ejuserId
       );
 
-      // Step 4: Success feedback
-      // setFormStatus("Message sent successfully!");
       setMessageSent(true);
 
-      // Reset the form
       e.target.reset();
 
-      // Show SweetAlert success popup
       Swal.fire({
         icon: "success",
         title: "Message Sent",
@@ -70,7 +62,6 @@ const Enquiries = () => {
       });
     } catch (error) {
       console.error(error);
-      // setFormStatus("An error occurred. Please try again later.");
       Swal.fire({
         icon: "error",
         title: "Error",
@@ -120,7 +111,6 @@ const Enquiries = () => {
           </button>
         </form>
 
-        {/* Displaying form status */}
         {formStatus && (
           <p className={`form-status ${messageSent ? "success" : ""}`}>
             {formStatus}
