@@ -35,7 +35,7 @@
     "react-router-dom": "^6.26.1",
     "recharts": "^2.10.3",
     "sass": "^1.69.7",
-    "sweetalert2": "^11.12.4"
+    "sweetalert2": "^11.15.10"
   },
   "devDependencies": {
     "@types/js-cookie": "^3.0.6",

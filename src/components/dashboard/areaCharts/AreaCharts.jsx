@@ -17,6 +17,10 @@ import BedTemperatureCurrent from "../../charts/BedTemp/BedTemperatureCurrent"; 
 import BedTemperatureHistory from "../../charts/BedTemp/BedTemperatureHistory"; // New import
 import BoilerTemperatureCurrent from "../../charts/BoilerTemp/BoilerTemperatureCurrent"; // New import
 import BoilerTemperatureHistory from "../../charts/BoilerTemp/BoilerTemperatureHistory"; // New import
+import ElectricConductivityCurrent from "../../charts/electricconductivity/ElectricConductivityCurrent";
+import ElectricConductivityHistory from "../../charts/electricconductivity/ElectricConductivityHistory";
+import CurrentFlowrate from "../../charts/flowrate/CurrentFlowrate"
+import FlowrateHistory from "../../charts/flowrate/FlowrateHistory"
 import Swal from "sweetalert2";
 
 // import CurrentWaterLevel from "../../charts/waterLevel/CurrentWaterLevel";
@@ -72,21 +76,15 @@ const AreaCharts = () => {
         </div>
       ) : (
         <>
-          {isSensorAvailable("Temperature Sensor_1") && (
+          {isSensorAvailable("Temperature") && (
             <>
               <CurrentTemperature />
               <TemperatureHistory />
             </>
           )}
 
-          {isSensorAvailable("Temperature Sensor_2") && (
-            <>
-              <CurrentTemperature />
-              <TemperatureHistory />
-            </>
-          )}
 
-          {isSensorAvailable("pH Sensor") && (
+          {isSensorAvailable("pH") && (
             <>
               <CurrentPHValue />
               <Last7DaysPHValue />
@@ -137,6 +135,20 @@ const AreaCharts = () => {
             </>
           )}
           
+          {isSensorAvailable("Flow_Rate") && (
+            <>
+              < CurrentFlowrate/>
+              <FlowrateHistory />
+            </>
+          )}
+
+{isSensorAvailable("Flow_Rate") && (
+            <>
+              < ElectricConductivityCurrent/>
+              <ElectricConductivityHistory />
+            </>
+          )}
+
         </>
       )}
     </section>

@@ -9,10 +9,11 @@ export async function fetcheddata(uid) {
     });
 
     if (!response.ok) {
+      const errorDetails = await response.text();
       if (response.status === 404) {
-        throw new Error('404'); // Handle 404
+        throw new Error(`404 Not Found: ${errorDetails}`);
       } else {
-        throw new Error(`Error: ${response.status}`); // Handle other errors
+        throw new Error(`Error: ${response.status}, ${errorDetails}`);
       }
     }
 
@@ -21,7 +22,7 @@ export async function fetcheddata(uid) {
     return data; // Return raw response
   } catch (error) {
     console.error('Error fetching data:', error);
-    if (error.message === '404') {
+    if (error.message.includes('404')) {
       return { error: 404 }; // Return 404
     }
     return { error: 'Failed to fetch data' };

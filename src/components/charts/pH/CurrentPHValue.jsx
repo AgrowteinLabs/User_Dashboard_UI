@@ -14,8 +14,9 @@ const CurrentPHValue = () => {
 
       try {
         const data = await fetcheddata(selectedProductUid);
-        if (data && data.data && data.data.pHValue !== undefined) {
-          setSeries([data.data.pHValue]); // Update the series with the pH value
+        if (data && data.data && data.data.pH !== undefined) {
+          // Set pH value with two decimal places
+          setSeries([parseFloat(data.data.pH).toFixed(2)]); // Update the series with the pH value
         } else {
           console.error("pH value data not found in the API response");
         }
@@ -93,7 +94,7 @@ const CurrentPHValue = () => {
       <div className="progress-bar-info">
         <h4 className="progress-bar-title" style={{ color: 'var(--text-color)' }}>
           <FaFlask style={{ marginRight: "8px", color: 'var(--text-color)' }} />
-          Current pH Value
+          pH Value - Current
         </h4>
       </div>
       <div className="chart-wrapper-center">
