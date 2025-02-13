@@ -18,7 +18,7 @@ export async function fetcheddata(uid) {
     }
 
     const data = await response.json();
-    console.log("API Raw Response:", JSON.stringify(data, null, 2)); // Log raw API response
+    // console.log("API Raw Response:", JSON.stringify(data, null, 2)); // Log raw API response
     return data; // Return raw response
   } catch (error) {
     console.error('Error fetching data:', error);
@@ -48,7 +48,7 @@ export async function fetchdata(uid) {
     }
 
     const data = await response.json();
-    console.log("API Raw Response:", JSON.stringify(data, null, 2)); // Log raw API response
+    // console.log("API Raw Response:", JSON.stringify(data, null, 2)); // Log raw API response
     return data; // Return raw response
   } catch (error) {
     console.error('Error fetching data:', error);

@@ -16,7 +16,7 @@ const CurrentPressure = () => {
       
         try {
           const data = await fetcheddata(selectedProductUid);
-          console.log("Fetched Pressure Data:", JSON.stringify(data, null, 2)); // Debugging
+          // console.log("Fetched Pressure Data:", JSON.stringify(data, null, 2)); // Debugging
       
           if (data && data.data && data.data.Pressure !== undefined && data.timestamp) {
             const pressure = data.data.Pressure;
