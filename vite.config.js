@@ -6,7 +6,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api/': {
-        target: 'https://agrowteinlabs.onrender.com',
+        target: 'https://api.agrowtein.com',
         changeOrigin: true,
         secure: false,  // Set to false if using HTTP
         cookieDomainRewrite: 'localhost',
