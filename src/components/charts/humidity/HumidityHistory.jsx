@@ -15,7 +15,7 @@ const HumidityHistory = () => {
       if (!selectedProductUid) return;
     
       try {
-        const response = await axios.post(`https://agrowtein-5u7w.onrender.com/api/v1/data/${selectedProductUid}/date`, {
+        const response = await axios.post(`${import.meta.env.VITE_REACT_APP_API_URL}/api/v1/data/${selectedProductUid}/date`, {
           startDate: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), // 24 hours ago
           endDate: new Date().toISOString(), // Current date
         });
