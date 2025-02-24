@@ -6,39 +6,48 @@ import { fetchUser } from "../api/fetchuser";
 import { ProductContext } from "../../../context/ProductContext";
 import Slider from "@mui/material/Slider";
 import Stack from "@mui/material/Stack";
-import { Select, MenuItem, CircularProgress, InputLabel, FormControl } from "@mui/material";
+import { motion } from 'framer-motion';
+import { setControls } from "../api/commands";  // Import the API functions
+import {
+  Select,
+  MenuItem,
+  CircularProgress,
+  InputLabel,
+  FormControl,
+  FormControlLabel,
+  Switch,
+} from "@mui/material";
 
 const AreaCards = () => {
-  const { selectedProductUid, setSelectedProductUid } = useContext(ProductContext);
+  const { selectedProductUid, setSelectedProductUid } =
+    useContext(ProductContext);
   const [products, setProducts] = useState([]);
-  const [selectedControls, setSelectedControls] = useState([]);
+  const [selectedProductDetails, setSelectedProductDetails] = useState(null);
   const [loading, setLoading] = useState(true);
   const [location, setLocation] = useState("Loading location...");
+  const [selectedControl, setSelectedControl] = useState(null);
+  const [mode, setMode] = useState("manual");
 
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        // Fetch products data
         const data = await fetchProducts();
         if (Array.isArray(data) && data.length > 0) {
           setProducts(data);
-
-          // Check if a product is saved in localStorage
           const savedProductUid = localStorage.getItem("selectedProductUid");
           if (savedProductUid) {
-            setSelectedProductUid(savedProductUid); // Restore from localStorage
+            setSelectedProductUid(savedProductUid);
           } else {
-            setSelectedProductUid(data[0].uid); // Default to the first product if none is saved
+            setSelectedProductUid(data[0].uid);
           }
         } else {
           setProducts([]);
         }
 
-        // Fetch user data to get the location (city)
         const userData = await fetchUser();
         if (userData && userData.address) {
-          setLocation(userData.address.city); // Set city as the location
+          setLocation(userData.address.city);
         }
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -47,29 +56,66 @@ const AreaCards = () => {
       }
     };
     fetchData();
-  }, [selectedProductUid, setSelectedProductUid]);
+  }, [setSelectedProductUid]);
 
   useEffect(() => {
-    // Save selected product UID to localStorage
-    if (selectedProductUid) {
-      localStorage.setItem("selectedProductUid", selectedProductUid);
-    }
-  }, [selectedProductUid]);
+    const fetchSelectedProductDetails = async () => {
+      if (selectedProductUid) {
+        try {
+          const product = products.find(
+            (product) => product.uid === selectedProductUid
+          );
+          if (product) {
+            setSelectedProductDetails(product);
+            localStorage.setItem("selectedProductUid", selectedProductUid);
+          }
+        } catch (error) {
+          console.error("Error fetching product details:", error);
+        }
+      }
+    };
+    fetchSelectedProductDetails();
+  }, [selectedProductUid, products]);
 
   const handleThresholdChange = (controlKey, newThreshold) => {
-    setSelectedControls((prevControls) =>
-      prevControls.map(([key, control]) =>
-        key === controlKey
-          ? [
-              key,
-              {
-                ...control,
-                threshHold: parseFloat(newThreshold.toFixed(1)),
-              },
-            ]
-          : [key, control]
-      )
-    );
+    if (selectedProductDetails) {
+      const updatedControls = selectedProductDetails.controls.map((control) =>
+        control.controlId === controlKey
+          ? {
+              ...control,
+              threshHold: parseFloat(newThreshold.toFixed(1)),
+            }
+          : control
+      );
+      setSelectedProductDetails((prevDetails) => ({
+        ...prevDetails,
+        controls: updatedControls,
+      }));
+    }
+  };
+
+  const handleControlSelect = (controlId) => {
+    setSelectedControl(controlId);
+  };
+
+  const handleModeChange = async (event) => {
+    const newMode = event.target.checked ? "automatic" : "manual";
+    setMode(newMode);
+
+    // Update backend with the selected mode
+    try {
+      await setControls(newMode, selectedProductUid, "P1", "Pre01", newMode === "automatic" ? "true" : "false");
+    } catch (error) {
+      console.error("Failed to update mode:", error);
+    }
+  };
+
+  const handlePowerChange = async (uid, pin, controlId, value) => {
+    try {
+      await setPower(uid, pin, controlId, value);  // Call the API to set power
+    } catch (error) {
+      console.error("Failed to set power:", error);
+    }
   };
 
   if (loading) {
@@ -84,9 +130,7 @@ const AreaCards = () => {
     <section className="content-area-cards">
       <div className="dropdown-container">
         <FormControl fullWidth>
-          <InputLabel id="product-select-label" sx={{ Color: 'var(--text-color)', padding: '0 8px', color: 'var(--text-color)' }}>
-            Select Product
-          </InputLabel>
+          <InputLabel id="product-select-label">Select Product</InputLabel>
           <Select
             labelId="product-select-label"
             value={selectedProductUid || ""}
@@ -95,12 +139,12 @@ const AreaCards = () => {
             label="Select Product"
             sx={{
               borderRadius: 2,
-              backgroundColor: 'var(--secondary-color)',
+              backgroundColor: "#f3f4f6",
               padding: 1,
-              color: 'var(--text-color)', 
+              color: "#333",
               "& .MuiSelect-icon": {
-                color: 'var(--text-color)',
-              }
+                color: "#333",
+              },
             }}
           >
             <MenuItem value="" disabled>
@@ -128,32 +172,127 @@ const AreaCards = () => {
           colors={["#e4e8ef", "#4ce13f"]}
           cardInfo={{
             title: "Current Location",
-            value: location, // Display the city name
+            value: location,
           }}
           type="location"
           className="center-card"
         />
 
-        {selectedControls.length > 0 ? (
-          selectedControls.map(([controlKey, control], index) => (
+        {/* Manual/Automatic Toggle Card */}
+        <AreaCard
+          colors={["#e4e8ef", "#f29a2e"]}
+          cardInfo={{
+            title: "Mode",
+          }}
+          type="mode"
+        >
+          <FormControlLabel
+            control={
+              <Switch
+                checked={mode === "automatic"}
+                onChange={handleModeChange}
+              />
+            }
+            label={mode === "automatic" ? "Automatic" : "Manual"}
+            labelPlacement="start"
+            sx={{ color: "#333", fontWeight: "bold", padding: "10px" }}
+          />
+        </AreaCard>
+      </div>
+
+      {/* Controls Displayed Only if Automatic Mode is Active */}
+      <div className="area-cards-row">
+        {mode === "automatic" &&
+        selectedProductDetails &&
+        selectedProductDetails.controls &&
+        selectedProductDetails.controls.length > 0 ? (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="centered-card"
+          >
             <AreaCard
-              key={index}
               colors={["#e4e8ef", "#f29a2e"]}
               cardInfo={{
-                title: control.name,
-                value: control.threshHold,
-                unit: control.max ? `Max: ${control.max}, Min: ${control.min}` : "",
+                title: selectedProductDetails.controls.find(
+                  (control) => control.controlId === selectedControl
+                )?.name,
+                value: selectedProductDetails.controls.find(
+                  (control) => control.controlId === selectedControl
+                )?.threshHold,
+                unit: selectedProductDetails.controls.find(
+                  (control) => control.controlId === selectedControl
+                )?.max
+                  ? `Max: ${
+                      selectedProductDetails.controls.find(
+                        (control) => control.controlId === selectedControl
+                      )?.max
+                    }, Min: ${
+                      selectedProductDetails.controls.find(
+                        (control) => control.controlId === selectedControl
+                      )?.min
+                    }`
+                  : "",
               }}
               type="control"
             >
-              <Stack spacing={2} direction="row" sx={{ alignItems: "center", mb: 1 }}>
+              {/* Control Dropdown at the Top of the Card */}
+              <div className="control-selection-container">
+                <InputLabel
+                  id="control-select-label"
+                  sx={{ color: "var(--text-color)", fontWeight: "bold" }}
+                >
+                  Select Control
+                </InputLabel>
+                <Select
+                  labelId="control-select-label"
+                  value={selectedControl || ""}
+                  onChange={(e) => handleControlSelect(e.target.value)}
+                  displayEmpty
+                  sx={{
+                    borderRadius: 2,
+                    backgroundColor: "#f3f4f6",
+                    padding: 1,
+                    color: "#333",
+                    "& .MuiSelect-icon": {
+                      color: "#333",
+                    },
+                    marginBottom: "20px",
+                  }}
+                >
+                  <MenuItem value="" disabled>
+                    Select a control
+                  </MenuItem>
+                  {selectedProductDetails.controls.map((control) => (
+                    <MenuItem key={control.controlId} value={control.controlId}>
+                      {control.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </div>
+
+              {/* Control slider and input */}
+              <Stack
+                spacing={2}
+                direction="row"
+                sx={{ alignItems: "center", mb: 1 }}
+              >
                 <Slider
                   aria-label="Control Threshold"
-                  value={control.threshHold}
-                  min={control.min}
-                  max={control.max}
+                  value={selectedProductDetails.controls.find(
+                    (control) => control.controlId === selectedControl
+                  )?.threshHold}
+                  min={selectedProductDetails.controls.find(
+                    (control) => control.controlId === selectedControl
+                  )?.min}
+                  max={selectedProductDetails.controls.find(
+                    (control) => control.controlId === selectedControl
+                  )?.max}
                   step={0.1}
-                  onChange={(e, newValue) => handleThresholdChange(controlKey, newValue)}
+                  onChange={(e, newValue) =>
+                    handleThresholdChange(selectedControl, newValue)
+                  }
                 />
               </Stack>
               <div>
@@ -161,16 +300,37 @@ const AreaCards = () => {
                 <input
                   type="number"
                   step="0.1"
-                  value={control.threshHold}
-                  onChange={(e) => handleThresholdChange(controlKey, e.target.value)}
-                  style={{ width: "60px", textAlign: "center", marginRight: "10px" }}
+                  value={selectedProductDetails.controls.find(
+                    (control) => control.controlId === selectedControl
+                  )?.threshHold}
+                  onChange={(e) =>
+                    handleThresholdChange(selectedControl, e.target.value)
+                  }
+                  style={{
+                    width: "60px",
+                    textAlign: "center",
+                    marginRight: "10px",
+                  }}
                 />
-                / {control.max}
+                /{" "}
+                {
+                  selectedProductDetails.controls.find(
+                    (control) => control.controlId === selectedControl
+                  )?.max
+                }
               </div>
             </AreaCard>
-          ))
+          </motion.div>
         ) : (
-          <div style={{ fontWeight: 'bold', fontSize: '1.2rem', color: 'var(--text-color)', textAlign: 'center' }}>
+          <div
+            style={{
+              fontWeight: "bold",
+              fontSize: "1.2rem",
+              color: "#333",
+              textAlign: "center",
+              marginTop: "20px",
+            }}
+          >
             No controls available
           </div>
         )}

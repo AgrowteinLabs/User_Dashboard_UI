@@ -8,7 +8,6 @@ import { ProductContext } from '../../../context/ProductContext';
 const TABLE_HEADS = [
   "Sensors Used",
   "Sensor ID",
-  "Installation Date",
   "Status",
 ];
 
@@ -87,7 +86,6 @@ const AreaTable = () => {
             id: sensor._id,
             name: sensor.name,
             sensor_id: sensor._id,
-            installation_date: new Date(sensor.createdAt).toLocaleDateString(),
             status: status, // Set the status based on the check
           };
         });
@@ -132,7 +130,6 @@ const AreaTable = () => {
                   <tr key={dataItem.id}>
                     <td>{dataItem.name}</td>
                     <td>{dataItem.sensor_id}</td>
-                    <td>{dataItem.installation_date}</td>
                     <td>
                       <div className="dt-status">
                         <span className={`dt-status-dot dot-${dataItem.status}`}></span>
@@ -143,7 +140,7 @@ const AreaTable = () => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={4} style={{ textAlign: 'center' }}>
+                  <td colSpan={3} style={{ textAlign: 'center' }}>
                     No sensors found for this product.
                   </td>
                 </tr>

@@ -24,6 +24,7 @@
     "date-fns": "^3.1.0",
     "dayjs": "^1.11.13",
     "emailjs-com": "^3.2.0",
+    "framer-motion": "^12.4.7",
     "js-cookie": "^3.0.5",
     "react": "^18.2.0",
     "react-apexcharts": "^1.4.1",
@@ -33,9 +34,10 @@
     "react-icons": "^4.12.0",
     "react-modal": "^3.16.1",
     "react-router-dom": "^6.26.1",
+    "react-tooltip": "^5.28.0",
     "recharts": "^2.10.3",
     "sass": "^1.69.7",
-    "sweetalert2": "^11.15.10"
+    "sweetalert2": "^11.17.2"
   },
   "devDependencies": {
     "@types/js-cookie": "^3.0.6",
