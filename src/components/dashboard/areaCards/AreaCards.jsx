@@ -1,3 +1,4 @@
+// AreaCards component
 import React, { useEffect, useState, useContext } from "react";
 import AreaCard from "./AreaCard";
 import "./AreaCards.scss";
@@ -6,8 +7,8 @@ import { fetchUser } from "../api/fetchuser";
 import { ProductContext } from "../../../context/ProductContext";
 import Slider from "@mui/material/Slider";
 import Stack from "@mui/material/Stack";
-import { motion } from 'framer-motion';
-import { setControls } from "../api/commands";  // Import the API functions
+import { motion } from "framer-motion";
+import { setControls, setPower } from "../api/commands";
 import {
   Select,
   MenuItem,
@@ -26,7 +27,6 @@ const AreaCards = () => {
   const [loading, setLoading] = useState(true);
   const [location, setLocation] = useState("Loading location...");
   const [selectedControl, setSelectedControl] = useState(null);
-  const [mode, setMode] = useState("manual");
 
   useEffect(() => {
     const fetchData = async () => {
@@ -36,21 +36,10 @@ const AreaCards = () => {
         if (Array.isArray(data) && data.length > 0) {
           setProducts(data);
           const savedProductUid = localStorage.getItem("selectedProductUid");
-          if (savedProductUid) {
-            setSelectedProductUid(savedProductUid);
-          } else {
-            setSelectedProductUid(data[0].uid);
-          }
-        } else {
-          setProducts([]);
+          setSelectedProductUid(savedProductUid || data[0].uid);
         }
-
         const userData = await fetchUser();
-        if (userData && userData.address) {
-          setLocation(userData.address.city);
-        }
-      } catch (error) {
-        console.error("Error fetching data:", error);
+        setLocation(userData?.address?.city || "Location not available");
       } finally {
         setLoading(false);
       }
@@ -61,60 +50,68 @@ const AreaCards = () => {
   useEffect(() => {
     const fetchSelectedProductDetails = async () => {
       if (selectedProductUid) {
-        try {
-          const product = products.find(
-            (product) => product.uid === selectedProductUid
-          );
-          if (product) {
-            setSelectedProductDetails(product);
-            localStorage.setItem("selectedProductUid", selectedProductUid);
-          }
-        } catch (error) {
-          console.error("Error fetching product details:", error);
-        }
+        const product = products.find((p) => p.uid === selectedProductUid);
+        setSelectedProductDetails(product);
+        localStorage.setItem("selectedProductUid", selectedProductUid);
       }
     };
     fetchSelectedProductDetails();
   }, [selectedProductUid, products]);
 
-  const handleThresholdChange = (controlKey, newThreshold) => {
-    if (selectedProductDetails) {
-      const updatedControls = selectedProductDetails.controls.map((control) =>
+  const handleThresholdChange = async (controlKey, newValue) => {
+    if (!selectedProductDetails) return;
+
+    const originalControls = [...selectedProductDetails.controls];
+    try {
+      // Optimistic update
+      const updatedControls = originalControls.map((control) =>
         control.controlId === controlKey
-          ? {
-              ...control,
-              threshHold: parseFloat(newThreshold.toFixed(1)),
-            }
+          ? { ...control, threshHold: parseFloat(newValue.toFixed(1)) }
           : control
       );
-      setSelectedProductDetails((prevDetails) => ({
-        ...prevDetails,
-        controls: updatedControls,
-      }));
-    }
-  };
+      setSelectedProductDetails((prev) => ({ ...prev, controls: updatedControls }));
 
-  const handleControlSelect = (controlId) => {
-    setSelectedControl(controlId);
+      // API call
+      const control = updatedControls.find((c) => c.controlId === controlKey);
+      await setControls("threshhold", {
+        uid: selectedProductUid,
+        pin: control.pin,
+        controlId: controlKey,
+        value: parseFloat(newValue.toFixed(1)),
+        mode: "threshhold",
+      });
+    } catch (error) {
+      console.error("Threshold update failed:", error);
+      setSelectedProductDetails((prev) => ({ ...prev, controls: originalControls }));
+    }
   };
 
   const handleModeChange = async (event) => {
-    const newMode = event.target.checked ? "automatic" : "manual";
-    setMode(newMode);
+    if (!selectedControl || !selectedProductDetails) return;
 
-    // Update backend with the selected mode
+    const originalControls = [...selectedProductDetails.controls];
     try {
-      await setControls(newMode, selectedProductUid, "P1", "Pre01", newMode === "automatic" ? "true" : "false");
-    } catch (error) {
-      console.error("Failed to update mode:", error);
-    }
-  };
+      const newAutomate = event.target.checked;
+      // Optimistic update
+      const updatedControls = originalControls.map((control) =>
+        control.controlId === selectedControl
+          ? { ...control, automate: newAutomate }
+          : control
+      );
+      setSelectedProductDetails((prev) => ({ ...prev, controls: updatedControls }));
 
-  const handlePowerChange = async (uid, pin, controlId, value) => {
-    try {
-      await setPower(uid, pin, controlId, value);  // Call the API to set power
+      // API call
+      const control = updatedControls.find((c) => c.controlId === selectedControl);
+      await setControls("automate", {
+        uid: selectedProductUid,
+        pin: control.pin,
+        controlId: selectedControl,
+        value: `${newAutomate}`,
+        mode: "automate",
+      });
     } catch (error) {
-      console.error("Failed to set power:", error);
+      console.error("Mode update failed:", error);
+      setSelectedProductDetails((prev) => ({ ...prev, controls: originalControls }));
     }
   };
 
@@ -126,6 +123,10 @@ const AreaCards = () => {
     );
   }
 
+  const currentControl = selectedProductDetails?.controls?.find(
+    (c) => c.controlId === selectedControl
+  );
+
   return (
     <section className="content-area-cards">
       <div className="dropdown-container">
@@ -135,21 +136,15 @@ const AreaCards = () => {
             labelId="product-select-label"
             value={selectedProductUid || ""}
             onChange={(e) => setSelectedProductUid(e.target.value)}
-            displayEmpty
             label="Select Product"
             sx={{
               borderRadius: 2,
               backgroundColor: "#f3f4f6",
               padding: 1,
               color: "#333",
-              "& .MuiSelect-icon": {
-                color: "#333",
-              },
+              "& .MuiSelect-icon": { color: "#333" },
             }}
           >
-            <MenuItem value="" disabled>
-              Choose a product
-            </MenuItem>
             {products.map((product) => (
               <MenuItem key={product._id} value={product.uid}>
                 {product.alias}
@@ -162,9 +157,7 @@ const AreaCards = () => {
       <div className="area-cards-row">
         <AreaCard
           colors={["#e4e8ef", "#475be8"]}
-          cardInfo={{
-            title: "Current Time",
-          }}
+          cardInfo={{ title: "Current Time" }}
           type="time"
         />
 
@@ -178,34 +171,28 @@ const AreaCards = () => {
           className="center-card"
         />
 
-        {/* Manual/Automatic Toggle Card */}
         <AreaCard
           colors={["#e4e8ef", "#f29a2e"]}
-          cardInfo={{
-            title: "Mode",
-          }}
+          cardInfo={{ title: "Mode" }}
           type="mode"
         >
           <FormControlLabel
             control={
               <Switch
-                checked={mode === "automatic"}
+                checked={currentControl?.automate || false}
                 onChange={handleModeChange}
+                disabled={!selectedControl}
               />
             }
-            label={mode === "automatic" ? "Automatic" : "Manual"}
+            label={currentControl?.automate ? "Automatic" : "Manual"}
             labelPlacement="start"
             sx={{ color: "#333", fontWeight: "bold", padding: "10px" }}
           />
         </AreaCard>
       </div>
 
-      {/* Controls Displayed Only if Automatic Mode is Active */}
       <div className="area-cards-row">
-        {mode === "automatic" &&
-        selectedProductDetails &&
-        selectedProductDetails.controls &&
-        selectedProductDetails.controls.length > 0 ? (
+        {selectedProductDetails?.controls?.length > 0 ? (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -215,29 +202,14 @@ const AreaCards = () => {
             <AreaCard
               colors={["#e4e8ef", "#f29a2e"]}
               cardInfo={{
-                title: selectedProductDetails.controls.find(
-                  (control) => control.controlId === selectedControl
-                )?.name,
-                value: selectedProductDetails.controls.find(
-                  (control) => control.controlId === selectedControl
-                )?.threshHold,
-                unit: selectedProductDetails.controls.find(
-                  (control) => control.controlId === selectedControl
-                )?.max
-                  ? `Max: ${
-                      selectedProductDetails.controls.find(
-                        (control) => control.controlId === selectedControl
-                      )?.max
-                    }, Min: ${
-                      selectedProductDetails.controls.find(
-                        (control) => control.controlId === selectedControl
-                      )?.min
-                    }`
+                title: currentControl?.name,
+                value: currentControl?.threshHold,
+                unit: currentControl?.max
+                  ? `Max: ${currentControl.max}, Min: ${currentControl.min}`
                   : "",
               }}
               type="control"
             >
-              {/* Control Dropdown at the Top of the Card */}
               <div className="control-selection-container">
                 <InputLabel
                   id="control-select-label"
@@ -248,22 +220,16 @@ const AreaCards = () => {
                 <Select
                   labelId="control-select-label"
                   value={selectedControl || ""}
-                  onChange={(e) => handleControlSelect(e.target.value)}
-                  displayEmpty
+                  onChange={(e) => setSelectedControl(e.target.value)}
                   sx={{
                     borderRadius: 2,
                     backgroundColor: "#f3f4f6",
                     padding: 1,
                     color: "#333",
-                    "& .MuiSelect-icon": {
-                      color: "#333",
-                    },
+                    "& .MuiSelect-icon": { color: "#333" },
                     marginBottom: "20px",
                   }}
                 >
-                  <MenuItem value="" disabled>
-                    Select a control
-                  </MenuItem>
                   {selectedProductDetails.controls.map((control) => (
                     <MenuItem key={control.controlId} value={control.controlId}>
                       {control.name}
@@ -272,27 +238,17 @@ const AreaCards = () => {
                 </Select>
               </div>
 
-              {/* Control slider and input */}
-              <Stack
-                spacing={2}
-                direction="row"
-                sx={{ alignItems: "center", mb: 1 }}
-              >
+              <Stack spacing={2} direction="row" sx={{ alignItems: "center", mb: 1 }}>
                 <Slider
                   aria-label="Control Threshold"
-                  value={selectedProductDetails.controls.find(
-                    (control) => control.controlId === selectedControl
-                  )?.threshHold}
-                  min={selectedProductDetails.controls.find(
-                    (control) => control.controlId === selectedControl
-                  )?.min}
-                  max={selectedProductDetails.controls.find(
-                    (control) => control.controlId === selectedControl
-                  )?.max}
+                  value={currentControl?.threshHold || 0}
+                  min={currentControl?.min}
+                  max={currentControl?.max}
                   step={0.1}
-                  onChange={(e, newValue) =>
+                  onChange={(_, newValue) =>
                     handleThresholdChange(selectedControl, newValue)
                   }
+                  disabled={!selectedControl}
                 />
               </Stack>
               <div>
@@ -300,9 +256,7 @@ const AreaCards = () => {
                 <input
                   type="number"
                   step="0.1"
-                  value={selectedProductDetails.controls.find(
-                    (control) => control.controlId === selectedControl
-                  )?.threshHold}
+                  value={currentControl?.threshHold || 0}
                   onChange={(e) =>
                     handleThresholdChange(selectedControl, e.target.value)
                   }
@@ -311,28 +265,14 @@ const AreaCards = () => {
                     textAlign: "center",
                     marginRight: "10px",
                   }}
+                  disabled={!selectedControl}
                 />
-                /{" "}
-                {
-                  selectedProductDetails.controls.find(
-                    (control) => control.controlId === selectedControl
-                  )?.max
-                }
+                / {currentControl?.max}
               </div>
             </AreaCard>
           </motion.div>
         ) : (
-          <div
-            style={{
-              fontWeight: "bold",
-              fontSize: "1.2rem",
-              color: "#333",
-              textAlign: "center",
-              marginTop: "20px",
-            }}
-          >
-            No controls available
-          </div>
+          <div className="no-controls-message">No controls available</div>
         )}
       </div>
     </section>

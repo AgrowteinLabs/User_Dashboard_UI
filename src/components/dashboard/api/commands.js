@@ -1,35 +1,52 @@
-// Set controls data
-export async function setControls(uid, controlData) {
-    try {
-      const url = `${import.meta.env.VITE_REACT_APP_API_URL}/api/v1/controls/${uid}`;
-  
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify(controlData), // Sending controlData as the request body
-      });
-  
-      if (!response.ok) {
-        const errorDetails = await response.text();
-        if (response.status === 404) {
-          throw new Error(`404 Not Found: ${errorDetails}`);
-        } else {
-          throw new Error(`Error: ${response.status}, ${errorDetails}`);
-        }
-      }
-  
-      const data = await response.json();
-      // console.log("API Raw Response:", JSON.stringify(data, null, 2)); // Log raw API response
-      return data; // Return raw response
-    } catch (error) {
-      console.error('Error setting controls:', error);
-      if (error.message.includes('404')) {
-        return { error: 404 }; // Return 404
-      }
-      return { error: 'Failed to set controls' };
+export async function setControls(mode, bodyData) {
+  try {
+    const url = `${
+      import.meta.env.VITE_REACT_APP_API_URL
+    }/api/v1/command/controls?mode=${mode}`;
+
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify(bodyData),
+    });
+
+    if (!response.ok) {
+      const errorDetails = await response.text();
+      throw new Error(`Error: ${response.status}, ${errorDetails}`);
     }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Error setting controls:", error);
+    throw error;
   }
-  
+}
+
+export async function setPower(uid, pin, controlId, value) {
+  try {
+    const response = await fetch(
+      `${import.meta.env.VITE_REACT_APP_API_URL}/api/v1/command`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({ uid, pin, controlId, value }),
+      }
+    );
+
+    if (!response.ok) {
+      const errorDetails = await response.text();
+      throw new Error(`Error: ${response.status}, ${errorDetails}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Error setting power:", error);
+    throw error;
+  }
+}
