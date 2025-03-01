@@ -1,6 +1,6 @@
 .content-area-cards {
   display: grid;
-  grid-template-columns: 1fr; /* Ensure dropdown occupies full width in its row */
+  grid-template-columns: 1fr;
   margin-top: 12px;
   gap: 16px;
 
@@ -19,7 +19,7 @@
   }
 
   .MuiSelect-root {
-    background-color: #810022; /* Light background for the dropdown */
+    background-color: #810022;
     color: #2c3e50;
     font-size: 16px;
     font-weight: 600;
@@ -28,7 +28,7 @@
     transition: 0.3s ease;
 
     &:hover {
-      background-color: #e9eff3; /* Slight hover effect */
+      background-color: #e9eff3;
     }
 
     &:focus {
@@ -40,10 +40,6 @@
   .MuiInputLabel-root {
     font-weight: 500;
     color: #7f8c8d;
-  }
-
-  .MuiMenuItem-root {
-    font-weight: 600;
   }
 
   .area-cards-row {
@@ -64,18 +60,25 @@
     background-color: var(--secondary-color);
     display: flex;
     align-items: center;
-    border-radius: 5px;
+    border-radius: 12px;
     padding: 20px 16px;
     justify-content: space-between;
     box-shadow: var(--light-shadow1);
+    transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+    overflow: hidden;
 
     @media (max-width: 768px) {
       padding: 12px;
     }
 
+    &:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+    }
+
     .info-title {
       color: var(--lg-text-color);
-      font-size: 18px;
+      font-size: 1.1rem; // Increased size for better readability
       margin-bottom: 8px;
       font-weight: bold;
     }
@@ -83,100 +86,79 @@
     .info-value {
       color: var(--xl-text-color);
       font-weight: 700;
-      font-size: 24px;
+      font-size: 1.5rem; // Larger text for better visual hierarchy
       margin-bottom: 8px;
-    }
-
-    .power-switch {
-      display: flex;
-      align-items: center;
-
-      span {
-        margin-left: 8px;
-        color: var(--xl-text-color);
-        font-weight: 700;
-        font-size: 18px;
-      }
     }
 
     .error-text {
       color: red;
       font-weight: bold;
     }
+
+    padding: 18px;
   }
-}
 
-// ------------------------------------------
+  .MuiButton-root {
+    border-radius: 8px;
+    font-weight: bold;
+    background-color: #03856d; 
+    color: white;
 
-.area-card {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin: 10px 0;
-  width: 100%;
-  max-width: 400px;
-  transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
-}
+    &:hover {
+      background-color: #016c55; 
+    }
+  }
 
-.area-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
-}
+  .area-card-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px;
+    border-radius: 8px;
+    transition: background-color 0.3s ease;
+  
 
-.area-card-info {
-  flex: 1;
-  padding-right: 10px;
-}
+    svg {
+      color: #fff;
+      font-size: 24px;
+    }
+  }
 
-.info-title {
-  font-size: 1.2rem;
-  font-weight: bold;
-  color: #fff;
-  margin-bottom: 10px;
-}
+  .control-selection-container {
+    margin-top: 12px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
 
-.info-value {
-  font-size: 1.5rem;
-  color: #fff;
-}
+  .slider-container {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    padding: 12px 0;
+  }
 
-.area-card-children {
-  margin-top: 10px;
-}
+  // Enhanced control sliders and inputs
+  .MuiSlider-root {
+    color: #03856d; // Slider color
+  }
 
-.area-card-icon {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
+  .MuiSlider-thumb {
+    background-color: #03856d;
+  }
 
-.power-switch {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.2rem;
-  color: #fff;
-  cursor: pointer;
-  transition: color 0.3s;
-}
-
-.threshold input {
-  text-align: center;
-  font-size: 1rem;
-}
-
-.slider-container {
-  width: 100%;
-  display: flex;
-  justify-content: center;
-}
-
-input[type="number"] {
-  width: 60px;
-  text-align: center;
-  padding: 5px;
-  margin: 5px;
-  border-radius: 8px;
-  border: none;
-  font-size: 1rem;
+  input[type="number"] {
+    width: 60px;
+    text-align: center;
+    padding: 5px;
+    margin: 5px;
+    border-radius: 8px;
+    border: 1px solid #03856d;
+    font-size: 1rem;
+    transition: border-color 0.3s ease;
+    
+    &:focus {
+      border-color: #016c55;
+    }
+  }
 }
