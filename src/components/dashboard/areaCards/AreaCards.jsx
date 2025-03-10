@@ -8,7 +8,8 @@ import { ProductContext } from "../../../context/ProductContext";
 import Slider from "@mui/material/Slider";
 import Stack from "@mui/material/Stack";
 import { motion } from "framer-motion";
-import { setControls, setPower } from "../api/commands";
+import { setControls } from "../api/setModeAndThreshold";
+import Swal from "sweetalert2";
 import {
   Select,
   MenuItem,
@@ -17,6 +18,10 @@ import {
   FormControl,
   FormControlLabel,
   Switch,
+  Button,
+  Typography,
+  Card,
+  CardContent,
 } from "@mui/material";
 
 const AreaCards = () => {
@@ -27,6 +32,10 @@ const AreaCards = () => {
   const [loading, setLoading] = useState(true);
   const [location, setLocation] = useState("Loading location...");
   const [selectedControl, setSelectedControl] = useState(null);
+  const [mode, setMode] = useState("manual");
+  const [threshold, setThreshold] = useState(0); // Store the threshold value
+
+  const userId = localStorage.getItem("userId");
 
   useEffect(() => {
     const fetchData = async () => {
@@ -35,9 +44,20 @@ const AreaCards = () => {
         const data = await fetchProducts();
         if (Array.isArray(data) && data.length > 0) {
           setProducts(data);
+
+          // Check if a product is already saved in localStorage
           const savedProductUid = localStorage.getItem("selectedProductUid");
-          setSelectedProductUid(savedProductUid || data[0].uid);
+          if (savedProductUid) {
+            setSelectedProductUid(savedProductUid);
+          } else {
+            // If no product is saved, use the first product in the list
+            setSelectedProductUid(data[0].uid);
+            localStorage.setItem("selectedProductUid", data[0].uid); // Store it in localStorage
+          }
+        } else {
+          setProducts([]);
         }
+
         const userData = await fetchUser();
         setLocation(userData?.address?.city || "Location not available");
       } finally {
@@ -45,74 +65,220 @@ const AreaCards = () => {
       }
     };
     fetchData();
-  }, [setSelectedProductUid]);
+  }, [setSelectedProductUid]); // Add setSelectedProductUid as dependency
 
   useEffect(() => {
     const fetchSelectedProductDetails = async () => {
-      if (selectedProductUid) {
-        const product = products.find((p) => p.uid === selectedProductUid);
-        setSelectedProductDetails(product);
-        localStorage.setItem("selectedProductUid", selectedProductUid);
+      if (userId && selectedProductUid) {
+        try {
+          const response = await fetch(
+            `https://apiv2.agrowtein.com/api/v1/user/product/${userId}`
+          );
+          if (!response.ok) {
+            console.error("API error:", response.statusText);
+            return;
+          }
+
+          const productData = await response.json();
+          const selectedProduct = productData.find(
+            (product) => product.uid === selectedProductUid
+          );
+
+          if (selectedProduct) {
+            if (
+              selectedProduct.controls &&
+              selectedProduct.controls.length > 0
+            ) {
+              setSelectedProductDetails(selectedProduct);
+              setMode(
+                selectedProduct.controls.every((control) => control.automate)
+                  ? "automate"
+                  : "manual"
+              );
+            } else {
+              console.warn("No controls available for the selected product.");
+              setSelectedProductDetails(selectedProduct);
+            }
+          } else {
+            console.error("No valid product data found for the selected UID.");
+          }
+        } catch (error) {
+          console.error("Error fetching product details:", error);
+        }
       }
     };
+
     fetchSelectedProductDetails();
-  }, [selectedProductUid, products]);
+  }, [userId, selectedProductUid]);
 
-  const handleThresholdChange = async (controlKey, newValue) => {
-    if (!selectedProductDetails) return;
+  const handleModeChange = async (event) => {
+    const newMode = event.target.checked ? "automate" : "manual"; // Determine mode (automate or manual)
+    setMode(newMode); // Update the UI to reflect the new mode
 
-    const originalControls = [...selectedProductDetails.controls];
-    try {
-      // Optimistic update
-      const updatedControls = originalControls.map((control) =>
-        control.controlId === controlKey
-          ? { ...control, threshHold: parseFloat(newValue.toFixed(1)) }
-          : control
-      );
-      setSelectedProductDetails((prev) => ({ ...prev, controls: updatedControls }));
+    // Determine the value based on the mode
+    const value = newMode === "automate" ? "true" : "false"; // 'true' for automate, 'false' for manual
 
-      // API call
-      const control = updatedControls.find((c) => c.controlId === controlKey);
-      await setControls("threshhold", {
-        uid: selectedProductUid,
-        pin: control.pin,
-        controlId: controlKey,
-        value: parseFloat(newValue.toFixed(1)),
-        mode: "threshhold",
+    if (selectedProductDetails && selectedProductDetails.controls) {
+      selectedProductDetails.controls.forEach(async (control) => {
+        const pin = control.pin;
+        const controlId = control.controlId;
+
+        // Ensure pin and controlId are present
+        if (!pin || !controlId) {
+          console.error("Pin or ControlId missing for control:", control);
+          return;
+        }
+
+        // Construct the payload dynamically based on the mode and value
+        const payload = {
+          mode: "automate", // Always set mode to automate
+          uid: selectedProductUid,
+          pin: pin,
+          value: value, // Set value as true for automatic, false for manual
+          controlId: controlId,
+        };
+
+        console.log("Formatted JSON Payload:", payload); // Debugging payload structure
+
+        try {
+          // Send the payload to setControls
+          await setControls(payload);
+          console.log(`${controlId} set to ${newMode}`);
+        } catch (error) {
+          console.error(
+            `Failed to update mode for control ${controlId}:`,
+            error
+          );
+        }
       });
-    } catch (error) {
-      console.error("Threshold update failed:", error);
-      setSelectedProductDetails((prev) => ({ ...prev, controls: originalControls }));
+
+      // Show success message using Swal
+      Swal.fire({
+        icon: "success",
+        title: "Mode updated successfully!",
+        text: `Mode is now set to ${newMode}`,
+        timer: 3000,
+        showConfirmButton: false,
+      });
     }
   };
 
-  const handleModeChange = async (event) => {
-    if (!selectedControl || !selectedProductDetails) return;
+  const handleThresholdChange = (newThreshold) => {
+    setThreshold(Number(newThreshold));
+  };
 
-    const originalControls = [...selectedProductDetails.controls];
-    try {
-      const newAutomate = event.target.checked;
-      // Optimistic update
-      const updatedControls = originalControls.map((control) =>
-        control.controlId === selectedControl
-          ? { ...control, automate: newAutomate }
-          : control
+  const handleSaveThreshold = async () => {
+    if (selectedProductDetails && selectedControl) {
+      const selectedControlDetails = selectedProductDetails.controls.find(
+        (control) => control.controlId === selectedControl
       );
-      setSelectedProductDetails((prev) => ({ ...prev, controls: updatedControls }));
 
-      // API call
-      const control = updatedControls.find((c) => c.controlId === selectedControl);
-      await setControls("automate", {
-        uid: selectedProductUid,
-        pin: control.pin,
-        controlId: selectedControl,
-        value: `${newAutomate}`,
-        mode: "automate",
-      });
-    } catch (error) {
-      console.error("Mode update failed:", error);
-      setSelectedProductDetails((prev) => ({ ...prev, controls: originalControls }));
+      // Check if control details exist for the selected control
+      if (!selectedControlDetails) {
+        console.error("Selected control details not found");
+        Swal.fire({
+          icon: "error",
+          title: "Control Not Found",
+          text: "The selected control details could not be found. Please select a valid control.",
+          timer: 3000,
+          showConfirmButton: false,
+        });
+        return;
+      }
+
+      // Extract pin and controlId from the selected control
+      const pin = selectedControlDetails.pin;
+      const controlId = selectedControlDetails.controlId;
+
+      // Ensure pin and controlId are not undefined or empty
+      if (!pin || !controlId) {
+        console.error("Pin or ControlId is missing for the selected control");
+        Swal.fire({
+          icon: "error",
+          title: "Invalid Control",
+          text: "Pin or ControlId is missing for the selected control. Please select a valid control.",
+          timer: 3000,
+          showConfirmButton: false,
+        });
+        return; // Stop further execution if pin or controlId are missing
+      }
+
+      // Formulate the payload with the correct values
+      const payload = {
+        mode: "threshold", // Mode is set to "threshold" for updating the threshold
+        uid: selectedProductUid, // Product UID
+        pin: pin, // Pin
+        value: threshold, // The value to be updated (threshold)
+        controlId: controlId, // The selected control ID
+      };
+
+      console.log("Formatted Payload for Threshold:", payload); // Debugging payload structure
+
+      try {
+        // Send the payload to setControls
+        await setControls(payload);
+        console.log("Threshold saved:", threshold);
+
+        // Show success message using Swal
+        Swal.fire({
+          icon: "success",
+          title: "Threshold updated successfully!",
+          text: `Threshold is set to ${threshold}`,
+          timer: 3000,
+          showConfirmButton: false,
+        });
+
+        // After the threshold is successfully updated, refetch the product details
+        const fetchSelectedProductDetails = async () => {
+          if (userId && selectedProductUid) {
+            try {
+              const response = await fetch(
+                `https://apiv2.agrowtein.com/api/v1/user/product/${userId}`
+              );
+              if (!response.ok) {
+                console.error("API error:", response.statusText);
+                return;
+              }
+
+              const productData = await response.json();
+              const selectedProduct = productData.find(
+                (product) => product.uid === selectedProductUid
+              );
+
+              if (selectedProduct) {
+                setSelectedProductDetails(selectedProduct); // Update the product details
+              } else {
+                console.error(
+                  "No valid product data found for the selected UID."
+                );
+              }
+            } catch (error) {
+              console.error("Error fetching product details:", error);
+            }
+          }
+        };
+
+        await fetchSelectedProductDetails(); // Trigger the refetch after the update
+      } catch (error) {
+        console.error("Failed to update threshold:", error);
+        Swal.fire({
+          icon: "error",
+          title: "Error updating threshold",
+          text: "There was an issue updating the threshold. Please try again later.",
+          timer: 3000,
+          showConfirmButton: false,
+        });
+      }
     }
+  };
+
+  const handleControlSelect = (controlId) => {
+    setSelectedControl(controlId);
+    setThreshold(
+      selectedProductDetails.controls.find(
+        (control) => control.controlId === controlId
+      )?.threshHold || 0
+    );
   };
 
   if (loading) {
@@ -135,7 +301,12 @@ const AreaCards = () => {
           <Select
             labelId="product-select-label"
             value={selectedProductUid || ""}
-            onChange={(e) => setSelectedProductUid(e.target.value)}
+            onChange={(e) => {
+              const selectedUid = e.target.value;
+              setSelectedProductUid(selectedUid); // Set the state
+              localStorage.setItem("selectedProductUid", selectedUid); // Save in localStorage
+            }}
+            displayEmpty
             label="Select Product"
             sx={{
               borderRadius: 2,
@@ -162,11 +333,8 @@ const AreaCards = () => {
         />
 
         <AreaCard
-          colors={["#e4e8ef", "#4ce13f"]}
-          cardInfo={{
-            title: "Current Location",
-            value: location,
-          }}
+          colors={["#03856d", "#03856d"]}
+          cardInfo={{ title: "Current Location", value: location }}
           type="location"
           className="center-card"
         />
@@ -176,23 +344,62 @@ const AreaCards = () => {
           cardInfo={{ title: "Mode" }}
           type="mode"
         >
-          <FormControlLabel
-            control={
-              <Switch
-                checked={currentControl?.automate || false}
-                onChange={handleModeChange}
-                disabled={!selectedControl}
-              />
-            }
-            label={currentControl?.automate ? "Automatic" : "Manual"}
-            labelPlacement="start"
-            sx={{ color: "#333", fontWeight: "bold", padding: "10px" }}
-          />
+          <div className="mode-toggle-container">
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={mode === "automate"}
+                  onChange={handleModeChange}
+                  sx={{
+                    "& .MuiSwitch-switchBase.Mui-checked": {
+                      color: "#03856d", // Green color when the switch is ON (Automatic)
+                    },
+                    "& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track": {
+                      backgroundColor: "#03856d", // Green background when ON
+                    },
+                    "& .MuiSwitch-track": {
+                      backgroundColor: "#ddd", // Default color for the track
+                    },
+                  }}
+                />
+              }
+              label={
+                mode === "automate" ? (
+                  <Typography
+                    variant="h6"
+                    sx={{ color: "#03856d", fontWeight: "bold" }}
+                  >
+                    Automatic
+                  </Typography>
+                ) : (
+                  <Typography
+                    variant="h6"
+                    sx={{ color: "#f29a2e", fontWeight: "bold" }}
+                  >
+                    Manual
+                  </Typography>
+                )
+              }
+              labelPlacement="start"
+              sx={{
+                color: "#333",
+                fontWeight: "bold",
+                fontSize: "1.2rem",
+                padding: "10px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+              }}
+            />
+          </div>
         </AreaCard>
       </div>
 
       <div className="area-cards-row">
-        {selectedProductDetails?.controls?.length > 0 ? (
+        {mode === "automate" &&
+        selectedProductDetails &&
+        selectedProductDetails.controls &&
+        selectedProductDetails.controls.length > 0 ? (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -215,7 +422,7 @@ const AreaCards = () => {
                   id="control-select-label"
                   sx={{ color: "var(--text-color)", fontWeight: "bold" }}
                 >
-                  Select Control
+                  Select <br /> Control
                 </InputLabel>
                 <Select
                   labelId="control-select-label"
@@ -238,17 +445,26 @@ const AreaCards = () => {
                 </Select>
               </div>
 
-              <Stack spacing={2} direction="row" sx={{ alignItems: "center", mb: 1 }}>
+              <Stack
+                spacing={2}
+                direction="row"
+                sx={{ alignItems: "center", mb: 1 }}
+              >
                 <Slider
                   aria-label="Control Threshold"
-                  value={currentControl?.threshHold || 0}
-                  min={currentControl?.min}
-                  max={currentControl?.max}
-                  step={0.1}
-                  onChange={(_, newValue) =>
-                    handleThresholdChange(selectedControl, newValue)
+                  value={Number(threshold)}
+                  min={
+                    selectedProductDetails.controls.find(
+                      (control) => control.controlId === selectedControl
+                    )?.min
                   }
-                  disabled={!selectedControl}
+                  max={
+                    selectedProductDetails.controls.find(
+                      (control) => control.controlId === selectedControl
+                    )?.max
+                  }
+                  step={0.1}
+                  onChange={(e, newValue) => handleThresholdChange(newValue)}
                 />
               </Stack>
               <div>
@@ -256,10 +472,8 @@ const AreaCards = () => {
                 <input
                   type="number"
                   step="0.1"
-                  value={currentControl?.threshHold || 0}
-                  onChange={(e) =>
-                    handleThresholdChange(selectedControl, e.target.value)
-                  }
+                  value={threshold}
+                  onChange={(e) => handleThresholdChange(e.target.value)}
                   style={{
                     width: "60px",
                     textAlign: "center",
@@ -269,6 +483,14 @@ const AreaCards = () => {
                 />
                 / {currentControl?.max}
               </div>
+
+              <Button
+                variant="contained"
+                onClick={handleSaveThreshold}
+                sx={{ marginTop: "10px" }}
+              >
+                Save Threshold
+              </Button>
             </AreaCard>
           </motion.div>
         ) : (
