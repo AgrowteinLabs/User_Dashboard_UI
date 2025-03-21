@@ -7,7 +7,7 @@ import LogoLight from "../../../assets/images/Logo-B.png"; // Light mode logo
 import LogoDark from "../../../assets/images/Logo.png"; // Dark mode logo
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
-import { DesktopDatePicker } from "@mui/x-date-pickers";
+import { DateTimeField } from "@mui/x-date-pickers/DateTimeField";
 import dayjs from "dayjs";
 
 const AreaTop = () => {
@@ -17,17 +17,12 @@ const AreaTop = () => {
   // Get current theme from ThemeContext
   const { theme } = useContext(ThemeContext);
 
-  const handleClickOutside = (event) => {
-    if (dateRangeRef.current && !dateRangeRef.current.contains(event.target)) {
-      // Logic can be added here if needed when clicking outside
-    }
-  };
-
   useEffect(() => {
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
+    const interval = setInterval(() => {
+      setCurrentDate(dayjs()); // Update time every second
+    }, 1000);
+
+    return () => clearInterval(interval); // Cleanup interval on component unmount
   }, []);
 
   return (
@@ -41,27 +36,15 @@ const AreaTop = () => {
         />
       </div>
       <div className="area-top-r">
-        {/* Date Picker Section */}
+        {/* Date-Time Display Section */}
         <div ref={dateRangeRef} className="date-picker-wrapper">
           <LocalizationProvider dateAdapter={AdapterDayjs}>
-            <DesktopDatePicker
+            <DateTimeField
+              label="Current Date & Time"
               value={currentDate}
-              onChange={(newValue) => {
-                if (newValue) setCurrentDate(newValue); // Update the date
-              }}
-              renderInput={({ inputRef, inputProps, InputProps }) => (
-                <div className="date-input-wrapper">
-                  {/* Input field to display the date */}
-                  <input
-                    ref={inputRef}
-                    {...inputProps}
-                    value={currentDate.format("DD-MM-YYYY")} // Display formatted current date
-                    readOnly
-                    className="date-input"
-                  />
-                  {InputProps?.endAdornment}
-                </div>
-              )}
+              format="LLL" // Full month name with date and time
+              className="date-input"
+              readOnly // Prevent user modification
             />
           </LocalizationProvider>
         </div>
