@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useContext } from "react";
+import { useEffect, useState, useContext } from "react";
 import AreaCard from "./AreaCard";
 import "./AreaCards.scss";
 import fetchProducts from "../api/fetchProducts";
@@ -18,10 +18,7 @@ import {
   FormControlLabel,
   Switch,
   Button,
-  Typography,
-  Card,
-  CardContent,
-} from "@mui/material";
+  } from "@mui/material";
 
 const AreaCards = () => {
   const { selectedProductUid, setSelectedProductUid } =
@@ -31,7 +28,7 @@ const AreaCards = () => {
   const [loading, setLoading] = useState(true);
   const [location, setLocation] = useState("Loading location...");
   const [selectedControl, setSelectedControl] = useState(null);
-  const [mode, setMode] = useState("manual");
+  const [mode, setMode] = useState("automate");
   const [threshold, setThreshold] = useState(0); // Store the threshold value
 
   const userId = localStorage.getItem("userId");
@@ -114,57 +111,47 @@ const AreaCards = () => {
     fetchSelectedProductDetails();
   }, [userId, selectedProductUid]);
 
-  const handleModeChange = async (event) => {
-    const newMode = event.target.checked ? "automate" : "manual"; // Determine mode (automate or manual)
-    setMode(newMode); // Update the UI to reflect the new mode
+  // Handle mode change (Automate/Bypass)
+const handleModeChange = async (event) => {
+  const newMode = event.target.value; // Get the mode from the selected option
+  setMode(newMode); // Update the mode state
 
-    // Determine the value based on the mode
-    const value = newMode === "automate" ? "true" : "false"; // 'true' for automate, 'false' for manual
+  // Set the value as "true" when the mode is ON, "false" when OFF
+  const value = newMode === "automate" || newMode === "bypass" ? "true" : "false";
 
-    if (selectedProductDetails && selectedProductDetails.controls) {
-      selectedProductDetails.controls.forEach(async (control) => {
-        const pin = control.pin;
-        const controlId = control.controlId;
+  if (selectedProductDetails && selectedProductDetails.controls) {
+    selectedProductDetails.controls.forEach(async (control) => {
+      const pin = control.pin;
+      const controlId = control.controlId;
 
-        // Ensure pin and controlId are present
-        if (!pin || !controlId) {
-          console.error("Pin or ControlId missing for control:", control);
-          return;
-        }
+      if (!pin || !controlId) return;
 
-        // Construct the payload dynamically based on the mode and value
-        const payload = {
-          mode: "automate", // Always set mode to automate
-          uid: selectedProductUid,
-          pin: pin,
-          value: value, // Set value as true for automatic, false for manual
-          controlId: controlId,
-        };
+      const payload = {
+        mode: newMode, // Send the correct mode ("automate" or "bypass")
+        uid: selectedProductUid,
+        pin: pin,
+        value: value, // "true" or "false" based on the mode
+        controlId: controlId,
+      };
 
-        console.log("Formatted JSON Payload:", payload); // Debugging payload structure
+      try {
+        await setControls(payload);
+        console.log(`${controlId} set to ${newMode}`);
+      } catch (error) {
+        console.error(`Failed to update mode for control ${controlId}:`, error);
+      }
+    });
 
-        try {
-          // Send the payload to setControls
-          await setControls(payload);
-          console.log(`${controlId} set to ${newMode}`);
-        } catch (error) {
-          console.error(
-            `Failed to update mode for control ${controlId}:`,
-            error
-          );
-        }
-      });
+    Swal.fire({
+      icon: "success",
+      title: `Mode updated to ${newMode}`,
+      text: `Device is now in ${newMode} mode`,
+      timer: 3000,
+      showConfirmButton: false,
+    });
+  }
+};
 
-      // Show success message using Swal
-      Swal.fire({
-        icon: "success",
-        title: "Mode updated successfully!",
-        text: `Mode is now set to ${newMode}`,
-        timer: 3000,
-        showConfirmButton: false,
-      });
-    }
-  };
 
   const handleThresholdChange = (newThreshold) => {
     setThreshold(Number(newThreshold));
@@ -275,6 +262,12 @@ const AreaCards = () => {
     }
   };
 
+  
+  
+  
+
+  
+
   const handleControlSelect = (controlId) => {
     setSelectedControl(controlId);
     setThreshold(
@@ -283,6 +276,8 @@ const AreaCards = () => {
       )?.threshHold || 0
     );
   };
+
+  
 
   if (loading) {
     return (
@@ -355,46 +350,22 @@ const AreaCards = () => {
                 <Switch
                   checked={mode === "automate"}
                   onChange={handleModeChange}
-                  sx={{
-                    "& .MuiSwitch-switchBase.Mui-checked": {
-                      color: "#03856d", // Green color when the switch is ON (Automatic)
-                    },
-                    "& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track": {
-                      backgroundColor: "#03856d", // Green background when ON
-                    },
-                    "& .MuiSwitch-track": {
-                      backgroundColor: "#ddd", // Default color for the track
-                    },
-                  }}
+                  value="automate"
+                  label="Automate"
                 />
               }
-              label={
-                mode === "automate" ? (
-                  <Typography
-                    variant="h6"
-                    sx={{ color: "#03856d", fontWeight: "bold" }}
-                  >
-                    Automatic
-                  </Typography>
-                ) : (
-                  <Typography
-                    variant="h6"
-                    sx={{ color: "#f29a2e", fontWeight: "bold" }}
-                  >
-                    Manual
-                  </Typography>
-                )
+              label="Automate Mode"
+            />
+                        <FormControlLabel
+              control={
+                <Switch
+                  checked={mode === "bypass"}
+                  onChange={handleModeChange}
+                  value="bypass"
+                  label="Bypass"
+                />
               }
-              labelPlacement="start"
-              sx={{
-                color: "#333",
-                fontWeight: "bold",
-                fontSize: "1.2rem",
-                padding: "10px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-              }}
+              label="Bypass Mode"
             />
           </div>
         </AreaCard>
