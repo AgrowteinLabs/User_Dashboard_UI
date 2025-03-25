@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useContext } from 'react';
+import { useEffect, useState, useContext } from 'react';
 import ReactApexChart from 'react-apexcharts';
 import { FaChartArea } from "react-icons/fa";
 import axios from 'axios';
@@ -25,7 +25,7 @@ const FlowRateHistory = () => {
 
         if (response.data && response.data.length > 0) {
           const filteredData = filterByThirtyMinutes(response.data);
-          const flowRates = filteredData.map(entry =>
+          const flowRateData = filteredData.map(entry =>
             parseFloat(entry.data.Flow_Rate).toFixed(2)
           );
           const timestamps = filteredData.map(entry =>
@@ -35,7 +35,7 @@ const FlowRateHistory = () => {
             })
           );
 
-          setSeries([{ name: 'Flow Rate', data: flowRates }]);
+          setSeries([{ name: 'Flow Rate', data: flowRateData }]);
           setCategories(timestamps);
         }
       } catch (error) {
@@ -105,7 +105,7 @@ const FlowRateHistory = () => {
     },
     yaxis: {
       title: {
-        text: 'L/min', // Flow Rate units (Liters per minute or other)
+        text: 'L/s', // Assuming Flow Rate is in Liters per second
         style: {
           color: 'var(--text-color)',
         },
@@ -140,7 +140,7 @@ const FlowRateHistory = () => {
         format: 'dd/MM/yy HH:mm',
       },
       y: {
-        formatter: (val) => `${val} L/min`, // Format the tooltip value
+        formatter: (val) => `${val} L/s`, // Liters per second for flow rate
       },
       style: {
         fontSize: '12px',

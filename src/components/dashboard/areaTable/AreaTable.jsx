@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useContext } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import { fetchSensorList } from '../api/fetchsensorlist';
 import { fetcheddata } from '../api/fetchdata'; // Assuming this is the function that fetches real-time data
 import { CircularProgress } from '@mui/material';
 import "./AreaTable.scss";
 import { ProductContext } from '../../../context/ProductContext';
+import swal from 'sweetalert';
 
 const TABLE_HEADS = [
   "Sensors Used",

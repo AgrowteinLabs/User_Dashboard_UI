@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useContext } from 'react';
+import { useEffect, useState, useContext } from 'react';
 import ReactApexChart from 'react-apexcharts';
 import { FaChartArea } from "react-icons/fa";
 import axios from 'axios';

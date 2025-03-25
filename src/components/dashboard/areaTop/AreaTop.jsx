@@ -1,5 +1,3 @@
-import { MdOutlineMenu } from "react-icons/md";
-import "./AreaTop.scss";
 import { useContext, useEffect, useRef, useState } from "react";
 import { ThemeContext } from "../../../context/ThemeContext";
 import { LIGHT_THEME } from "../../../constants/themeConstants";
@@ -8,6 +6,7 @@ import LogoDark from "../../../assets/images/Logo.png"; // Dark mode logo
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { DateTimeField } from "@mui/x-date-pickers/DateTimeField";
+import "./AreaTop.scss";
 import dayjs from "dayjs";
 
 const AreaTop = () => {
