@@ -39,7 +39,7 @@ const AreaTop = () => {
         <div ref={dateRangeRef} className="date-picker-wrapper">
           <LocalizationProvider dateAdapter={AdapterDayjs}>
             <DateTimeField
-              label="Current Date & Time"
+              // label="Current Date & Time"
               value={currentDate}
               format="LLL" // Full month name with date and time
               className="date-input"

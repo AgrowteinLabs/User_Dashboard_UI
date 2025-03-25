@@ -67,8 +67,9 @@ const AreaCards = () => {
     const fetchSelectedProductDetails = async () => {
       if (userId && selectedProductUid) {
         try {
+          const url = import.meta.env.VITE_REACT_APP_API_URL;
           const response = await fetch(
-            `https://apiv2.agrowtein.com/api/v1/user/product/${userId}`
+            `${url}/api/v1/user/product/${userId}`
           );
           if (!response.ok) {
             console.error("API error:", response.statusText);
@@ -172,8 +173,9 @@ const AreaCards = () => {
         });
 
         // Refresh product details
+        const url = import.meta.env.VITE_REACT_APP_API_URL;
         const response = await fetch(
-          `https://apiv2.agrowtein.com/api/v1/user/product/${userId}`
+          `${url}/api/v1/user/product/${userId}`
         );
         const productData = await response.json();
         setSelectedProductDetails(productData.find(
@@ -209,7 +211,8 @@ const AreaCards = () => {
 
     try {
       const newStatus = control.state === "ON" ? "off" : "on";
-      const response = await fetch('https://apiv2.agrowtein.com/api/v1/command/', {
+      const url = import.meta.env.VITE_REACT_APP_API_URL;
+      const response = await fetch(`${url}/api/v1/command/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -284,6 +287,7 @@ const AreaCards = () => {
       <div className="dropdown-container">
         <FormControl fullWidth>
           <InputLabel id="product-select-label">Select Product</InputLabel>
+          <br />
           <Select
             labelId="product-select-label"
             value={selectedProductUid || ""}
