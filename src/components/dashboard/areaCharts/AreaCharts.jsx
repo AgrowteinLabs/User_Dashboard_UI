@@ -36,7 +36,7 @@ const AreaCharts = () => {
       if (!selectedProductUid) {
         setLoading(true);
         setTimeout(() => {
-          setError("Please select a product to view sensors.");
+          // setError("Please select a product to view sensors.");
           setLoading(false);
         }, 3000);
         return;
