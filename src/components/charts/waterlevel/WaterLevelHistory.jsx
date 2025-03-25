@@ -1,79 +1,164 @@
-import React from 'react';
+import { useEffect, useState, useContext } from 'react';
 import ReactApexChart from 'react-apexcharts';
-import { FaTint } from "react-icons/fa";
+import { FaChartArea } from "react-icons/fa";
+import axios from 'axios';
+import { ProductContext } from '../../../context/ProductContext';
 import "../AreaCharts.scss";
 
-const data = [70, 55, 35, 90, 55, 30, 32]; // Example water levels for the last 7 days
+const WaterUsedHistory = () => {
+  const [series, setSeries] = useState([{ name: 'Water Used', data: [] }]);
+  const [categories, setCategories] = useState([]);
+  const { selectedProductUid } = useContext(ProductContext);
 
-const WaterLevelHistory = () => {
-  const series = [{
-    name: 'Water Level',
-    data: data
-  }];
+  useEffect(() => {
+    const fetchWaterUsedHistory = async () => {
+      if (!selectedProductUid) return;
+
+      try {
+        const response = await axios.post(
+          `${import.meta.env.VITE_REACT_APP_API_URL}/api/v1/data/${selectedProductUid}/date`,
+          {
+            startDate: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), // 24 hours ago
+            endDate: new Date().toISOString(),
+          }
+        );
+
+        if (response.data && response.data.length > 0) {
+          const filteredData = filterByThirtyMinutes(response.data);
+          const waterUsedData = filteredData.map(entry =>
+            parseFloat(entry.data.Water_Used).toFixed(2)
+          );
+          const timestamps = filteredData.map(entry =>
+            new Date(entry.timestamp).toLocaleTimeString('en-US', {
+              hour: '2-digit',
+              minute: '2-digit',
+            })
+          );
+
+          setSeries([{ name: 'Water Used', data: waterUsedData }]);
+          setCategories(timestamps);
+        }
+      } catch (error) {
+        console.error('Error fetching water used history:', error);
+      }
+    };
+
+    fetchWaterUsedHistory();
+  }, [selectedProductUid]);
+
+  const filterByThirtyMinutes = (data) => {
+    const result = [];
+    let lastTimestamp = null;
+
+    data.forEach((entry) => {
+      const entryTime = new Date(entry.timestamp);
+      if (!lastTimestamp || entryTime - lastTimestamp >= 30 * 60 * 1000) {
+        result.push(entry);
+        lastTimestamp = entryTime;
+      }
+    });
+
+    return result;
+  };
+
   const options = {
     chart: {
-      type: 'area',
+      type: 'area', // Spline area chart
       height: 350,
       animations: {
         enabled: true,
         easing: 'easeinout',
         speed: 800,
+        dynamicAnimation: {
+          enabled: true,
+          speed: 350,
+        },
       },
     },
     dataLabels: {
-      enabled: false,
+      enabled: false, // Disable data labels for a cleaner look
     },
-    stroke: {
-      curve: 'smooth',
+    markers: {
+      size: 6,
+      colors: ['#03856d'],
+      strokeColors: '#fff',
+      strokeWidth: 2,
+      hover: {
+        size: 8,
+      },
     },
     xaxis: {
-      categories: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+      categories: categories,
       labels: {
+        rotate: -45,
         style: {
-          colors: 'var(--text-color)', // Use CSS variable for text color
-        }
-      }
+          colors: 'var(--text-color)',
+        },
+      },
+      tickAmount: 'dataPoints',
+      title: {
+        text: 'Time (Last 24 Hours)',
+        style: {
+          color: 'var(--text-color)',
+        },
+      },
     },
     yaxis: {
-      min: 0,
-      max: 100,
-      tickAmount: 5,
+      title: {
+        text: 'Liters',
+        style: {
+          color: 'var(--text-color)',
+        },
+      },
       labels: {
         style: {
-          colors: 'var(--text-color)', // Use CSS variable for text color
-        }
-      }
+          colors: 'var(--text-color)',
+        },
+      },
+    },
+    stroke: {
+      curve: 'smooth', // Smooth spline curve
+      width: 3,
+      colors: ['#03856d'], // Line color matching primary color
     },
     fill: {
-      type: 'gradient',
+      type: 'gradient', // Gradient fill for area chart
       gradient: {
         shadeIntensity: 1,
-        opacityFrom: 0.7,
+        opacityFrom: 0.6,
         opacityTo: 0.9,
-        stops: [0, 100]
-      }
+        stops: [0, 90, 100],
+        colorStops: [
+          { offset: 0, color: '#03856d', opacity: 1 },
+          { offset: 50, color: '#00b3a6', opacity: 0.7 },
+          { offset: 100, color: '#00e0d1', opacity: 0.4 },
+        ],
+      },
     },
     tooltip: {
+      x: {
+        format: 'dd/MM/yy HH:mm',
+      },
       y: {
-        formatter: function (val) {
-          return val + '%';
-        }
+        formatter: (val) => `${val}L`, // Liters for water used
       },
       style: {
         fontSize: '12px',
-        fontFamily: undefined,
-        colors: ['var(--text-color)'], // Tooltip text color for dark mode
+        colors: ['var(--text-color)'],
       },
     },
-    colors: ['#03856d'],  };
+    grid: {
+      borderColor: '#e0e0e0',
+    },
+  };
 
   return (
-    <div className="bar-chart">
-      <div className="bar-chart-info">
-        <h5 className="bar-chart-title" style={{ color: 'var(--text-color)' }}>
-          <FaTint style={{ marginRight: "8px", color: 'var(--text-color)' }} />
-          Water Level History
-        </h5>
+    <div className="progress-bar">
+      <div className="progress-bar-info">
+        <h4 className="progress-bar-title" style={{ color: 'var(--text-color)' }}>
+          <FaChartArea style={{ marginRight: '8px', color: 'var(--text-color)' }} />
+          Water Used History (Last 24 Hours)
+        </h4>
       </div>
       <div className="chart-wrapper">
         <ReactApexChart options={options} series={series} type="area" height={350} />
@@ -82,4 +167,4 @@ const WaterLevelHistory = () => {
   );
 };
 
-export default WaterLevelHistory;
+export default WaterUsedHistory;

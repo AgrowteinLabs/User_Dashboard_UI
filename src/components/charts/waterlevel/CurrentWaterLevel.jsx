@@ -1,190 +1,133 @@
-import React, { useState, useEffect, useContext } from 'react';
+import { useEffect, useState, useContext } from 'react';
 import ReactApexChart from 'react-apexcharts';
-import { FaWater } from "react-icons/fa";
-import Modal from 'react-modal';
-import "../AreaCharts.scss";
-import { fetcheddata } from '../../dashboard/api/fetchdata';
+import { FaTint } from "react-icons/fa";
+import { fetcheddata } from '../../dashboard/api/fetchdata'; 
 import { ProductContext } from '../../../context/ProductContext';
+import '../AreaCharts.scss';
 
-Modal.setAppElement('#root'); // This is to avoid accessibility issues
-
-const CurrentWaterlevel = () => {
-  const [humidity, setHumidity] = useState(null);
+const WaterUsedCurrent = () => {
+  const [series, setSeries] = useState([0]); 
+  const [error, setError] = useState(false);
   const { selectedProductUid } = useContext(ProductContext);
 
   useEffect(() => {
-    let isActive = true; // Flag to manage async operation
-
-    const fetchData = async () => {
+    const fetchWaterUsedData = async () => {
       if (!selectedProductUid) return;
+    
       try {
         const data = await fetcheddata(selectedProductUid);
-        const humidityValue = data?.data?.Humidity; // Extracting the Humidity value from the data object
-        if (isActive) {
-          setHumidity(humidityValue);
+
+        if (data && data.data) {
+          const waterUsed = data.data.Water_Used;
+          const serverTimestamp = new Date(data.timestamp).getTime(); 
+          const currentTime = Date.now();
+    
+          // Check if the data is a valid decimal value
+          if (isNaN(waterUsed) || !/^\d+(\.\d+)?$/.test(waterUsed)) {
+            setError(true); // Invalid data received, set error state
+            return;
+          }
+
+          const formattedWaterUsed = parseFloat(waterUsed).toFixed(2);
+
+          // Check if the data is fresh (within 30 minutes)
+          if (currentTime - serverTimestamp <= 30 * 60 * 1000) {
+            setSeries([formattedWaterUsed]);
+            setError(false);
+          } else {
+            setError(true);
+          }
         }
       } catch (error) {
-        console.error("Error fetching data:", error);
-        if (isActive) {
-          setHumidity(null); // Set to null explicitly in case of error
-        }
+        setError(true); // Error fetching data
       }
     };
 
-    // Set up interval to fetch data every second
-    const intervalId = setInterval(fetchData, 1000);
-
-    // Clean up the interval on unmount or if `selectedProductUid` changes
-    return () => {
-      isActive = false; // Cancel the subscription
-      clearInterval(intervalId);
-    };
+    fetchWaterUsedData();
+    const intervalId = setInterval(fetchWaterUsedData, 1000); 
+    return () => clearInterval(intervalId); 
   }, [selectedProductUid]);
 
-  const [modalIsOpen, setModalIsOpen] = useState(false);
-  const [newHumidity, setNewHumidity] = useState(humidity);
-
-  const series = humidity !== null ? [humidity] : [];
   const options = {
     chart: {
-      type: 'radialBar',
-      height: 350,
+      type: 'bar',
+      animations: {
+        enabled: true,
+        easing: 'easeout',
+        speed: 800,
+      },
+      dynamicAnimation: {
+        enabled: true,
+        speed: 350,
+      },
     },
     plotOptions: {
-      radialBar: {
-        hollow: {
-          size: '70%',
-        },
-        dataLabels: {
-          name: {
-            show: false,
-          },
-          value: {
-            show: true,
-            fontSize: '22px',
-            fontWeight: 600,
-            color: 'var(--text-color)', // Use CSS variable for text color
-            formatter: function (val) {
-              return val + '%';
-            },
-          },
+      bar: {
+        borderRadius: 20,
+        horizontal: false,
+        columnWidth: '30%',
+        colors: {
+          backgroundBarOpacity: 1,
+          backgroundBarRadius: 5,
+          ranges: [{ from: 0, to: 100, color: 'var(--primary-color)' }], 
         },
       },
     },
-    fill: {
-      colors: ['var(--primary-color)'], // Use CSS variable for fill color
+    xaxis: {
+      categories: ['Current'],
+      labels: {
+        style: {
+          colors: 'var(--text-color)',
+        },
+      },
+    },
+    yaxis: {
+      title: {
+        text: 'Liters',
+        style: {
+          color: 'var(--text-color)',
+        },
+      },
+      labels: {
+        style: {
+          colors: 'var(--text-color)',
+        },
+      },
     },
     stroke: {
-      lineCap: 'round',
+      width: 2,
+      colors: ['var(--text-color)'],
     },
-    labels: ['Current Humidity'],
-  };
-
-  const openModal = () => {
-    setModalIsOpen(true);
-  };
-
-  const closeModal = () => {
-    setModalIsOpen(false);
-  };
-
-  const handleHumidityChange = (e) => {
-    setNewHumidity(e.target.value);
-  };
-
-  const saveHumidity = () => {
-    closeModal();
+    tooltip: {
+      y: {
+        formatter: val => `${val}L`,
+      },
+      style: {
+        fontSize: '12px',
+        colors: ['var(--text-color)'],
+      },
+    },
   };
 
   return (
     <div className="progress-bar">
       <div className="progress-bar-info">
         <h4 className="progress-bar-title" style={{ color: 'var(--text-color)' }}>
-          <FaWater style={{ marginRight: "8px", color: 'var(--text-color)' }} />
-          Current Humidity
+          <FaTint style={{ marginRight: '8px', color: 'var(--text-color)' }} />
+          Water Used - Current
         </h4>
-        <button
-          onClick={openModal}
-          style={{
-            marginLeft: '15px',
-            padding: '5px 10px',
-            cursor: 'pointer',
-            backgroundColor: '#03856d',
-            color: '#fff',
-            border: 'none',
-            borderRadius: '4px',
-          }}
-        >
-          Adjust Humidity
-        </button>
       </div>
-      <div className="chart-wrapper">
-        {humidity === null ? (
-          <div style={{ color: 'red', fontSize: '18px', textAlign: 'center' }}>
-            Sensor Error
+      <div className="chart-wrapper-c">
+        {error ? (
+          <div className="error-message">
+            <h5>Sensor Error: Invalid or no data received for over 30 minutes.</h5>
           </div>
         ) : (
-          <ReactApexChart options={options} series={series} type="radialBar" height={350} />
+          <ReactApexChart options={options} series={[{ name: 'Water Used', data: series }]} type="bar" height={350} />
         )}
       </div>
-
-      <Modal
-        isOpen={modalIsOpen}
-        onRequestClose={closeModal}
-        contentLabel="Adjust Humidity"
-        style={{
-          content: {
-            top: '50%',
-            left: '50%',
-            right: 'auto',
-            bottom: 'auto',
-            marginRight: '-50%',
-            transform: 'translate(-50%, -50%)',
-            backgroundColor: 'var(--background-color)',
-            color: 'var(--text-color)',
-          },
-        }}
-      >
-        <h2>Adjust Humidity</h2>
-        <input
-          type="range"
-          min="0"
-          max="100"
-          value={newHumidity}
-          onChange={handleHumidityChange}
-          style={{ width: '100%' }}
-        />
-        <p>{newHumidity}%</p>
-        <button
-          onClick={saveHumidity}
-          style={{
-            padding: '5px 10px',
-            cursor: 'pointer',
-            backgroundColor: '#03856d',
-            color: '#fff',
-            border: 'none',
-            borderRadius: '4px',
-          }}
-        >
-          Save
-        </button>
-        <button
-          onClick={closeModal}
-          style={{
-            padding: '5px 10px',
-            cursor: 'pointer',
-            marginLeft: '10px',
-            backgroundColor: '#03856d',
-            color: '#fff',
-            border: 'none',
-            borderRadius: '4px',
-          }}
-        >
-          Cancel
-        </button>
-      </Modal>
     </div>
   );
 };
 
-export default CurrentWaterlevel;
+export default WaterUsedCurrent;

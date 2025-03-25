@@ -1,12 +1,12 @@
-import React, { useEffect, useState, useContext } from 'react';
-import ReactApexChart from 'react-apexcharts';
-import { FaArrowDown } from "react-icons/fa";  // Use a suitable icon for Flow Rate
-import { fetcheddata } from '../../dashboard/api/fetchdata'; 
+import { useEffect, useState, useContext } from 'react';
+import { FaTint } from "react-icons/fa";
+import { fetcheddata } from '../../dashboard/api/fetchdata';
 import { ProductContext } from '../../../context/ProductContext';
-import '../AreaCharts.scss';
+import ReactApexChart from 'react-apexcharts';
+import "../AreaCharts.scss";
 
 const FlowRateCurrent = () => {
-  const [series, setSeries] = useState([0]); 
+  const [series, setSeries] = useState([0]);
   const [error, setError] = useState(false);
   const { selectedProductUid } = useContext(ProductContext);
 
@@ -19,12 +19,12 @@ const FlowRateCurrent = () => {
 
         if (data && data.data) {
           const flowRate = data.data.Flow_Rate;
-          const serverTimestamp = new Date(data.timestamp).getTime(); 
+          const serverTimestamp = new Date(data.timestamp).getTime();
           const currentTime = Date.now();
-    
-          // Check if the data is valid
-          if (flowRate === "_" || isNaN(flowRate)) {
-            setError(true); // Invalid or missing Flow Rate, set error state
+
+          // Check if the data is a valid decimal value
+          if (isNaN(flowRate) || !/^\d+(\.\d+)?$/.test(flowRate)) {
+            setError(true); // Invalid data received, set error state
             return;
           }
 
@@ -44,8 +44,8 @@ const FlowRateCurrent = () => {
     };
 
     fetchFlowRateData();
-    const intervalId = setInterval(fetchFlowRateData, 1000); // Polling every second
-    return () => clearInterval(intervalId); 
+    const intervalId = setInterval(fetchFlowRateData, 1000); // Update data every second
+    return () => clearInterval(intervalId);
   }, [selectedProductUid]);
 
   const options = {
@@ -69,7 +69,7 @@ const FlowRateCurrent = () => {
         colors: {
           backgroundBarOpacity: 1,
           backgroundBarRadius: 5,
-          ranges: [{ from: 0, to: 100, color: 'var(--primary-color)' }], // Modify as needed
+          ranges: [{ from: 0, to: 100, color: 'var(--primary-color)' }],
         },
       },
     },
@@ -83,7 +83,7 @@ const FlowRateCurrent = () => {
     },
     yaxis: {
       title: {
-        text: 'L/min', // Assuming Flow Rate is in Liters per minute or other unit
+        text: 'L/s',
         style: {
           color: 'var(--text-color)',
         },
@@ -100,7 +100,7 @@ const FlowRateCurrent = () => {
     },
     tooltip: {
       y: {
-        formatter: val => `${val} L/min`, // Format the tooltip value
+        formatter: (val) => `${val} L/s`, // Liters per second
       },
       style: {
         fontSize: '12px',
@@ -113,7 +113,7 @@ const FlowRateCurrent = () => {
     <div className="progress-bar">
       <div className="progress-bar-info">
         <h4 className="progress-bar-title" style={{ color: 'var(--text-color)' }}>
-          <FaArrowDown style={{ marginRight: '8px', color: 'var(--text-color)' }} />
+          <FaTint style={{ marginRight: '8px', color: 'var(--text-color)' }} />
           Flow Rate - Current
         </h4>
       </div>
