@@ -1,7 +1,7 @@
 import { useEffect, useState, useContext } from 'react';
 import ReactApexChart from 'react-apexcharts';
 import { FaThermometerHalf } from "react-icons/fa";
-import { fetcheddata } from '../../dashboard/api/fetchdata'; 
+import { fetcheddata } from '../../../api/fetchdata'; 
 import { ProductContext } from '../../../context/ProductContext';
 import '../AreaCharts.scss';
 
@@ -30,7 +30,6 @@ const BedTemperatureCurrent = () => {
 
           const formattedTemperature = parseFloat(bedTemperature).toFixed(2);
 
-          // Check if the data is fresh (within 30 minutes)
           if (currentTime - serverTimestamp <= 30 * 60 * 1000) {
             setSeries([formattedTemperature]);
             setError(false);

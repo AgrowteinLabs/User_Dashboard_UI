@@ -1,6 +1,6 @@
 import { useState, useEffect, useContext } from 'react';
-import { fetchSensorList } from '../api/fetchsensorlist';
-import { fetcheddata } from '../api/fetchdata'; // Assuming this is the function that fetches real-time data
+import { fetchSensorList } from '../../../api/fetchsensorlist';
+import { fetcheddata } from '../../../api/fetchdata'; // Assuming this is the function that fetches real-time data
 import { CircularProgress } from '@mui/material';
 import "./AreaTable.scss";
 import { ProductContext } from '../../../context/ProductContext';

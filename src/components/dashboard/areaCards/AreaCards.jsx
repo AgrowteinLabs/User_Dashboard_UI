@@ -2,8 +2,8 @@
 import { useEffect, useState, useContext } from "react";
 import AreaCard from "./AreaCard";
 import "./AreaCards.scss";
-import fetchProducts from "../api/fetchProducts";
-import { fetchUser } from "../api/fetchuser";
+import fetchProducts from "../../../api/fetchProducts";
+import fetchUser  from "../../../api/fetchuser";
 import { ProductContext } from "../../../context/ProductContext";
 import Slider from "@mui/material/Slider";
 import Stack from "@mui/material/Stack";

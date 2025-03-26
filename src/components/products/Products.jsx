@@ -5,7 +5,7 @@ import { FaCheck } from "react-icons/fa";
 import AgricultureIcon from "../../assets/images/agriculture.png";
 import { addDays, differenceInCalendarDays } from "date-fns";
 import { DateRange } from "react-date-range";
-import fetchProducts from "../dashboard/api/fetchProducts";
+import fetchProducts from "../../api/fetchProducts";
 import CurrentTemperature from "../charts/temperature/CurrentTemperature";
 import TemperatureHistory from "../charts/temperature/TemperatureHistory";
 import CurrentHumidity from "../charts/humidity/CurrentHumidity";
@@ -16,7 +16,6 @@ import BedTemperatureCurrent from "../charts/BedTemp/BedTemperatureCurrent"; // 
 import BedTemperatureHistory from "../charts/BedTemp/BedTemperatureHistory"; // New import
 import BoilerTemperatureCurrent from "../charts/BoilerTemp/BoilerTemperatureCurrent"; // New import
 import BoilerTemperatureHistory from "../charts/BoilerTemp/BoilerTemperatureHistory"; // New import
-
 import "./Products.scss";
 import CurrentPressure from "../charts/pressure/CurrentPressure";
 import PressureHistory from "../charts/pressure/PressureHistory";

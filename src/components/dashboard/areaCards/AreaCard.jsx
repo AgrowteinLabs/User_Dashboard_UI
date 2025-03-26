@@ -2,11 +2,11 @@ import PropTypes from "prop-types";
 import { useState, useEffect, useContext, useCallback } from "react";
 import { FiClock, FiThermometer, FiPower, FiAlertCircle, FiMapPin, FiSliders } from "react-icons/fi";
 import { ProductContext } from "../../../context/ProductContext";
-import { fetcheddata } from "../api/fetchdata";
-import { PowerButton } from "../api/powerButton";
+import {fetcheddata} from "../../../api/fetchdata";
+import { PowerButton } from "../../../api/powerButton";
 import { motion } from "framer-motion";
 
-const AreaCard = ({ colors, cardInfo, type, controlKey, children }) => {
+const AreaCard = ({ colors, cardInfo, type, controlKey, children }) => { 
   const [isPowerOn, setIsPowerOn] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [temperature, setTemperature] = useState(null);

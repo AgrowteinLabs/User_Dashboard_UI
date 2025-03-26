@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import Swal from "sweetalert2";
 import { useNavigate } from "react-router-dom";  // Import useNavigate
-import { loginUser } from "./loginapi";
+import { loginUser } from "../api/loginapi";
 import "./login.scss";
 import logo from "./Logow.png";
 // Import Font Awesome Icons

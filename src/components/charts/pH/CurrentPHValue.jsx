@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useContext } from 'react';
 import ReactApexChart from 'react-apexcharts';
 import { FaFlask } from "react-icons/fa";
-import { fetcheddata } from '../../dashboard/api/fetchdata'; // Assuming you're using the same API to fetch pH data
+import { fetcheddata } from '../../../api/fetchdata'; // Assuming you're using the same API to fetch pH data
 import { ProductContext } from '../../../context/ProductContext';
 
 const CurrentPHValue = () => {

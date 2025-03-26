@@ -1,18 +1,22 @@
-const userid = localStorage.getItem('userId');
-
-export const fetchUser = async () => {
+// src/api/fetchuser.js
+const fetchUser = async () => {
+    const userid = localStorage.getItem('userId');
+    
     if (!userid) {
         return { error: 'User ID not found, try logging in again' };
     }
 
     try {
+<<<<<<< HEAD:src/api/fetchuser.js
+        const API_URL = `http://13.233.45.54:4500/api/v1/users/${userid}`;
+=======
         // Use the environment variable for the API URL
         const API_URL = `${import.meta.env.VITE_REACT_APP_API_URL}/api/v1/users/${userid}`;
+>>>>>>> 5c9a548a87eef8e6ecfe05aaf1293a6c2947e695:src/components/dashboard/api/fetchuser.js
 
-        // Add credentials: 'include' to send cookies with the request
         const response = await fetch(API_URL, {
             method: 'GET',
-            credentials: 'include', // Ensures cookies are sent with the request
+            credentials: 'include',
         });
 
         if (!response.ok) {
@@ -20,7 +24,6 @@ export const fetchUser = async () => {
         }
 
         const data = await response.json();
-        console.log(data);
         return data;
 
     } catch (error) {
@@ -28,3 +31,5 @@ export const fetchUser = async () => {
         return { error: 'Error fetching user' };
     }
 };
+
+export default fetchUser;  // Default export

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { fetchUser } from "../../dashboard/api/fetchuser";
+import  fetchUser  from "../../../api/fetchuser";
 import { FaTemperatureHigh, FaWind, FaCompass, FaTint } from "react-icons/fa";
 import "./WeatherCard.scss";
 

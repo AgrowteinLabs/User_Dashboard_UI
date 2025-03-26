@@ -2,7 +2,7 @@ import React, { useContext, useEffect, useState } from 'react';
 import { UserContext } from '../../context/UserContext';
 import "./Profile.scss";
 import defaultProfileIcon from '../../assets/defaultProfileIcon.png'; // Path to the fixed profile icon
-import { fetchUser } from '../dashboard/api/fetchuser';
+import  fetchUser  from '../../api/fetchuser';
 import { CircularProgress } from '@mui/material';
 
 const Profile = () => {
