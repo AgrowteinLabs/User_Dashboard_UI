@@ -1,6 +1,6 @@
 import { useEffect, useState, useContext } from 'react';
 import { FaTint } from "react-icons/fa";
-import { fetcheddata } from '../../dashboard/api/fetchdata';
+import { fetcheddata } from '../../../api/fetchdata';
 import { ProductContext } from '../../../context/ProductContext';
 import ReactApexChart from 'react-apexcharts';
 import "../AreaCharts.scss";
