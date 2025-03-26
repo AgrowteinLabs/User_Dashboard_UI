@@ -40,7 +40,7 @@ export const fetchHistoryData = async (productUid, endpoint, startDate, endDate)
  * @param {string} endpoint - The specific data point to filter (e.g., 'Boiler_Temperature')
  * @returns {Array} - The filtered data
  */
-const filterByThirtyMinutes = (data, endpoint) => {
+const filterByThirtyMinutes = (data) => {
   const result = [];
   let lastTimestamp = null;
 
