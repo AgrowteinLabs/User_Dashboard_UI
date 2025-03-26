@@ -14,25 +14,13 @@ const PressureHistory = () => {
     const fetchPressureHistory = async () => {
       if (!selectedProductUid) return;
 
-      const startDate = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(); // 24 hours ago
-      const endDate = new Date().toISOString(); // Current date
-
-      const filteredData = await fetchHistoryData(
-        selectedProductUid,
-        'Pressure',
-        startDate,
-        endDate
-      );
-
-      if (filteredData.length > 0) {
-        const pressures = filteredData.map(entry =>
-          parseFloat(entry.data.Pressure).toFixed(2) // Format to 2 decimal points
-        );
-        const timestamps = filteredData.map(entry =>
-          new Date(entry.timestamp).toLocaleTimeString('en-US', {
-            hour: '2-digit',
-            minute: '2-digit',
-          })
+      try {
+        const response = await axios.post(
+          `${import.meta.env.VITE_REACT_APP_API_URL}/api/v1/data/${selectedProductUid}/date`,
+          {
+            startDate: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), // 24 hours ago
+            endDate: new Date().toISOString(), // Current date
+          }
         );
 
         setSeries([{ name: 'Pressure', data: pressures }]);

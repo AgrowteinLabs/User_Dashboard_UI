@@ -3,10 +3,10 @@ import ReactApexChart from 'react-apexcharts';
 import { FaThermometerHalf } from "react-icons/fa";
 import { fetcheddata } from '../../../api/fetchdata'; // Assuming the API function is correct
 import { ProductContext } from '../../../context/ProductContext';
-import '../AreaCharts.scss'
+import '../AreaCharts.scss';
 
 const CurrentTemperature = () => {
-  const [series, setSeries] = useState([0]); // Initial temperature value
+  const [series, setSeries] = useState([0]); // Initial temperature value for one sensor
   const [error, setError] = useState(false); // Error state for stale data
   const { selectedProductUid } = useContext(ProductContext);
 
@@ -19,14 +19,13 @@ const CurrentTemperature = () => {
         console.log("Fetched Temperature Data:", JSON.stringify(data, null, 2)); // Debugging
     
         if (data && data.data) {
-          const temperature1 = parseFloat(data.data.Temperature_Sensor_1).toFixed(2); // Get the first temperature sensor
-          const temperature2 = parseFloat(data.data.Temperature_Sensor_2).toFixed(2); // Get the second temperature sensor
+          const temperature = parseFloat(data.data.Temperature).toFixed(2); // Corrected the field to `data.data.Temperature`
           const serverTimestamp = new Date(data.timestamp).getTime(); // Convert server timestamp to milliseconds
           const currentTime = Date.now();
     
           // Check if the data is fresh (within the last 30 minutes)
           if (currentTime - serverTimestamp <= 30 * 60 * 1000) {
-            setSeries([temperature1, temperature2]); // Update the series with fresh data
+            setSeries([temperature]); // Update the series with the fresh data (for one sensor)
             setError(false); // Clear error state
           } else {
             setError(true); // Mark data as stale
@@ -40,31 +39,46 @@ const CurrentTemperature = () => {
         setError(true); // Handle fetch errors
       }
     };
-    
 
     // Fetch the temperature data when the component mounts
     fetchTemperatureData();
 
-    // Set up an interval to refresh the data periodically
-    const intervalId = setInterval(fetchTemperatureData, 1000); // Refresh every 1 second
+    // Set up an interval to refresh the data every 10 seconds
+    const intervalId = setInterval(fetchTemperatureData, 10000); // Refresh every 10 seconds
 
     return () => clearInterval(intervalId); // Clean up the interval on component unmount
   }, [selectedProductUid]);
 
   const options = {
     chart: {
-      type: 'line',
+      type: 'bar', // Bar chart for the current temperature
       animations: {
         enabled: true,
         easing: 'easeout',
         speed: 800,
       },
+      dynamicAnimation: {
+        enabled: true,
+        speed: 350,
+      },
+    },
+    plotOptions: {
+      bar: {
+        borderRadius: 5,
+        horizontal: false,
+        columnWidth: '30%',
+        colors: {
+          backgroundBarOpacity: 1,
+          backgroundBarRadius: 5,
+          ranges: [{ from: 0, to: 100, color: 'var(--primary-color)' }], // Customize color range if needed
+        },
+      },
     },
     xaxis: {
-      categories: ['Current'], // Category for the x-axis
+      categories: ['Sensor'], // Category for the temperature sensor
       labels: {
         style: {
-          colors: 'var(--text-color)', // Use CSS variable for text color
+          colors: 'var(--text-color)',
         },
       },
     },
@@ -72,34 +86,26 @@ const CurrentTemperature = () => {
       title: {
         text: '°C',
         style: {
-          color: 'var(--text-color)', // Use CSS variable for axis title color
+          color: 'var(--text-color)',
         },
       },
       labels: {
         style: {
-          colors: 'var(--text-color)', // Use CSS variable for text color
+          colors: 'var(--text-color)',
         },
       },
     },
     stroke: {
-      width: 8,
-      curve: 'smooth',
-      colors: ['var(--primary-color)'], // Use CSS variable for stroke color
-    },
-    markers: {
-      size: 8,
-      colors: ['var(--primary-color)'], // Marker color
-      strokeColors: 'var(--background-color)', // Adjust for light or dark background
-      strokeWidth: 2,
+      width: 2,
+      colors: ['var(--text-color)'],
     },
     tooltip: {
       y: {
-        formatter: val => `${val}°C`, // Display value with °C unit
+        formatter: val => `${val}°C`,
       },
       style: {
         fontSize: '12px',
-        fontFamily: undefined,
-        colors: ['var(--text-color)'], // Tooltip text color
+        colors: ['var(--text-color)'],
       },
     },
   };
@@ -109,7 +115,7 @@ const CurrentTemperature = () => {
       <div className="progress-bar-info">
         <h4 className="progress-bar-title" style={{ color: 'var(--text-color)' }}>
           <FaThermometerHalf style={{ marginRight: '8px', color: 'var(--text-color)' }} />
-          Current Temperature
+          Temperature - Current
         </h4>
       </div>
       <div className="chart-wrapper-c">
@@ -118,7 +124,7 @@ const CurrentTemperature = () => {
             <h5>Sensor Error: No data received for over 30 minutes.</h5>
           </div>
         ) : (
-          <ReactApexChart options={options} series={[{ name: 'Temperature', data: series }]} type="line" height={350} />
+          <ReactApexChart options={options} series={[{ name: 'Temperature', data: series }]} type="bar" height={350} />
         )}
       </div>
     </div>

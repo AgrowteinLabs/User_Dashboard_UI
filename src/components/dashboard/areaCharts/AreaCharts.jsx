@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useContext } from "react";
+import { useEffect, useState, useContext } from "react";
 import { fetchSensorList } from "../../../api/fetchsensorlist";
 import "./AreaCharts.scss";
 import { CircularProgress } from "@mui/material";
@@ -17,9 +17,13 @@ import BedTemperatureCurrent from "../../charts/BedTemp/BedTemperatureCurrent"; 
 import BedTemperatureHistory from "../../charts/BedTemp/BedTemperatureHistory"; // New import
 import BoilerTemperatureCurrent from "../../charts/BoilerTemp/BoilerTemperatureCurrent"; // New import
 import BoilerTemperatureHistory from "../../charts/BoilerTemp/BoilerTemperatureHistory"; // New import
-
-// import CurrentWaterLevel from "../../charts/waterLevel/CurrentWaterLevel";
-// import WaterLevelLast7Days from "../../charts/waterLevel/WaterLevelHistory";
+// import ElectricConductivityCurrent from "../../charts/electricconductivity/ElectricConductivityCurrent";
+// import ElectricConductivityHistory from "../../charts/electricconductivity/ElectricConductivityHistory";
+import CurrentFlowrate from "../../charts/flowrate/CurrentFlowrate"
+import FlowrateHistory from "../../charts/flowrate/FlowrateHistory"
+import Swal from "sweetalert2";
+import WaterUsedCurrent from "../../charts/waterLevel/CurrentWaterLevel";
+import WaterUsedHistory from "../../charts/waterLevel/WaterLevelHistory";
 
 const AreaCharts = () => {
   const [sensors, setSensors] = useState([]);
@@ -30,8 +34,11 @@ const AreaCharts = () => {
   useEffect(() => {
     const fetchData = async () => {
       if (!selectedProductUid) {
-        setError("Please select a product to view sensors.");
-        setLoading(false);
+        setLoading(true);
+        setTimeout(() => {
+          // setError("Please select a product to view sensors.");
+          setLoading(false);
+        }, 3000);
         return;
       }
 
@@ -41,7 +48,7 @@ const AreaCharts = () => {
         const data = await fetchSensorList(selectedProductUid);
         setSensors(data);
       } catch (error) {
-        setError("Failed to fetch sensor data.");
+        Swal.fire("Error", "Failed to fetch sensor data.", "error");
       } finally {
         setLoading(false);
       }
@@ -68,31 +75,25 @@ const AreaCharts = () => {
         </div>
       ) : (
         <>
-          {isSensorAvailable("Temperature Sensor_1") && (
+          {isSensorAvailable("Temperature") && (
             <>
               <CurrentTemperature />
               <TemperatureHistory />
             </>
           )}
 
-          {isSensorAvailable("Temperature Sensor_2") && (
-            <>
-              <CurrentTemperature />
-              <TemperatureHistory />
-            </>
-          )}
 
-          {isSensorAvailable("pH Sensor") && (
+          {isSensorAvailable("pH") && (
             <>
               <CurrentPHValue />
               <Last7DaysPHValue />
             </>
           )}
 
-          {isSensorAvailable("WaterLevel") && (
+          {isSensorAvailable("Water_Used") && (
             <>
-              <CurrentWaterLevel />
-              <WaterLevelLast7Days />
+              <WaterUsedCurrent />
+              <WaterUsedHistory />
             </>
           )}
 
@@ -111,7 +112,6 @@ const AreaCharts = () => {
           )}
 
 
-          {/* Add charts for Bed and Boiler Temperature */}
           {isSensorAvailable("Bed_Temperature") && (
             <>
               <BedTemperatureCurrent />
@@ -126,13 +126,21 @@ const AreaCharts = () => {
             </>
           )}
 
-{isSensorAvailable("Pressure") && (
+          {isSensorAvailable("Pressure") && (
             <>
               <CurrentPressure />
               <PressureHistory />
             </>
           )}
           
+          {isSensorAvailable("Flow_Rate") && (
+            <>
+              < CurrentFlowrate/>
+              <FlowrateHistory />
+            </>
+          )}
+
+
         </>
       )}
     </section>

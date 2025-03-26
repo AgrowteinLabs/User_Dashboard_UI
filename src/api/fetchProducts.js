@@ -7,8 +7,9 @@ export default async function fetchProducts() {
     }
 
     try {
-        const API_URL = `http://13.233.45.54:4500/api/v1/user/product/${userId}`;
-        
+        // Use the environment variable for the API URL
+        const API_URL = `${import.meta.env.VITE_REACT_APP_API_URL}/api/v1/user/product/${userId}`;
+
         // Add credentials: 'include' to send cookies
         const response = await fetch(API_URL, {
             method: 'GET',

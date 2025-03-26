@@ -1,37 +1,38 @@
 import { useEffect, useState, useContext } from 'react';
-import ReactApexChart from 'react-apexcharts';
-import { FaThermometerHalf } from "react-icons/fa";
-import { fetcheddata } from '../../../api/fetchdata'; 
+import { FaTint } from "react-icons/fa";
+import { fetcheddata } from '../../dashboard/api/fetchdata';
 import { ProductContext } from '../../../context/ProductContext';
-import '../AreaCharts.scss';
+import ReactApexChart from 'react-apexcharts';
+import "../AreaCharts.scss";
 
-const BedTemperatureCurrent = () => {
-  const [series, setSeries] = useState([0]); 
+const FlowRateCurrent = () => {
+  const [series, setSeries] = useState([0]);
   const [error, setError] = useState(false);
   const { selectedProductUid } = useContext(ProductContext);
 
   useEffect(() => {
-    const fetchTemperatureData = async () => {
+    const fetchFlowRateData = async () => {
       if (!selectedProductUid) return;
-    
+
       try {
         const data = await fetcheddata(selectedProductUid);
 
         if (data && data.data) {
-          const bedTemperature = data.data.Bed_Temperature;
-          const serverTimestamp = new Date(data.timestamp).getTime(); 
+          const flowRate = data.data.Flow_Rate;
+          const serverTimestamp = new Date(data.timestamp).getTime();
           const currentTime = Date.now();
-    
+
           // Check if the data is a valid decimal value
-          if (isNaN(bedTemperature) || !/^\d+(\.\d+)?$/.test(bedTemperature)) {
+          if (isNaN(flowRate) || !/^\d+(\.\d+)?$/.test(flowRate)) {
             setError(true); // Invalid data received, set error state
             return;
           }
 
-          const formattedTemperature = parseFloat(bedTemperature).toFixed(2);
+          const formattedFlowRate = parseFloat(flowRate).toFixed(2);
 
+          // Check if the data is fresh (within 30 minutes)
           if (currentTime - serverTimestamp <= 30 * 60 * 1000) {
-            setSeries([formattedTemperature]);
+            setSeries([formattedFlowRate]);
             setError(false);
           } else {
             setError(true);
@@ -42,9 +43,9 @@ const BedTemperatureCurrent = () => {
       }
     };
 
-    fetchTemperatureData();
-    const intervalId = setInterval(fetchTemperatureData, 1000); 
-    return () => clearInterval(intervalId); 
+    fetchFlowRateData();
+    const intervalId = setInterval(fetchFlowRateData, 1000); // Update data every second
+    return () => clearInterval(intervalId);
   }, [selectedProductUid]);
 
   const options = {
@@ -82,7 +83,7 @@ const BedTemperatureCurrent = () => {
     },
     yaxis: {
       title: {
-        text: '°C',
+        text: 'L/s',
         style: {
           color: 'var(--text-color)',
         },
@@ -99,7 +100,7 @@ const BedTemperatureCurrent = () => {
     },
     tooltip: {
       y: {
-        formatter: val => `${val}°C`,
+        formatter: (val) => `${val} L/s`, // Liters per second
       },
       style: {
         fontSize: '12px',
@@ -112,8 +113,8 @@ const BedTemperatureCurrent = () => {
     <div className="progress-bar">
       <div className="progress-bar-info">
         <h4 className="progress-bar-title" style={{ color: 'var(--text-color)' }}>
-          <FaThermometerHalf style={{ marginRight: '8px', color: 'var(--text-color)' }} />
-          Bed Temperature - Current
+          <FaTint style={{ marginRight: '8px', color: 'var(--text-color)' }} />
+          Flow Rate - Current
         </h4>
       </div>
       <div className="chart-wrapper-c">
@@ -122,11 +123,11 @@ const BedTemperatureCurrent = () => {
             <h5>Sensor Error: Invalid or no data received for over 30 minutes.</h5>
           </div>
         ) : (
-          <ReactApexChart options={options} series={[{ name: 'Bed Temperature', data: series }]} type="bar" height={350} />
+          <ReactApexChart options={options} series={[{ name: 'Flow Rate', data: series }]} type="bar" height={350} />
         )}
       </div>
     </div>
   );
 };
 
-export default BedTemperatureCurrent;
+export default FlowRateCurrent;

@@ -1,14 +1,14 @@
-import React, { useState, useEffect, useContext } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import { fetchSensorList } from '../../../api/fetchsensorlist';
 import { fetcheddata } from '../../../api/fetchdata'; // Assuming this is the function that fetches real-time data
 import { CircularProgress } from '@mui/material';
 import "./AreaTable.scss";
 import { ProductContext } from '../../../context/ProductContext';
+import swal from 'sweetalert';
 
 const TABLE_HEADS = [
   "Sensors Used",
   "Sensor ID",
-  "Installation Date",
   "Status",
 ];
 
@@ -55,8 +55,10 @@ const AreaTable = () => {
   useEffect(() => {
     const fetchedData = async () => {
       if (!selectedProductUid) {
-        setError("Please select a product to view sensors.");
-        setLoading(false); // Stop loading if no product UID
+        setTimeout(() => {
+          // setError("Please select a product to view sensors.");
+          setLoading(false); // Stop loading if no product UID
+        }, 3000);
         return;
       }
 
@@ -71,7 +73,8 @@ const AreaTable = () => {
         const realTimeData = await fetcheddata(selectedProductUid);
 
         if (!sensorList || sensorList.error) {
-          setError("Failed to fetch sensor data.");
+            // setError("Failed to fetch sensor data.");
+            swal("Error", "Failed to fetch sensor data.", "error");
           setSensorData([]);
           return;
         }
@@ -84,14 +87,13 @@ const AreaTable = () => {
             id: sensor._id,
             name: sensor.name,
             sensor_id: sensor._id,
-            installation_date: new Date(sensor.createdAt).toLocaleDateString(),
             status: status, // Set the status based on the check
           };
         });
 
         setSensorData(formattedData);
       } catch (error) {
-        setError("Failed to fetch sensor data.");
+        swal("Error", "Failed to fetch sensor data.", "error");
       } finally {
         setLoading(false);
       }
@@ -129,7 +131,6 @@ const AreaTable = () => {
                   <tr key={dataItem.id}>
                     <td>{dataItem.name}</td>
                     <td>{dataItem.sensor_id}</td>
-                    <td>{dataItem.installation_date}</td>
                     <td>
                       <div className="dt-status">
                         <span className={`dt-status-dot dot-${dataItem.status}`}></span>
@@ -140,7 +141,7 @@ const AreaTable = () => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={4} style={{ textAlign: 'center' }}>
+                  <td colSpan={3} style={{ textAlign: 'center' }}>
                     No sensors found for this product.
                   </td>
                 </tr>

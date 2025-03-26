@@ -1,0 +1,31 @@
+.loader-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(255, 255, 255, 0.9); /* Slight white overlay */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+  }
+  
+  .loader-image {
+    width: 150px; /* Adjust size as needed */
+    height: auto;
+    filter: brightness(0) saturate(100%) invert(23%) sepia(58%) saturate(805%) hue-rotate(142deg) brightness(96%) contrast(94%);
+    animation: spin 3s linear infinite; /* Optional spinning effect */
+
+    /* Filter applied for #03856d color */
+  }
+  
+  .loader-text {
+    margin-top: 20px;
+    font-size: 18px;
+    color: #555;
+    font-family: Arial, sans-serif;
+    text-align: center;
+  }
+  

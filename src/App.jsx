@@ -1,4 +1,4 @@
-import { useContext, useEffect } from "react";
+import { useContext, useEffect, useState } from "react";
 import "./App.scss";
 import { ThemeContext } from "./context/ThemeContext";
 import { DARK_THEME, LIGHT_THEME } from "./constants/themeConstants";
@@ -17,9 +17,12 @@ import { UserProvider } from "./context/UserContext";
 import { ProductProvider } from "./context/ProductContext";  // Import ProductProvider
 import Login from "./loginpage/login";
 import ProtectedRoute from "./components/ProtectedRoute";  // Import ProtectedRoute
+import Loader from "./components/loader/Loader";
+
 
 function App() {
   const { theme, toggleTheme } = useContext(ThemeContext);
+  const [loading, setLoading] = useState(true);
 
   // Apply dark or light theme based on the selected theme in the context
   useEffect(() => {
@@ -29,6 +32,17 @@ function App() {
       document.body.classList.remove("dark-mode");
     }
   }, [theme]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setLoading(false), 1000); 
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (loading) {
+    return <div>
+      <Loader />
+    </div>;
+  }
 
   return (
     <Router>

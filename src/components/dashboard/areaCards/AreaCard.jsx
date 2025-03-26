@@ -1,9 +1,10 @@
 import PropTypes from "prop-types";
 import { useState, useEffect, useContext, useCallback } from "react";
-import { FiClock, FiThermometer, FiPower } from "react-icons/fi";
+import { FiClock, FiThermometer, FiPower, FiAlertCircle, FiMapPin, FiSliders } from "react-icons/fi";
 import { ProductContext } from "../../../context/ProductContext";
 import {fetcheddata} from "../../../api/fetchdata";
 import { PowerButton } from "../../../api/powerButton";
+import { motion } from "framer-motion";
 
 const AreaCard = ({ colors, cardInfo, type, controlKey, children }) => { 
   const [isPowerOn, setIsPowerOn] = useState(false);
@@ -94,9 +95,9 @@ const AreaCard = ({ colors, cardInfo, type, controlKey, children }) => {
       case "time":
         return currentTime.toLocaleTimeString();
       case "temperature":
-        return temperature !== null ? `${temperature} °C` : <span style={{ color: "red", fontWeight: "bold" }}>Sensor Error</span>;
+        return temperature !== null ? `${temperature} °C` : <span style={{ color: "red", fontWeight: "bold" }}><FiAlertCircle /> Sensor Error</span>;
       case "humidity":
-        return humidity !== null ? `${humidity} %` : <span style={{ color: "red", fontWeight: "bold" }}>Sensor Error</span>;
+        return humidity !== null ? `${humidity} %` : <span style={{ color: "red", fontWeight: "bold" }}><FiAlertCircle /> Sensor Error</span>;
       case "power":
         return (
           <div className="power-switch">
@@ -130,20 +131,29 @@ const AreaCard = ({ colors, cardInfo, type, controlKey, children }) => {
             style={{ cursor: "pointer" }}
           />
         );
+      case "location":
+        return <FiMapPin size={48} color={colors[1]} />;
+      case "threshold":
+        return <FiSliders size={48} color={colors[1]} />;
       default:
         return null;
     }
   };
 
   return (
-    <div className="area-card">
+    <motion.div
+      className="area-card"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+    >
       <div className="area-card-info">
         <h5 className="info-title">{cardInfo.title}</h5>
         <div className="info-value">{renderValue()}</div>
         {children && <div className="area-card-children">{children}</div>}
       </div>
       <div className="area-card-icon">{renderIcon()}</div>
-    </div>
+    </motion.div>
   );
 };
 
@@ -152,7 +162,7 @@ AreaCard.propTypes = {
   cardInfo: PropTypes.object.isRequired,
   type: PropTypes.string.isRequired,
   controlKey: PropTypes.string,
-  children: PropTypes.node, // New prop type for children
+  children: PropTypes.node,
 };
 
 export default AreaCard;

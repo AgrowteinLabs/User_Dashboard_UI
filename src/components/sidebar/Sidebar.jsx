@@ -1,52 +1,37 @@
 import React, { useContext, useEffect, useRef } from "react";
 import { ThemeContext } from "../../context/ThemeContext";
-import { UserContext } from '../../context/UserContext'; // Import UserContext
+import { UserContext } from '../../context/UserContext';
 import { LIGHT_THEME } from "../../constants/themeConstants";
-import LogoBlue from "../../assets/images/Logo_leaf.png"; // Correct relative path
-import LogoWhite from "../../assets/images/Logo_leaf.png"; // Correct relative path
-import {
-  MdOutlineClose,
-  MdOutlineGridView,
-  MdOutlineLogout,
-  MdOutlineNotifications,
-  MdOutlinePerson,
-  MdOutlineQuestionAnswer,
-  MdOutlineShoppingBag,
-  MdMenu,
-} from "react-icons/md";
+import LogoBlue from "../../assets/images/Logo_leaf.png";
+import LogoWhite from "../../assets/images/Logo_leaf.png";
+import { MdOutlineClose, MdOutlineGridView, MdOutlineLogout, MdOutlineNotifications, MdOutlinePerson, MdOutlineQuestionAnswer, MdOutlineShoppingBag, MdMenu } from "react-icons/md";
 import { NavLink } from "react-router-dom";
 import "./Sidebar.scss";
 import { SidebarContext } from "../../context/SidebarContext";
 
 const Sidebar = () => {
   const { theme } = useContext(ThemeContext);
-  const { user } = useContext(UserContext); // Fetch user from UserContext
+  const { user } = useContext(UserContext);
   const { isSidebarOpen, toggleSidebar, closeSidebar } = useContext(SidebarContext);
   const navbarRef = useRef(null);
 
   const handleClickOutside = (event) => {
-    if (
-      navbarRef.current &&
-      !navbarRef.current.contains(event.target) &&
-      event.target.className !== "sidebar-open-btn"
-    ) {
+    if (navbarRef.current && 
+        !navbarRef.current.contains(event.target) && 
+        !event.target.closest('.sidebar-open-btn')) {
       closeSidebar();
     }
   };
 
   useEffect(() => {
     document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const getNavLinkClassName = ({ isActive }) =>
-    isActive ? "menu-link active" : "menu-link";
+  const getNavLinkClassName = ({ isActive }) => 
+    `menu-link ${isActive ? 'active' : ''}`;
 
-  if (!user) {
-    return <div>Loading...</div>; // Optional: handle loading state when user is null
-  }
+  if (!user) return <div className="loading-spinner">Loading...</div>;
 
   return (
     <>
@@ -55,26 +40,29 @@ const Sidebar = () => {
           <MdMenu size={35} />
         </button>
       )}
-      <nav
-        className={`sidebar ${isSidebarOpen ? "sidebar-show" : ""}`}
-        ref={navbarRef}
-      >
+
+      <nav className={`sidebar ${isSidebarOpen ? 'sidebar-show' : ''}`} ref={navbarRef}>
         <div className="sidebar-top">
           <div className="sidebar-brand">
-            <img src={theme === LIGHT_THEME ? LogoBlue : LogoWhite} alt="Logo" />
-            <span className="sidebar-brand-text">AGROwTRACK</span>
+            <img 
+              src={theme === LIGHT_THEME ? LogoBlue : LogoWhite} 
+              alt="AGROWTRACK Logo"
+              className="sidebar-logo"
+            />
+            <span className="sidebar-brand-text">AGROWTRACK</span>
           </div>
           <button className="sidebar-close-btn" onClick={closeSidebar}>
             <MdOutlineClose size={24} />
           </button>
         </div>
+
         <div className="sidebar-body">
           <div className="sidebar-menu">
             <ul className="menu-list">
               <li className="menu-item">
                 <NavLink to="/" className={getNavLinkClassName} end>
                   <span className="menu-link-icon">
-                    <MdOutlineGridView size={18} />
+                    <MdOutlineGridView size={20} />
                   </span>
                   <span className="menu-link-text">Dashboard</span>
                 </NavLink>
@@ -98,12 +86,9 @@ const Sidebar = () => {
               <li className="menu-item">
                 <NavLink to="/notifications" className={getNavLinkClassName}>
                   <span className="menu-link-icon">
-                    <MdOutlineNotifications size={18} />
+                    <MdOutlineNotifications size={20} />
                   </span>
                   <span className="menu-link-text">Notifications</span>
-                  {/* {user.notifications.some(notification => !notification.read) && (
-                    <span className="notification-dot"></span>
-                  )} */}
                 </NavLink>
               </li>
             </ul>
