@@ -22,7 +22,7 @@ import BoilerTemperatureHistory from "../../charts/BoilerTemp/BoilerTemperatureH
 import CurrentFlowrate from "../../charts/flowrate/CurrentFlowrate"
 import FlowrateHistory from "../../charts/flowrate/FlowrateHistory"
 import Swal from "sweetalert2";
-import WaterUsedCurrent from "../../charts/waterLevel/CurrentWaterLevel";
+import WaterUsedCurrent from "../../charts/waterlevel/CurrentWaterLevel";
 import WaterUsedHistory from "../../charts/waterLevel/WaterLevelHistory";
 
 const AreaCharts = () => {
