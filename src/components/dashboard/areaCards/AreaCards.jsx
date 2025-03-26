@@ -1,5 +1,5 @@
 // AreaCards component
-import React, { useEffect, useState, useContext } from "react";
+import { useEffect, useState, useContext } from "react";
 import AreaCard from "./AreaCard";
 import "./AreaCards.scss";
 import fetchProducts from "../api/fetchProducts";
