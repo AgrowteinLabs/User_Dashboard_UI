@@ -8,7 +8,7 @@ import { ProductContext } from "../../../context/ProductContext";
 import Slider from "@mui/material/Slider";
 import Stack from "@mui/material/Stack";
 import { motion } from "framer-motion";
-import { setControls } from "../api/setModeAndThreshold";
+import { setControls } from "../../../api/setModeAndThreshold";
 import Swal from "sweetalert2";
 import {
   Select,

@@ -23,7 +23,7 @@ import CurrentFlowrate from "../../charts/flowrate/CurrentFlowrate"
 import FlowrateHistory from "../../charts/flowrate/FlowrateHistory"
 import Swal from "sweetalert2";
 import WaterUsedCurrent from "../../charts/waterlevel/CurrentWaterLevel";
-import WaterUsedHistory from "../../charts/waterLevel/WaterLevelHistory";
+import WaterUsedHistory from "../../charts/waterlevel/WaterLevelHistory";
 
 const AreaCharts = () => {
   const [sensors, setSensors] = useState([]);
