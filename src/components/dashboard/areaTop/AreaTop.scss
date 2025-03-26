@@ -23,62 +23,38 @@
 
     .date-picker-wrapper {
       position: relative;
-      width: 200px;
-
+      width: 250px;
+    
       .date-input {
-        padding: 8px 12px;
-        border-radius: 4px;
-        border: 1px solid var(--border-color);
-        background-color: var(--secondary-color); /* Adjust for dark mode */
-        color: var(--base-text-color);
+        padding: 10px 14px;
+        border-radius: 6px;
+        border: 2px solid #08886c; /* Updated border color */
+        background-color: var(--secondary-color); /* Light mode background */
         cursor: pointer;
+        font-size: 16px;
+        text-align: center;
+        transition: all 0.3s ease-in-out;
       }
 
-      .rdrCalendarWrapper {
-        position: absolute;
-        top: 50px; /* Adjust top position to ensure it's below the input */
-        left: 0;
-        z-index: 1000;
-        background-color: var(--light-color); /* Light mode calendar background */
-        border-radius: 4px;
-        box-shadow: var(--light-shadow1);
-
-        .rdrMonthAndYearWrapper,
-        .rdrDay {
-          color: var(--text-color); /* Light mode text color */
-        }
-      }
-
-      &.hide-date-picker .rdrCalendarWrapper {
-        display: none;
+      /* Explicitly target MUI DateTimeField input */
+      .MuiInputBase-input {
+        color: rgb(0, 0, 0) ; /* Ensure text inside DateTimeField is always white */
       }
     }
 
     /* Dark Mode Styling */
     .dark-mode & {
-      .date-picker-wrapper {
-        .date-input {
-          background-color: var(--dark-secondary-color); /* Dark mode input background */
-          border: 1px solid var(--dark-border-color); /* Dark mode input border */
-          color: var(--dark-base-text-color); /* Dark mode text color */
-        }
+      .date-input {
+        background-color: #063f37; /* Dark greenish-black for dark mode */
+        border: 2px solid #08886c; /* Maintain border visibility */
+        box-shadow: 0 0 8px rgba(1, 38, 30, 0.6); /* Soft glow effect */
+      }
+      .MuiInputLabel-root {
+        color: white !important; /* Ensure label text is always white */
+      }
 
-        .rdrCalendarWrapper {
-          background-color: var(--dark-color); /* Dark mode calendar background */
-          box-shadow: var(--dark-shadow1);
-
-          .rdrMonthAndYearWrapper,
-          .rdrDay {
-            color: var(--dark-text-color); /* Dark mode text color */
-          }
-
-          .rdrDayHovered,
-          .rdrDayToday,
-          .rdrDaySelected {
-            background-color: var(--dark-accent-color); /* Highlighted day background */
-            color: var(--dark-highlight-text-color); /* Highlighted day text color */
-          }
-        }
+      .MuiInputBase-input {
+        color: white !important; /* Force text to be white in dark mode */
       }
     }
   }
