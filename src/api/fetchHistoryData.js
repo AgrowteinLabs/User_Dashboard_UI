@@ -14,7 +14,7 @@ export const fetchHistoryData = async (productUid, endpoint, startDate, endDate)
     if (!productUid) return [];
 
     const response = await axios.post(
-      `http://13.233.45.54:4500/api/v1/data/${productUid}/date`,
+      `${import.meta.env.VITE_REACT_APP_API_URL}/api/v1/data/${productUid}/date`,
       {
         startDate,
         endDate,
