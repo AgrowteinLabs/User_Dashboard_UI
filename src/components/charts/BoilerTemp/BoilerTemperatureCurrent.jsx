@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useContext } from 'react';
+import { useEffect, useState, useContext } from 'react';
 import ReactApexChart from 'react-apexcharts';
 import { FaThermometerHalf } from "react-icons/fa";
 import { fetcheddata } from '../../../api/fetchdata'; 
@@ -69,7 +69,7 @@ const BoilerTemperatureCurrent = () => {
         colors: {
           backgroundBarOpacity: 1,
           backgroundBarRadius: 5,
-          ranges: [{ from: 0, to: 100, color: 'var(--primary-color)' }],
+          ranges: [{ from: 0, to: 120, color: '#03856d' }], // Updated color here
         },
       },
     },

@@ -29,9 +29,10 @@ const BoilerTemperatureHistory = () => {
           parseFloat(entry.data.Boiler_Temperature).toFixed(2) // Format to 2 decimal points
         );
         const timestamps = filteredData.map(entry =>
-          new Date(entry.timestamp).toLocaleTimeString('en-US', {
+          new Date(entry.timestamp).toLocaleString('en-US', {
             hour: '2-digit',
             minute: '2-digit',
+            hour12: true,
           })
         );
 
@@ -55,16 +56,24 @@ const BoilerTemperatureHistory = () => {
     xaxis: {
       categories: categories,
       labels: {
+        rotate: -45, // Rotate labels to prevent overlap
         style: {
           colors: 'var(--text-color)', // Use CSS variable for text color
+          fontSize: '12px', // Adjust font size
+          fontFamily: 'Arial, sans-serif', // Change the font for better readability
         },
       },
-      tickAmount: 'dataPoints',
+      tickAmount: 12, // Reduce number of labels
       title: {
         text: 'Time (Last 24 Hours)',
         style: {
           color: 'var(--text-color)',
         },
+      },
+      // Modify the tick format to show more spaced out times (2-hour intervals)
+      axisBorder: {
+        show: true,
+        color: '#ccc',
       },
     },
     yaxis: {
@@ -111,6 +120,11 @@ const BoilerTemperatureHistory = () => {
         fontSize: '12px',
         colors: ['var(--text-color)'],
       },
+    },
+    grid: {
+      show: true, // Display gridlines for better separation
+      borderColor: '#e0e0e0', // Gridline color
+      strokeDashArray: 4, // Dashed lines for grid
     },
   };
 

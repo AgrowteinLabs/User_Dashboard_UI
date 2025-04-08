@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { MdViewHeadline } from "react-icons/md";
 import { CircularProgress } from "@mui/material";
 import { FaCheck } from "react-icons/fa";
@@ -6,19 +6,8 @@ import AgricultureIcon from "../../assets/images/agriculture.png";
 import { addDays, differenceInCalendarDays } from "date-fns";
 import { DateRange } from "react-date-range";
 import fetchProducts from "../../api/fetchProducts";
-import CurrentTemperature from "../charts/temperature/CurrentTemperature";
-import TemperatureHistory from "../charts/temperature/TemperatureHistory";
-import CurrentHumidity from "../charts/humidity/CurrentHumidity";
-import HumidityHistory from "../charts/humidity/HumidityHistory";
-import CurrentCO2Level from "../charts/CO2/CurrentCO2Level";
-import CO2History from "../charts/CO2/CO2History";
-import BedTemperatureCurrent from "../charts/BedTemp/BedTemperatureCurrent"; // New import
-import BedTemperatureHistory from "../charts/BedTemp/BedTemperatureHistory"; // New import
-import BoilerTemperatureCurrent from "../charts/BoilerTemp/BoilerTemperatureCurrent"; // New import
-import BoilerTemperatureHistory from "../charts/BoilerTemp/BoilerTemperatureHistory"; // New import
+import AreaCharts from "../dashboard/areaCharts/AreaCharts";  // New import
 import "./Products.scss";
-import CurrentPressure from "../charts/pressure/CurrentPressure";
-import PressureHistory from "../charts/pressure/PressureHistory";
 
 const Products = () => {
   const [products, setProducts] = useState([]);
@@ -77,15 +66,7 @@ const Products = () => {
     setCurrentPage(pageNumber);
   };
 
-  const hasSensor = (product, sensorName) => {
-    const sensorExists = product.sensors?.some(
-      (sensor) => sensor.sensorId && sensor.sensorId.name === sensorName
-    );
-    console.log(
-      `Checking for sensor ${sensorName} in product ${product.alias}: ${sensorExists}`
-    );
-    return sensorExists;
-  };
+  // Removed unused hasSensor function
 
   const handleDateSelection = (ranges) => {
     const { startDate, endDate } = ranges.selection;
@@ -208,13 +189,7 @@ const Products = () => {
                   editableDateInputs={true}
                   onChange={handleDateSelection}
                   moveRangeOnFirstSelection={false}
-                  ranges={[
-                    {
-                      startDate: selectedDates.startDate,
-                      endDate: selectedDates.endDate,
-                      key: "selection",
-                    },
-                  ]}
+                  ranges={[{ startDate: selectedDates.startDate, endDate: selectedDates.endDate, key: "selection" }]}
                   maxDate={new Date()}
                   minDate={addDays(new Date(), -30)}
                   className="calendar-overlay"
@@ -229,107 +204,11 @@ const Products = () => {
           )}
 
           <section className="sensor-readings-section">
-            {hasSensor(viewingProduct, "Temperature Sensor") && (
-              <div className="sensor-card">
-                <div className="sensor-header">
-                  <h4>Temperature</h4>
-                </div>
-                <div className="sensor-body">
-                  <CurrentTemperature />
-                </div>
-                <div className="sensor-footer">
-                  <TemperatureHistory
-                    startDate={currentOrConfirmedStart}
-                    endDate={currentOrConfirmedEnd}
-                  />
-                </div>
-              </div>
-            )}
-
-            {hasSensor(viewingProduct, "Humidity") && (
-              <div className="sensor-card">
-                <div className="sensor-header">
-                  <h4>Humidity</h4>
-                </div>
-                <div className="sensor-body">
-                  <CurrentHumidity />
-                </div>
-                <div className="sensor-footer">
-                  <HumidityHistory
-                    startDate={currentOrConfirmedStart}
-                    endDate={currentOrConfirmedEnd}
-                  />
-                </div>
-              </div>
-            )}
-
-            {hasSensor(viewingProduct, "Co2") && (
-              <div className="sensor-card">
-                <div className="sensor-header">
-                  <h4>CO2 Levels</h4>
-                </div>
-                <div className="sensor-body">
-                  <CurrentCO2Level />
-                </div>
-                <div className="sensor-footer">
-                  <CO2History
-                    startDate={currentOrConfirmedStart}
-                    endDate={currentOrConfirmedEnd}
-                  />
-                </div>
-              </div>
-            )}
-
-            {hasSensor(viewingProduct, "Bed_Temperature") && (
-              <div className="sensor-card">
-                <div className="sensor-header">
-                  <h4>Bed Temperature</h4>
-                </div>
-                <div className="sensor-body">
-                  <BedTemperatureCurrent />
-                </div>
-                <div className="sensor-footer">
-                  <BedTemperatureHistory
-                    startDate={currentOrConfirmedStart}
-                    endDate={currentOrConfirmedEnd}
-                  />
-                </div>
-              </div>
-            )}
-
-            {hasSensor(viewingProduct, "Boiler_Temperature") && (
-              <div className="sensor-card">
-                <div className="sensor-header">
-                  <h4>Boiler Temperature</h4>
-                </div>
-                <div className="sensor-body">
-                  <BoilerTemperatureCurrent />
-                </div>
-                <div className="sensor-footer">
-                  <BoilerTemperatureHistory
-                    startDate={currentOrConfirmedStart}
-                    endDate={currentOrConfirmedEnd}
-                  />
-                </div>
-              </div>
-            )}
-
-            {hasSensor(viewingProduct, "Boiler_Temperature") && (
-              <div className="sensor-card">
-                <div className="sensor-header">
-                  <h4>Pressure</h4>
-                </div>
-                <div className="sensor-body">
-                  <CurrentPressure />
-                </div>
-                <div className="sensor-footer">
-                  <PressureHistory
-                    startDate={currentOrConfirmedStart}
-                    endDate={currentOrConfirmedEnd}
-                  />
-                </div>
-              </div>
-            )}
+            <AreaCharts
+              product={viewingProduct}
+              startDate={currentOrConfirmedStart}
+              endDate={currentOrConfirmedEnd}
+            />
           </section>
         </div>
       )}
@@ -344,6 +223,8 @@ const Products = () => {
     </div>
   );
 };
+
+import PropTypes from "prop-types";
 
 const Pagination = ({ currentPage, totalPages, onPageChange }) => {
   const pageNumbers = Array.from({ length: totalPages }, (_, i) => i + 1);
@@ -362,5 +243,13 @@ const Pagination = ({ currentPage, totalPages, onPageChange }) => {
     </div>
   );
 };
+
+Pagination.propTypes = {
+  currentPage: PropTypes.number.isRequired,
+  totalPages: PropTypes.number.isRequired,
+  onPageChange: PropTypes.func.isRequired,
+};
+
+
 
 export default Products;
