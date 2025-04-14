@@ -1,5 +1,4 @@
 
-import React from 'react';
 import { AreaCards, AreaCharts, AreaTable, AreaTop } from "../../components";
 import WeatherCard from "../../components/dashboard/weather/WeatherCard";
 

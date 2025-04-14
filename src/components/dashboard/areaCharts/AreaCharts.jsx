@@ -75,12 +75,14 @@ const AreaCharts = () => {
         </div>
       ) : (
         <>
-          {isSensorAvailable("Temperature") && (
+          {isSensorAvailable("Temperature_1") && (
             <>
               <CurrentTemperature />
               <TemperatureHistory />
             </>
           )}
+
+
 
 
           {isSensorAvailable("pH") && (
@@ -97,7 +99,21 @@ const AreaCharts = () => {
             </>
           )}
 
-          {isSensorAvailable("Humidity") && (
+          {isSensorAvailable("Humidity_1") && (
+            <>
+              <CurrentHumidity />
+              <Last7DaysHumidity />
+            </>
+          )}
+
+{isSensorAvailable("Temperature_2") && (
+            <>
+              <CurrentTemperature />
+              <TemperatureHistory />
+            </>
+          )}
+
+{isSensorAvailable("Humidity_2") && (
             <>
               <CurrentHumidity />
               <Last7DaysHumidity />
