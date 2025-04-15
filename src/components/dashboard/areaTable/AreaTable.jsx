@@ -11,42 +11,53 @@ const AreaTable = () => {
   const [loading, setLoading] = useState(true);
   const { selectedProductUid } = useContext(ProductContext);
 
-  useEffect(() => {
-    const fetchSensorStatus = async () => {
-      if (!selectedProductUid) {
-        setTimeout(() => {
-          setLoading(false);
-        }, 3000);
+  const fetchSensorStatus = async () => {
+    if (!selectedProductUid) {
+      setSensorData([]);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const response = await fetch(
+        `https://apiv2.agrowtein.com/api/v1/data/status/${selectedProductUid}`
+      );
+      const data = await response.json();
+
+      if (response.status !== 200 || !data) {
+        swal("Error", "Failed to fetch sensor data.", "error");
+        setSensorData([]);
         return;
       }
 
-      try {
-        setLoading(true);
+      setSensorData(data);
+    } catch (error) {
+      swal("Error", "Failed to fetch sensor data.", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-        const response = await fetch(`https://apiv2.agrowtein.com/api/v1/data/status/${selectedProductUid}`);
-        const data = await response.json();
+  useEffect(() => {
+    fetchSensorStatus(); // Initial fetch
 
-        if (response.status !== 200 || !data) {
-          swal("Error", "Failed to fetch sensor data.", "error");
-          setSensorData([]);
-          return;
-        }
+    // Set up interval to refetch every 2 minutes (120,000 ms)
+    const intervalId = setInterval(() => {
+      fetchSensorStatus();
+    }, 120000);
 
-        setSensorData(data);
-      } catch (error) {
-        swal("Error", "Failed to fetch sensor data.", "error");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchSensorStatus();
+    // Cleanup interval on component unmount
+    return () => clearInterval(intervalId);
   }, [selectedProductUid]);
 
   return (
     <div className="area-table">
       {loading ? (
-        <CircularProgress />
+        <div className="loading-spinner">
+          <CircularProgress />
+        </div>
       ) : (
         <table>
           <thead>
