@@ -362,7 +362,7 @@ const AreaCards = () => {
       </div>
 
       <div className="area-cards-row">
-        {mode === "automate" && selectedProductDetails?.controls?.length > 0 && (
+        {mode === "automate" && selectedProductDetails?.controls?.length > 0 ? (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -373,7 +373,7 @@ const AreaCards = () => {
               cardInfo={{
                 title: currentControl?.name,
                 value: currentControl?.threshHold,
-                unit: currentControl?.max ? `(Range: ${currentControl.min}-${currentControl.max})` : ""
+                unit: currentControl?.max ? `(Range: ${currentControl.min}-${currentControl.max})` : "",
               }}
               type="control"
             >
@@ -405,7 +405,7 @@ const AreaCards = () => {
                   onChange={(_, val) => handleThresholdChange(val)}
                 />
                 <div>
-                  Threshold: 
+                  Threshold:
                   <input
                     type="number"
                     value={threshold}
@@ -415,18 +415,20 @@ const AreaCards = () => {
                 </div>
               </Stack>
 
-              <Button
-                variant="contained"
-                onClick={handleSaveThreshold}
-                fullWidth
-              >
+              <Button variant="contained" onClick={handleSaveThreshold} fullWidth>
                 Save Threshold
               </Button>
             </AreaCard>
           </motion.div>
+        ) : (
+          <div className="no-controls-message">
+            <Typography variant="h6" sx={{ textAlign: "center", color: "#666", marginTop: 2 }}>
+              No controls available for the selected product.
+            </Typography>
+          </div>
         )}
 
-        {selectedProductDetails?.controls?.length > 0 && (
+        {selectedProductDetails?.controls?.length > 0 ? (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -471,6 +473,12 @@ const AreaCards = () => {
               </div>
             </AreaCard>
           </motion.div>
+        ) : (
+          <div className="no-controls-message">
+            <Typography variant="h6" sx={{ textAlign: "center", color: "#666", marginTop: 2 }}>
+              No controls available for the selected product.
+            </Typography>
+          </div>
         )}
       </div>
     </section>
