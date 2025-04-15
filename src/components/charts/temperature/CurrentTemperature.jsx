@@ -1,4 +1,4 @@
-import { useEffect, useState, useContext } from 'react';
+import React, { useEffect, useState, useContext } from 'react';
 import ReactApexChart from 'react-apexcharts';
 import { FaThermometerHalf } from "react-icons/fa";
 import { fetcheddata } from '../../../api/fetchdata'; // Assuming the API function is correct
@@ -19,7 +19,7 @@ const CurrentTemperature = () => {
         console.log("Fetched Temperature Data:", JSON.stringify(data, null, 2)); // Debugging
     
         if (data && data.data) {
-          const temperature = parseFloat(data.data.Temperature_1).toFixed(2); // Updated to use `Temperature_1`
+          const temperature = parseFloat(data.data.Temperature).toFixed(2); // Corrected the field to `data.data.Temperature`
           const serverTimestamp = new Date(data.timestamp).getTime(); // Convert server timestamp to milliseconds
           const currentTime = Date.now();
     
@@ -115,7 +115,7 @@ const CurrentTemperature = () => {
       <div className="progress-bar-info">
         <h4 className="progress-bar-title" style={{ color: 'var(--text-color)' }}>
           <FaThermometerHalf style={{ marginRight: '8px', color: 'var(--text-color)' }} />
-          Temperature_1 - Current
+          Temperature - Current
         </h4>
       </div>
       <div className="chart-wrapper-c">

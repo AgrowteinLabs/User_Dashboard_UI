@@ -1,8 +1,12 @@
 .content-area-cards {
   display: grid;
   grid-template-columns: 1fr;
-  margin-top: 12px;
-  gap: 16px;
+  gap: 0; // Remove gap between grid items
+  padding: 0 2rem; // Only left and right padding
+  background: var(--background);
+  color: var(--text-primary);
+  min-height: auto; // Adjust height dynamically
+  margin-top: 0; // Remove top margin
 
   .dropdown-container {
     margin-bottom: 20px;
@@ -234,13 +238,6 @@
     flex-grow: 1;
     max-width: 300px;
   }
-}
-
-.content-area-cards {
-  padding: 2rem;
-  background: var(--background);
-  color: var(--text-primary);
-  min-height: 100vh;
 }
 
 .area-cards-row {
