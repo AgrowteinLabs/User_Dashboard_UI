@@ -24,6 +24,10 @@ import FlowrateHistory from "../../charts/flowrate/FlowrateHistory"
 import Swal from "sweetalert2";
 import WaterUsedCurrent from "../../charts/waterlevel/CurrentWaterLevel";
 import WaterUsedHistory from "../../charts/waterlevel/WaterLevelHistory";
+import Temperature_2 from "../../charts/temperature_2/CurrentTemperature";
+import Temperature_2History from "../../charts/temperature_2/TemperatureHistory";
+import Humidity_2 from "../../charts/humidity_2/CurrentHumidity";
+import Humidity2History from "../../charts/humidity_2/HumidityHistory"
 
 const AreaCharts = () => {
   const [sensors, setSensors] = useState([]);
@@ -108,15 +112,15 @@ const AreaCharts = () => {
 
 {isSensorAvailable("Temperature_2") && (
             <>
-              <CurrentTemperature />
-              <TemperatureHistory />
+              <Temperature_2 />
+              <Temperature_2History />
             </>
           )}
 
 {isSensorAvailable("Humidity_2") && (
             <>
-              <CurrentHumidity />
-              <Last7DaysHumidity />
+              <Humidity_2 />
+              <Humidity2History />
             </>
           )}
 

@@ -23,7 +23,7 @@ const HumidityHistory = () => {
         if (response.data && response.data.length > 0) {
           const filteredData = filterByThirtyMinutes(response.data);
           const humidityLevels = filteredData.map(entry =>
-            parseFloat(entry.data.Humidity_1).toFixed(2) // Format to 2 decimal points
+            parseFloat(entry.data.Humidity_2).toFixed(2) // Format to 2 decimal points
           );
           const timestamps = filteredData.map(entry =>
             new Date(entry.timestamp).toLocaleTimeString('en-US', {
