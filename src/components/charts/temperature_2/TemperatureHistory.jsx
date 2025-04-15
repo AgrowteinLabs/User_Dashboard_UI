@@ -26,7 +26,7 @@ const TemperatureHistory = () => {
         if (response.data && response.data.length > 0) {
           const filteredData = filterByThirtyMinutes(response.data);
           const temperatures = filteredData.map(entry =>
-            parseFloat(entry.data.Temperature_1).toFixed(2) // Format to 2 decimal points
+            parseFloat(entry.data.Temperature_2).toFixed(2) // Format to 2 decimal points
           );
           const timestamps = filteredData.map(entry =>
             new Date(entry.timestamp).toLocaleTimeString('en-US', {

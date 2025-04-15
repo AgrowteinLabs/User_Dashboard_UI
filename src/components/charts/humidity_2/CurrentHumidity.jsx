@@ -18,13 +18,13 @@ const CurrentHumidity = () => {
         const data = await fetcheddata(selectedProductUid);
         console.log("Fetched Data Response:", JSON.stringify(data, null, 2)); // Log the complete response
 
-        if (data && data.data && data.data.Humidity_1 !== undefined && data.timestamp) {
+        if (data && data.data && data.data.Humidity_2 !== undefined && data.timestamp) {
           const serverTimestamp = new Date(data.timestamp).getTime(); // Convert server timestamp to milliseconds
           const currentTime = Date.now();
 
           // Check if the data is fresh (within the last 30 minutes)
           if (currentTime - serverTimestamp <= 30 * 60 * 1000) {
-            const formattedHumidity = parseFloat(data.data.Humidity_1).toFixed(2); // Format to 2 decimal places
+            const formattedHumidity = parseFloat(data.data.Humidity_2).toFixed(2); // Format to 2 decimal places
             setSeries([{ name: 'Humidity', data: [formattedHumidity] }]); // Update series with fresh data
             setError(false); // Clear error state
           } else {
@@ -103,7 +103,7 @@ const CurrentHumidity = () => {
       <div className="progress-bar-info">
         <h4 className="progress-bar-title" style={{ color: 'var(--text-color)' }}>
           <FaTint style={{ marginRight: "8px", color: 'var(--text-color)' }} />
-          Current Humidity_1
+          Current Humidity_2
         </h4>
       </div>
       <div className="chart-wrapper-c">
