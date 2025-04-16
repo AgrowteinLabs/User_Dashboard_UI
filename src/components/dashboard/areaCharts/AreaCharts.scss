@@ -1,98 +1,44 @@
-.content-area-charts {
-  display: grid;
-  grid-template-columns: 1fr 2fr;
-  grid-template-rows: auto auto;
-  gap: 16px;
-
-  @media (max-width: 992px) {
-    grid-template-columns: 100%;
-  }
-}
-
-.progress-bar, .bar-chart {
-  background-color: var(--secondary-color);
-  padding: 16px;
-  border-radius: 5px;
-  box-shadow: var(--light-shadow1);
-  position: relative;
-  overflow: hidden;
-
-  @media (max-width: 768px) {
-    padding: 12px;
-  }
-
-  .progress-bar-title, .bar-chart-title {
-    font-size: 20px;
-    font-weight: 700;
-    color: var(--text-color-inverted);
-    margin-bottom: 16px;
-    display: flex;
-    align-items: center;
-  }
-
-  .chart-wrapper, .chart-wrapper-center {
-    width: 100%;
-    height: 350px;
-  }
-
-  .chart-wrapper-center {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-  }
-}
-
-/* Styles for error message display */
-.sensor-error {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 350px; /* Matches the chart height */
-  color: red;
-  font-size: 20px;
-  font-weight: bold;
-  text-align: center;
-}
-
-/* Additional two-column chart layout for side-by-side display */
 .chart-pair {
   display: flex;
   gap: 16px;
+  width: 100%;
+  margin-bottom: 24px;
 
-  @media (max-width: 768px) {
+  @media (max-width: 992px) {
     flex-direction: column;
   }
 
-  .chart-wrapper {
-    flex: 1; /* Each chart takes equal space */
+  .chart-current {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
   }
-}
-.content-area-charts {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
 
-.data-table-diagram {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
+  .chart-history {
+    flex: 2;
+    display: flex;
+    flex-direction: column;
+  }
 
-.chart-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;  /* Creates two equal columns */
-  gap: 16px;
-
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr;  /* Stack in one column on smaller screens */
+  .progress-bar,
+  .chart-item {
+    background-color: var(--secondary-color);
+    padding: 16px;
+    border-radius: 8px;
+    box-shadow: var(--light-shadow1);
+    width: 100%;
   }
 }
 
-.chart-item {
-  background-color: var(--secondary-color);
+.sensor-error {
+  background-color: #fff0f0;
   padding: 16px;
-  border-radius: 5px;
-  box-shadow: var(--light-shadow1);
+  border-radius: 6px;
+  color: red;
+  font-weight: bold;
+  text-align: center;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
-
