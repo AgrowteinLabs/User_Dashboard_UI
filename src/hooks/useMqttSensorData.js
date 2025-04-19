@@ -3,7 +3,7 @@ import mqtt from "mqtt";
 import { v4 as uuidv4 } from "uuid";
 
 // ✅ Backend API to fetch signed WebSocket URL
-const SIGN_URL_API = "http://localhost:4500/api/sign-mqtt-url";
+const SIGN_URL_API = "https://apiv2.agrowtein.com/api/sign-mqtt-url";
 
 export const useMqttSensorData = (uid) => {
   const [message, setMessage] = useState(null);
