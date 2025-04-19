@@ -1,0 +1,30 @@
+.device-status-banner {
+    padding: 12px 20px;
+    margin-bottom: 16px;
+    border-radius: 6px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 14px;
+    background-color: var(--secondary-color);
+    box-shadow: var(--light-shadow1);
+    transition: background 0.3s ease;
+  
+    &.online {
+      border-left: 3px solid #03856d;
+    }
+  
+    &.offline {
+      border-left: 3px solid #dc3545;
+    }
+  
+    .status-text {
+      font-weight: bold;
+    }
+  
+    .last-seen {
+      font-style: italic;
+      color: var(--text-color);
+    }
+  }
+  

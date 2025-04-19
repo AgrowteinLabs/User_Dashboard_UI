@@ -1,0 +1,44 @@
+.bar-chart {
+    background-color: var(--secondary-color);
+    padding: 16px;
+    border-radius: 6px;
+    box-shadow: var(--light-shadow1);
+    transition: background 0.3s ease, transform 0.3s ease;
+  
+    &.status-active {
+      border-left: 3px solid #03856d;
+    }
+  
+    &.status-stale {
+      border-left: 3px solid #ffc107;
+    }
+  
+    &.status-error {
+      border-left: 3px solid #dc3545;
+    }
+  
+    &.status-inactive {
+      border-left: 3px solid #6c757d;
+      opacity: 0.5;
+    }
+  
+    .bar-chart-title {
+      font-weight: 600;
+      color: var(--text-color);
+      margin-bottom: 8px;
+    }
+  
+    .chart-wrapper-center {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+  
+    .timestamp-label {
+      font-size: 13px;
+      text-align: right;
+      margin-top: 8px;
+      color: var(--text-color);
+    }
+  }
+  

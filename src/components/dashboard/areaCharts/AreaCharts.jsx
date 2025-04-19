@@ -1,34 +1,40 @@
-// src/components/AreaCharts/AreaCharts.jsx
-import { useContext, useEffect, useState } from "react";
-import { CircularProgress } from "@mui/material";
-import Swal from "sweetalert2";
-import { ProductContext } from "../../../context/ProductContext";
+import { useEffect, useState, useContext, useMemo } from "react";
 import { fetchSensorList } from "../../../api/fetchsensorlist";
+import "./AreaCharts.scss";
+import { CircularProgress } from "@mui/material";
+import { ProductContext } from "../../../context/ProductContext";
+import Swal from "sweetalert2";
 import { useSensorData } from "../../../hooks/useSensorData";
+import { useMqttSensorData } from "../../../hooks/useMqttSensorData";
 import DynamicCharts from "../../predefinedcharts/DynamicCharts";
 import NoDataPlaceholder from "../../predefinedcharts/NoDataPlaceholder";
-import "./AreaCharts.scss";
+import DeviceStatusBanner from "../../predefinedcharts/DeviceStatusBanner";
 
 const AreaCharts = () => {
   const { selectedProductUid } = useContext(ProductContext);
-  const { current, history } = useSensorData(selectedProductUid);
-
   const [availableSensors, setAvailableSensors] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showHistoryOnly, setShowHistoryOnly] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState(null);
 
+  const { current, history } = useSensorData(selectedProductUid);
+  const { message: mqttMessage, lastReceivedTime } =
+    useMqttSensorData(selectedProductUid);
+
+  // Fetch available sensor names for this product
   useEffect(() => {
-    const fetchSensors = async () => {
+    const fetchSensorMetadata = async () => {
+      setLoading(true);
+
       if (!selectedProductUid) {
-        setAvailableSensors([]);
-        setLoading(false);
+        setTimeout(() => setLoading(false), 3000);
         return;
       }
 
       try {
-        setLoading(true);
-        const data = await fetchSensorList(selectedProductUid);
-        const sensorNames = data.map((sensor) => sensor.name.toLowerCase());
-        setAvailableSensors(sensorNames);
+        const sensors = await fetchSensorList(selectedProductUid);
+        const lowerSensors = sensors.map((s) => s.name.toLowerCase());
+        setAvailableSensors(lowerSensors);
       } catch (err) {
         Swal.fire("Error", "Failed to fetch sensor list.", "error");
       } finally {
@@ -36,25 +42,92 @@ const AreaCharts = () => {
       }
     };
 
-    fetchSensors();
+    fetchSensorMetadata();
   }, [selectedProductUid]);
 
-  if (loading) {
-    return (
-      <div className="loading-spinner">
-        <CircularProgress />
-      </div>
-    );
-  }
-  
+  // Memoized real-time data (from MQTT or fallback to REST)
+  const finalCurrent = useMemo(() => {
+    if (mqttMessage && Object.keys(mqttMessage).length > 0) {
+      return {
+        data: Object.fromEntries(
+          Object.entries(mqttMessage).map(([k, v]) => [
+            k,
+            {
+              status:
+                typeof v === "string" && v.includes("-er") ? "error" : "ok",
+              value: v,
+              timestamp: Date.now(),
+            },
+          ])
+        ),
+      };
+    }
+    return current;
+  }, [mqttMessage, current]);
+
+  // Check if all real-time sensors are stale or error
+  const isStale = useMemo(() => {
+    const sensors = finalCurrent?.data || {};
+    const now = Date.now();
+
+    return !Object.values(sensors).some((sensor) => {
+      if (!sensor || !sensor.value || sensor.status === "error") return false;
+
+      const sensorTime = sensor.timestamp || now;
+      const STALE_THRESHOLD = 60 * 1000;
+      return now - sensorTime <= STALE_THRESHOLD;
+          });
+  }, [finalCurrent]);
+
+  // Auto-hide placeholder if data resumes
+  useEffect(() => {
+    if (!isStale) {
+      setShowHistoryOnly(false);
+    }
+  }, [isStale]);
+
+  // Last update timestamp (for display)
+  useEffect(() => {
+    const sensors = finalCurrent?.data || {};
+    const timestamps = Object.values(sensors)
+      .filter((s) => s.timestamp)
+      .map((s) => new Date(s.timestamp));
+
+    if (timestamps.length > 0) {
+      const latest = new Date(Math.max(...timestamps.map((d) => d.getTime())));
+      setLastUpdated(
+        latest.toLocaleTimeString("en-US", {
+          hour: "2-digit",
+          minute: "2-digit",
+        })
+      );
+    }
+  }, [finalCurrent]);
 
   return (
-    <section className="chart-grid">
-{Object.keys(current).length === 0 ? (
-  <NoDataPlaceholder />
-) : (
-  <DynamicCharts current={current} history={history} availableSensors={availableSensors} />
-)}
+    <section className="content-area-charts">
+      {!loading && <DeviceStatusBanner lastSeen={lastReceivedTime} />}
+
+      
+      {loading ? (
+        <div className="loading-spinner">
+          <CircularProgress />
+        </div>
+      ) : isStale && !showHistoryOnly ? (
+        <NoDataPlaceholder
+          lastUpdated={lastUpdated}
+          onShowHistory={() => setShowHistoryOnly(true)}
+        />
+      ) : (
+        <>
+          <DynamicCharts
+            current={finalCurrent}
+            history={history}
+            availableSensors={availableSensors}
+            historyOnly={showHistoryOnly}
+          />
+        </>
+      )}
     </section>
   );
 };
