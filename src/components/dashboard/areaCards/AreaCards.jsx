@@ -1,312 +1,177 @@
-// AreaCards component
-import { useEffect, useState, useContext } from "react";
-import AreaCard from "./AreaCard";
-import "./AreaCards.scss";
-import fetchProducts from "../../../api/fetchProducts";
-import fetchUser  from "../../../api/fetchuser";
-import { ProductContext } from "../../../context/ProductContext";
-import Slider from "@mui/material/Slider";
-import Stack from "@mui/material/Stack";
-import { motion } from "framer-motion";
-import { setControls } from "../../../api/setModeAndThreshold";
-import Swal from "sweetalert2";
+// AreaCards.jsx
+import { useEffect, useState, useContext, useRef } from "react";
 import {
   Select,
   MenuItem,
-  CircularProgress,
-  InputLabel,
   FormControl,
-  FormControlLabel,
-  Switch,
-  Button,
+  InputLabel,
   Typography,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  Switch,
+  Slider,
+  Button,
 } from "@mui/material";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import SettingsRemoteIcon from "@mui/icons-material/SettingsRemote";
+import PrecisionManufacturingIcon from "@mui/icons-material/PrecisionManufacturing";
+import ElectricBoltIcon from "@mui/icons-material/ElectricBolt";
+import { motion } from "framer-motion";
+import { ProductContext } from "../../../context/ProductContext";
+import fetchProducts from "../../../api/fetchProducts";
+import fetchUser from "../../../api/fetchuser";
+import { setControls } from "../../../api/setModeAndThreshold";
+import Swal from "sweetalert2";
+import "./AreaCards.scss";
 
 const AreaCards = () => {
   const { selectedProductUid, setSelectedProductUid } = useContext(ProductContext);
   const [products, setProducts] = useState([]);
-  const [selectedProductDetails, setSelectedProductDetails] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [location, setLocation] = useState("Loading location...");
-  const [selectedControl, setSelectedControl] = useState(null);
-  const [selectedSensor, setSelectedSensor] = useState(null);
+  const [productDetails, setProductDetails] = useState(null);
+  const [thresholds, setThresholds] = useState({});
+  const [controlStates, setControlStates] = useState({});
   const [mode, setMode] = useState("manual");
-  const [threshold, setThreshold] = useState(0);
-
+  const [expanded, setExpanded] = useState(false);
   const userId = localStorage.getItem("userId");
+  const timerRef = useRef(null);
 
   useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        const data = await fetchProducts();
-        if (Array.isArray(data) && data.length > 0) {
-          setProducts(data);
-
-          const savedProductUid = localStorage.getItem("selectedProductUid");
-          if (savedProductUid) {
-            setSelectedProductUid(savedProductUid);
-          } else {
-            setSelectedProductUid(data[0].uid);
-            localStorage.setItem("selectedProductUid", data[0].uid);
-          }
-        } else {
-          setProducts([]);
-        }
-
-        const userData = await fetchUser();
-        setLocation(userData?.address?.city || "Location not available");
-      } finally {
-        setLoading(false);
+    const fetchInitial = async () => {
+      const data = await fetchProducts();
+      if (Array.isArray(data)) {
+        setProducts(data);
+        const saved = localStorage.getItem("selectedProductUid") || data[0]?.uid;
+        setSelectedProductUid(saved);
+        localStorage.setItem("selectedProductUid", saved);
       }
+      await fetchUser(); // optional
     };
-    fetchData();
+    fetchInitial();
   }, [setSelectedProductUid]);
 
   useEffect(() => {
-    const fetchSelectedProductDetails = async () => {
-      if (userId && selectedProductUid) {
-        try {
-          const url = import.meta.env.VITE_REACT_APP_API_URL;
-          const response = await fetch(
-            `${url}/api/v1/user/product/${userId}`
-          );
-          if (!response.ok) {
-            console.error("API error:", response.statusText);
-            return;
-          }
-
-          const productData = await response.json();
-          const selectedProduct = productData.find(
-            (product) => product.uid === selectedProductUid
-          );
-
-          if (selectedProduct) {
-            setSelectedProductDetails(selectedProduct);
-            if (selectedProduct.controls?.length > 0) {
-              setMode(
-                selectedProduct.controls.every((control) => control.automate)
-                  ? "automate"
-                  : "manual"
-              );
-              setSelectedControl(selectedProduct.controls[0].controlId);
-              setSelectedSensor(selectedProduct.controls[0].controlId);
-              setThreshold(selectedProduct.controls[0].threshHold || 0);
-            }
-          }
-        } catch (error) {
-          console.error("Error fetching product details:", error);
+    const fetchDetails = async () => {
+      if (!userId || !selectedProductUid) return;
+      try {
+        const url = import.meta.env.VITE_REACT_APP_API_URL;
+        const res = await fetch(`${url}/api/v1/user/product/${userId}`);
+        const data = await res.json();
+        const selected = data.find((p) => p.uid === selectedProductUid);
+        if (selected) {
+          setProductDetails(selected);
+          const initThresh = {};
+          const initStates = {};
+          selected.controls.forEach((c) => {
+            initThresh[c.controlId] = c.threshHold || 0;
+            initStates[c.controlId] = c.state || "OFF";
+          });
+          setThresholds(initThresh);
+          setControlStates(initStates);
+          const allAuto = selected.controls.every((c) => c.automate);
+          setMode(allAuto ? "automate" : "manual");
         }
+      } catch (err) {
+        console.error("Error loading product:", err);
       }
     };
+    fetchDetails();
+  }, [selectedProductUid, userId]);
 
-    fetchSelectedProductDetails();
-  }, [userId, selectedProductUid]);
-
-  const handleModeChange = async (event) => {
-    const newMode = event.target.checked ? "automate" : "manual";
-    setMode(newMode);
-
-    const value = newMode === "automate" ? "true" : "false";
-
-    if (selectedProductDetails?.controls) {
-      selectedProductDetails.controls.forEach(async (control) => {
-        const payload = {
-          mode: "automate",
-          uid: selectedProductUid,
-          pin: control.pin,
-          value: value,
-          controlId: control.controlId,
-        };
-
-        try {
-          await setControls(payload);
-        } catch (error) {
-          console.error(`Failed to update mode for ${control.controlId}:`, error);
-        }
-      });
-
-      Swal.fire({
-        icon: "success",
-        title: "Mode updated successfully!",
-        text: `Mode is now set to ${newMode}`,
-        timer: 3000,
-        showConfirmButton: false,
-      });
-    }
+  const handleThresholdChange = (controlId, value) => {
+    setThresholds((prev) => ({ ...prev, [controlId]: value }));
   };
 
-  const handleThresholdChange = (newThreshold) => {
-    setThreshold(Number(newThreshold));
-  };
-
-  const handleSaveThreshold = async () => {
-    if (selectedProductDetails && selectedControl) {
-      const control = selectedProductDetails.controls.find(
-        (c) => c.controlId === selectedControl
-      );
-
-      if (!control) {
-        Swal.fire({
-          icon: "error",
-          title: "Control Not Found",
-          text: "Selected control not found",
-          timer: 3000,
-        });
-        return;
-      }
-
-      try {
-        await setControls({
-          mode: "threshold",
-          uid: selectedProductUid,
-          pin: control.pin,
-          value: threshold,
-          controlId: control.controlId,
-        });
-
-        Swal.fire({
-          icon: "success",
-          title: "Threshold Updated!",
-          text: `${control.name} threshold set to ${threshold}`,
-          timer: 3000,
-        });
-
-        // Refresh product details
-        const url = import.meta.env.VITE_REACT_APP_API_URL;
-        const response = await fetch(
-          `${url}/api/v1/user/product/${userId}`
-        );
-        const productData = await response.json();
-        setSelectedProductDetails(productData.find(
-          (product) => product.uid === selectedProductUid
-        ));
-      } catch (error) {
-        Swal.fire({
-          icon: "error",
-          title: "Update Failed",
-          text: "Failed to update threshold",
-          timer: 3000,
-        });
-      }
-    }
-  };
-
-  const handleToggleSensor = async () => {
-    if (!selectedSensor || !selectedProductDetails) return;
-
-    const control = selectedProductDetails.controls.find(
-      (c) => c.controlId === selectedSensor
-    );
-
-    if (!control) {
-      Swal.fire({
-        icon: "error",
-        title: "Control Not Found",
-        text: "Selected control not found",
-        timer: 3000,
-      });
-      return;
-    }
-
+  const handleSaveThreshold = async (controlId, pin) => {
     try {
-      const newStatus = control.state === "ON" ? "off" : "on";
+      await setControls({
+        uid: selectedProductUid,
+        pin,
+        value: thresholds[controlId],
+        controlId,
+        mode: "threshold",
+      });
+      Swal.fire("Saved!", "Threshold updated", "success");
+    } catch {
+      Swal.fire("Error", "Threshold update failed", "error");
+    }
+  };
+
+  const handleTogglePower = async (controlId, pin, currentState) => {
+    const newState = currentState === "ON" ? "off" : "on";
+    try {
       const url = import.meta.env.VITE_REACT_APP_API_URL;
-      const response = await fetch(`${url}/api/v1/command/`, {
-        method: 'POST',
+      await fetch(`${url}/api/v1/command/`, {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
         body: JSON.stringify({
           uid: selectedProductUid,
-          pin: control.pin,
-          controlId: control.controlId,
-          value: newStatus
-        })
+          pin,
+          value: newState,
+          controlId,
+        }),
       });
-
-      if (!response.ok) throw new Error('Failed to update control');
-
-      // Update local state immediately
-      const updatedControls = selectedProductDetails.controls.map(c => 
-        c.controlId === control.controlId 
-          ? { ...c, state: newStatus === "on" ? "ON" : "OFF" }
-          : c
-      );
-
-      setSelectedProductDetails({
-        ...selectedProductDetails,
-        controls: updatedControls
-      });
-
-      Swal.fire({
-        icon: "success",
-        title: "Control Updated!",
-        text: `${control.name} turned ${newStatus.toUpperCase()}`,
-        timer: 3000,
-      });
-    } catch (error) {
-      Swal.fire({
-        icon: "error",
-        title: "Update Failed",
-        text: error.message || "Failed to update control",
-        timer: 3000,
-      });
+      setControlStates((prev) => ({
+        ...prev,
+        [controlId]: newState.toUpperCase(),
+      }));
+      Swal.fire("Success", `Control turned ${newState.toUpperCase()}`, "success");
+    } catch {
+      Swal.fire("Error", "Failed to toggle power", "error");
     }
   };
 
-  const handleControlSelect = (controlId) => {
-    setSelectedControl(controlId);
-    const control = selectedProductDetails?.controls?.find(c => c.controlId === controlId);
-    if (control) setThreshold(control.threshHold || 0);
+  const handleModeToggle = async () => {
+    const newMode = mode === "manual" ? "automate" : "manual";
+    setMode(newMode);
+    try {
+      await Promise.all(
+        productDetails.controls.map((c) =>
+          setControls({
+            uid: selectedProductUid,
+            pin: c.pin,
+            value: newMode === "automate" ? "true" : "false",
+            controlId: c.controlId,
+            mode: "automate",
+          })
+        )
+      );
+      Swal.fire("Updated", `Mode switched to ${newMode}`, "success");
+    } catch {
+      Swal.fire("Error", "Failed to update mode", "error");
+    }
   };
 
-  const handleSensorSelect = (controlId) => {
-    setSelectedSensor(controlId);
+  const handleAutoCollapse = () => {
+    clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => {
+      setExpanded(false);
+    }, 10000);
   };
 
-  if (loading) {
-    return (
-      <div className="loading-container">
-        <CircularProgress color="primary" />
-      </div>
-    );
-  }
-
-  const currentControl = selectedProductDetails?.controls?.find(
-    (c) => c.controlId === selectedControl
-  );
-
-  const currentSensor = selectedProductDetails?.controls?.find(
-    (c) => c.controlId === selectedSensor
-  );
+  const controls = productDetails?.controls || [];
 
   return (
     <section className="content-area-cards">
       <div className="dropdown-container">
-        <FormControl fullWidth>
-          <InputLabel id="product-select-label">Select Product</InputLabel>
-          <br />
+        <FormControl fullWidth variant="outlined" className="product-select-form">
+          <InputLabel shrink>Select Product</InputLabel>
           <Select
-            labelId="product-select-label"
+            label="Select Product"
             value={selectedProductUid || ""}
             onChange={(e) => {
-              const selectedUid = e.target.value;
-              setSelectedProductUid(selectedUid);
-              localStorage.setItem("selectedProductUid", selectedUid);
+              const val = e.target.value;
+              setSelectedProductUid(val);
+              localStorage.setItem("selectedProductUid", val);
             }}
-            sx={{
-              borderRadius: 2,
-              backgroundColor: "#f3f4f6",
-              padding: 1,
-              color: "#333",
-              "& .MuiSelect-icon": { color: "#333" },
-            }}
+            displayEmpty
           >
-            {products.map((product) => (
-              <MenuItem key={product._id} value={product.uid}>
-                {product.alias}
+            {products.map((p) => (
+              <MenuItem key={p._id} value={p.uid}>
+                {p.alias}
               </MenuItem>
             ))}
           </Select>
@@ -314,175 +179,100 @@ const AreaCards = () => {
       </div>
 
       <div className="area-cards-row">
-        <AreaCard
-          colors={["#e4e8ef", "#475be8"]}
-          cardInfo={{ title: "Current Time" }}
-          type="time"
-        />
-
-        <AreaCard
-          colors={["#03856d", "#03856d"]}
-          cardInfo={{ title: "Current Location", value: location }}
-          type="location"
-          className="center-card"
-        />
-
-        <AreaCard
-          colors={["#e4e8ef", "#f29a2e"]}
-          cardInfo={{ title: "Mode" }}
-          type="mode"
-        >
-          <div className="mode-toggle-container">
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={mode === "automate"}
-                  onChange={handleModeChange}
-                  sx={{
-                    "& .MuiSwitch-switchBase.Mui-checked": { color: "#03856d" },
-                    "& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track": {
-                      backgroundColor: "#03856d",
-                    },
-                  }}
-                />
-              }
-              label={
-                <Typography variant="h6" sx={{
-                  color: mode === "automate" ? "#03856d" : "#f29a2e",
-                  fontWeight: "bold"
-                }}>
-                  {mode.toUpperCase()}
-                </Typography>
-              }
-              labelPlacement="start"
-              sx={{ padding: "10px" }}
-            />
+        <motion.div className="area-card" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+          <PrecisionManufacturingIcon className="card-icon" />
+          <div>
+            <p className="info-title">Product</p>
+            <p className="info-value">{productDetails?.alias || "—"}</p>
           </div>
-        </AreaCard>
+        </motion.div>
+
+        <motion.div className="area-card" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+          <ElectricBoltIcon className="card-icon" />
+          <div>
+            <p className="info-title">Mode</p>
+            <div className="mode-toggle">
+              <Switch checked={mode === "automate"} onChange={handleModeToggle} />
+              <span>{mode.toUpperCase()}</span>
+            </div>
+          </div>
+        </motion.div>
+
+        <motion.div className="area-card" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+          <SettingsRemoteIcon className="card-icon" />
+          <div>
+            <p className="info-title">Controls</p>
+            <p className="info-value">{controls.length}</p>
+          </div>
+        </motion.div>
       </div>
 
-      <div className="area-cards-row">
-        {mode === "automate" && selectedProductDetails?.controls?.length > 0 ? (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="centered-card"
-          >
-            <AreaCard
-              colors={["#e4e8ef", "#f29a2e"]}
-              cardInfo={{
-                title: currentControl?.name,
-                value: currentControl?.threshHold,
-                unit: currentControl?.max ? `(Range: ${currentControl.min}-${currentControl.max})` : "",
-              }}
-              type="control"
-            >
-              <div className="control-selection-container">
-                <InputLabel sx={{ fontWeight: "bold" }}>Select Control</InputLabel>
-                <Select
-                  value={selectedControl || ""}
-                  onChange={(e) => handleControlSelect(e.target.value)}
-                  sx={{
-                    borderRadius: 2,
-                    backgroundColor: "#f3f4f6",
-                    marginBottom: 2,
-                  }}
-                >
-                  {selectedProductDetails.controls.map((control) => (
-                    <MenuItem key={control.controlId} value={control.controlId}>
-                      {control.name} ({control.state})
-                    </MenuItem>
-                  ))}
-                </Select>
-              </div>
-
-              <Stack spacing={2} sx={{ mb: 2 }}>
-                <Slider
-                  value={threshold}
-                  min={currentControl?.min}
-                  max={currentControl?.max}
-                  step={0.1}
-                  onChange={(_, val) => handleThresholdChange(val)}
-                />
-                <div>
-                  Threshold:
-                  <input
-                    type="number"
-                    value={threshold}
-                    onChange={(e) => handleThresholdChange(e.target.value)}
-                    style={{ width: 60, marginLeft: 10 }}
-                  />
-                </div>
-              </Stack>
-
-              <Button variant="contained" onClick={handleSaveThreshold} fullWidth>
-                Save Threshold
-              </Button>
-            </AreaCard>
-          </motion.div>
-        ) : (
-          <div className="no-controls-message">
-            <Typography variant="h6" sx={{ textAlign: "center", color: "#666", marginTop: 2 }}>
-              No controls available for the selected product.
+      <div className="control-panel">
+        <Accordion
+          expanded={expanded}
+          onChange={() => setExpanded(!expanded)}
+          onMouseEnter={() => clearTimeout(timerRef.current)}
+          onMouseLeave={handleAutoCollapse}
+        >
+          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+            <Typography variant="h6" sx={{ fontWeight: "bold", color: "#03856d" }}>
+              🔧 Control Panel
             </Typography>
-          </div>
-        )}
-
-        {selectedProductDetails?.controls?.length > 0 ? (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="centered-card"
-          >
-            <AreaCard
-              colors={["#e4e8ef", "#475be8"]}
-              cardInfo={{ title: "Control Switch" }}
-              type="sensor-control"
-            >
-              <div className="control-selection-container">
-                <InputLabel sx={{ fontWeight: "bold" }}>Select Control</InputLabel>
-                <Select
-                  value={selectedSensor || ""}
-                  onChange={(e) => handleSensorSelect(e.target.value)}
-                  sx={{
-                    borderRadius: 2,
-                    backgroundColor: "#f3f4f6",
-                    marginBottom: 2,
-                  }}
-                >
-                  {selectedProductDetails.controls.map((control) => (
-                    <MenuItem key={control.controlId} value={control.controlId}>
-                      {control.name} ({control.state})
-                    </MenuItem>
-                  ))}
-                </Select>
+          </AccordionSummary>
+          <AccordionDetails>
+            {controls.length === 0 ? (
+              <Typography className="no-controls-msg">
+                ⚠️ No controls available for this product.
+              </Typography>
+            ) : (
+              <div className="controls-grid">
+                {controls.map((control) => (
+                  <div className="control-card" key={control.controlId}>
+                    <h5>{control.name}</h5>
+                    <div className="control-power-status">
+                      <span>
+                        ⚡ Power: <strong>{controlStates[control.controlId]}</strong>
+                      </span>
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        onClick={() =>
+                          handleTogglePower(control.controlId, control.pin, controlStates[control.controlId])
+                        }
+                      >
+                        TURN {controlStates[control.controlId] === "ON" ? "OFF" : "ON"}
+                      </Button>
+                    </div>
+                    <Slider
+                      value={thresholds[control.controlId] || 0}
+                      min={control.min}
+                      max={control.max}
+                      step={0.1}
+                      onChange={(_, val) => handleThresholdChange(control.controlId, val)}
+                    />
+                    <input
+                      type="number"
+                      value={thresholds[control.controlId] || 0}
+                      onChange={(e) => handleThresholdChange(control.controlId, parseFloat(e.target.value))}
+                    />
+                    <Button
+                      variant="contained"
+                      fullWidth
+                      sx={{ mt: 1 }}
+                      onClick={() => handleSaveThreshold(control.controlId, control.pin)}
+                    >
+                      Save Threshold
+                    </Button>
+                  </div>
+                ))}
               </div>
-
-              <div className="sensor-control-container">
-                <Typography variant="h6" sx={{ mb: 2 }}>
-                  Current Status: {currentSensor?.state || "UNKNOWN"}
-                </Typography>
-                <Button
-                  variant="contained"
-                  color={currentSensor?.state === "ON" ? "error" : "success"}
-                  onClick={handleToggleSensor}
-                  fullWidth
-                >
-                  TURN {currentSensor?.state === "ON" ? "OFF" : "ON"}
-                </Button>
-              </div>
-            </AreaCard>
-          </motion.div>
-        ) : (
-          <div className="no-controls-message">
-            <Typography variant="h6" sx={{ textAlign: "center", color: "#666", marginTop: 2 }}>
-              No controls available for the selected product.
-            </Typography>
-          </div>
-        )}
+            )}
+          </AccordionDetails>
+        </Accordion>
       </div>
     </section>
   );
 };
 
 export default AreaCards;
+  

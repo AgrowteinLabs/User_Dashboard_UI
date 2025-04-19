@@ -1,62 +1,84 @@
-import { useState, useEffect, useContext } from "react";
+import { useContext, useEffect, useState } from "react";
 import { CircularProgress } from "@mui/material";
-import "./AreaTable.scss";
 import { ProductContext } from "../../../context/ProductContext";
-import swal from "sweetalert";
+import { useMqttSensorData } from "../../../hooks/useMqttSensorData";
+import { fetchSensorList } from "../../../api/fetchsensorlist";
+import "./AreaTable.scss";
 
-const TABLE_HEADS = ["Sensor Name", "Status"]; // Updated header
+const TABLE_HEADS = ["Sensor Name", "Status", "Last Updated"];
+const STALE_THRESHOLD_MS = 60 * 1000; // 60 seconds
 
 const AreaTable = () => {
-  const [sensorData, setSensorData] = useState([]);
-  const [loading, setLoading] = useState(true);
   const { selectedProductUid } = useContext(ProductContext);
+  const { message: mqttMessage, lastReceivedTime } = useMqttSensorData(selectedProductUid);
 
-  const fetchSensorStatus = async () => {
-    if (!selectedProductUid) {
-      setSensorData([]);
-      setLoading(false);
-      return;
-    }
+  const [availableSensors, setAvailableSensors] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [tick, setTick] = useState(Date.now());
 
-    try {
+  // Force re-evaluation of stale sensors every 10s
+  useEffect(() => {
+    const interval = setInterval(() => setTick(Date.now()), 10000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Fetch available sensors on mount or uid change
+  useEffect(() => {
+    const loadSensors = async () => {
+      if (!selectedProductUid) return;
       setLoading(true);
-
-      const response = await fetch(
-        `https://apiv2.agrowtein.com/api/v1/data/status/${selectedProductUid}`
-      );
-      const data = await response.json();
-
-      if (response.status !== 200 || !data) {
-        swal("Error", "Failed to fetch sensor data.", "error");
-        setSensorData([]);
-        return;
+      try {
+        const result = await fetchSensorList(selectedProductUid);
+        const names = result.map((s) => s.name);
+        setAvailableSensors(names);
+      } catch (err) {
+        console.error("Failed to fetch sensor list", err);
+      } finally {
+        setLoading(false);
       }
+    };
 
-      setSensorData(data);
-    } catch (error) {
-      swal("Error", "Failed to fetch sensor data.", "error");
-    } finally {
-      setLoading(false);
-    }
+    loadSensors();
+  }, [selectedProductUid]);
+
+  const getTimeAgo = (timestamp) => {
+    if (!timestamp) return "--";
+    const diff = tick - timestamp;
+    const minutes = Math.floor(diff / 60000);
+    if (minutes < 1) return "Just now";
+    if (minutes < 5) return `${minutes} min ago`;
+    return ">5 min ago";
   };
 
-  useEffect(() => {
-    fetchSensorStatus(); // Initial fetch
+  const getStatus = (sensorName) => {
+    const sensorValue = mqttMessage?.[sensorName];
+    const timestamp = lastReceivedTime;
 
-    // Set up interval to refetch every 2 minutes (120,000 ms)
-    const intervalId = setInterval(() => {
-      fetchSensorStatus();
-    }, 120000);
+    if (!mqttMessage || sensorValue === undefined || sensorValue === null) return "inactive";
+    if (typeof sensorValue === "string" && sensorValue.includes("-er")) return "error";
+    if (!timestamp || tick - timestamp > STALE_THRESHOLD_MS) return "stale";
+    return "active";
+  };
 
-    // Cleanup interval on component unmount
-    return () => clearInterval(intervalId);
-  }, [selectedProductUid]);
+  const sensorEntries = availableSensors.map((sensorName) => {
+    const status = getStatus(sensorName);
+    const lastSeen = getTimeAgo(lastReceivedTime);
+    return {
+      name: sensorName,
+      status,
+      lastSeen: status === "inactive" ? "--" : lastSeen,
+    };
+  });
 
   return (
     <div className="area-table">
       {loading ? (
         <div className="loading-spinner">
           <CircularProgress />
+        </div>
+      ) : availableSensors.length === 0 ? (
+        <div className="loading-spinner">
+          <p>⚠️ No sensors found for this product.</p>
         </div>
       ) : (
         <table>
@@ -68,15 +90,16 @@ const AreaTable = () => {
             </tr>
           </thead>
           <tbody>
-            {sensorData.map((sensor, index) => (
+            {sensorEntries.map((sensor, index) => (
               <tr key={index}>
-                <td>{sensor.name}</td>
+                <td>{sensor.name.replace(/_/g, " ")}</td>
                 <td>
                   <div className="dt-status">
                     <span className={`dt-status-dot dot-${sensor.status}`}></span>
                     <span className="dt-status-text">{sensor.status}</span>
                   </div>
                 </td>
+                <td>{sensor.lastSeen}</td>
               </tr>
             ))}
           </tbody>
