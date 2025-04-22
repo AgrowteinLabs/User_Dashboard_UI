@@ -3,7 +3,8 @@
   justify-content: space-between;
   align-items: center;
   padding: 1rem 2rem;
-  background-color: var(--background);
+  flex-wrap: wrap; // Allow wrapping in small screens
+  gap: 1rem;
 
   .area-top-left {
     .area-top-logo {
@@ -14,28 +15,38 @@
 
   @media (max-width: 768px) {
     margin-top: 50px;
-  }
-
 
   .area-top-right {
     display: flex;
     align-items: center;
     gap: 1rem;
+    flex-wrap: wrap;
 
     .clock-chip {
-      font-size: 0.95rem;
+      font-size: 0.85rem;
       background-color: #e6f5f1;
       color: #034438;
       font-weight: 600;
       padding: 0.5rem 1rem;
       border-radius: 20px;
+      max-width: 100%; // prevent overflow
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
 
       .MuiChip-icon {
         color: inherit;
       }
     }
+  }
 
-    
+  @media (max-width: 768px) {
+    padding: 1rem;
+    gap: 0.5rem;
+    .area-top-right {
+      width: 100%;
+      justify-content: flex-end;
+    }
   }
 
   .dark-mode & {
@@ -48,4 +59,7 @@
       background-color: #016c55;
     }
   }
+}
+
+
 }
