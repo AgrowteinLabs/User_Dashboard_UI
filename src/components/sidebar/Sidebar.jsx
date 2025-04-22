@@ -41,6 +41,12 @@ const Sidebar = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [closeSidebar]);
 
+  const handleNavClick = () => {
+    if (window.innerWidth <= 768) {
+      closeSidebar();
+    }
+  };
+
   const getNavLinkClassName = ({ isActive }) => `menu-link ${isActive ? "active" : ""}`;
 
   if (!user) return <div className="loading-spinner">Loading...</div>;
@@ -72,7 +78,7 @@ const Sidebar = () => {
           <div className="sidebar-menu">
             <ul className="menu-list">
               <li className="menu-item">
-                <NavLink to="/" className={getNavLinkClassName} end>
+                <NavLink to="/" className={getNavLinkClassName} end onClick={handleNavClick}>
                   <span className="menu-link-icon">
                     <MdOutlineGridView size={20} />
                   </span>
@@ -80,7 +86,7 @@ const Sidebar = () => {
                 </NavLink>
               </li>
               <li className="menu-item">
-                <NavLink to="/products" className={getNavLinkClassName}>
+                <NavLink to="/products" className={getNavLinkClassName} onClick={handleNavClick}>
                   <span className="menu-link-icon">
                     <MdOutlineShoppingBag size={20} />
                   </span>
@@ -88,7 +94,7 @@ const Sidebar = () => {
                 </NavLink>
               </li>
               <li className="menu-item">
-                <NavLink to="/profile" className={getNavLinkClassName}>
+                <NavLink to="/profile" className={getNavLinkClassName} onClick={handleNavClick}>
                   <span className="menu-link-icon">
                     <MdOutlinePerson size={20} />
                   </span>
@@ -96,7 +102,7 @@ const Sidebar = () => {
                 </NavLink>
               </li>
               <li className="menu-item">
-                <NavLink to="/notifications" className={getNavLinkClassName}>
+                <NavLink to="/notifications" className={getNavLinkClassName} onClick={handleNavClick}>
                   <span className="menu-link-icon">
                     <MdOutlineNotifications size={20} />
                   </span>
@@ -109,7 +115,7 @@ const Sidebar = () => {
           <div className="sidebar-menu sidebar-menu2">
             <ul className="menu-list">
               <li className="menu-item">
-                <NavLink to="/enquiries" className={getNavLinkClassName}>
+                <NavLink to="/enquiries" className={getNavLinkClassName} onClick={handleNavClick}>
                   <span className="menu-link-icon">
                     <MdOutlineQuestionAnswer size={20} />
                   </span>
@@ -117,7 +123,7 @@ const Sidebar = () => {
                 </NavLink>
               </li>
               <li className="menu-item">
-                <NavLink to="/logout" className={getNavLinkClassName}>
+                <NavLink to="/logout" className={getNavLinkClassName} onClick={handleNavClick}>
                   <span className="menu-link-icon">
                     <MdOutlineLogout size={20} />
                   </span>
