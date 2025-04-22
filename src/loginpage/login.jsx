@@ -1,10 +1,11 @@
-// src/loginpage/Login.jsx
 import { useState, useEffect } from "react";
 import Swal from "sweetalert2";
 import { useNavigate } from "react-router-dom";
 import { loginUser } from "../api/loginapi";
 import "./login.scss";
 import logo from "./Logow.png";
+
+// Font Awesome Icons
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEye, faEyeSlash } from "@fortawesome/free-solid-svg-icons";
 
@@ -13,42 +14,49 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
   const navigate = useNavigate();
 
+  // Load remembered email if it exists
   useEffect(() => {
     const savedEmail = localStorage.getItem("rememberedEmail");
-    const isAuthenticated = localStorage.getItem("isAuthenticated");
-
-    if (savedEmail) setEmail(savedEmail);
-    if (isAuthenticated && localStorage.getItem("userId")) {
-      navigate("/");
+    if (savedEmail) {
+      setEmail(savedEmail);
     }
-  }, [navigate]);
+  }, []);
 
   const handleLogin = async (e) => {
     e.preventDefault();
     const result = await loginUser(email, password);
 
-    if (result.success && result.userId) {
+    if (result.success) {
       if (rememberMe) {
         localStorage.setItem("rememberedEmail", email);
       } else {
         localStorage.removeItem("rememberedEmail");
       }
 
+      // Set auth flag
       localStorage.setItem("isAuthenticated", "true");
-      localStorage.setItem("userId", result.userId);
-      localStorage.setItem("token", result.token);
 
-      navigate("/");
+      // ✅ Redirect to dashboard and replace login page in history
+      navigate("/", { replace: true });
     } else {
       Swal.fire({
         icon: "error",
-        title: "Login Failed",
-        text: result.message || "Something went wrong. Try again.",
-        background: "#1e1e1e",
+        title: "Login failed",
+        text: result.message,
+        confirmButtonText: "OK",
+        customClass: {
+          container: "swal-container",
+          title: "swal-title",
+          content: "swal-content",
+          confirmButton: "swal-confirm-button",
+        },
+        backdrop: true,
+        background: "rgba(0,0,0,0.8)",
         color: "#fff",
-        confirmButtonColor: "#03856d",
+        confirmButtonColor: "#007bff",
       });
     }
   };
@@ -58,8 +66,8 @@ const Login = () => {
       <div className="login-container">
         <div className="login-box">
           <div className="login-header">
-            <img src={logo} alt="Agrowtrack Logo" className="logo" />
-            <h2>Welcome Back</h2>
+            <img src={logo} alt="Company Logo" className="logo" />
+            <h2>Login</h2>
           </div>
           <form onSubmit={handleLogin}>
             <div className="login-input">
@@ -94,7 +102,9 @@ const Login = () => {
               />
               <label htmlFor="rememberMe">Remember me</label>
             </div>
-            <button type="submit" className="login-button">Login</button>
+            <button type="submit" className="login-button">
+              Login
+            </button>
           </form>
         </div>
       </div>
