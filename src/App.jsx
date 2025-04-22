@@ -19,28 +19,53 @@ import Login from "./loginpage/login";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Loader from "./components/loader/Loader";
 
-// ✅ PWA: Import Service Worker register
+// ✅ PWA support
 import { registerSW } from "virtual:pwa-register";
 
 function App() {
   const { theme, toggleTheme } = useContext(ThemeContext);
   const [loading, setLoading] = useState(true);
 
-  // ✅ PWA: Register and handle update
+  // ✅ PWA update handling
   useEffect(() => {
     const updateSW = registerSW({
       onNeedRefresh() {
-        if (window.confirm("New update available. Refresh to update?")) {
-          updateSW(true); // force update
+        if (window.confirm("New version available. Refresh to update?")) {
+          updateSW(true);
         }
       },
       onOfflineReady() {
-        console.log("App is ready to work offline.");
+        console.log("App ready to use offline");
       },
     });
   }, []);
 
-  // Apply theme classes
+  // ✅ Install prompt
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [showInstallButton, setShowInstallButton] = useState(false);
+
+  useEffect(() => {
+    const handler = (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setShowInstallButton(true);
+    };
+
+    window.addEventListener("beforeinstallprompt", handler);
+    return () => window.removeEventListener("beforeinstallprompt", handler);
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      console.log("Install outcome:", outcome);
+      setDeferredPrompt(null);
+      setShowInstallButton(false);
+    }
+  };
+
+  // Theme
   useEffect(() => {
     if (theme === DARK_THEME) {
       document.body.classList.add("dark-mode");
@@ -72,14 +97,7 @@ function App() {
             </SidebarProvider>
           }
         >
-          <Route
-            path="/"
-            element={
-              <ProtectedRoute>
-                <Dashboard />
-              </ProtectedRoute>
-            }
-          />
+          <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/products" element={<ProtectedRoute><Products /></ProtectedRoute>} />
           <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
           <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
@@ -89,18 +107,21 @@ function App() {
         </Route>
       </Routes>
 
-      {/* Theme Toggle Button */}
-      <button
-        type="button"
-        className="theme-toggle-btn"
-        onClick={toggleTheme}
-      >
+      {/* 🌗 Theme Toggle */}
+      <button type="button" className="theme-toggle-btn" onClick={toggleTheme}>
         <img
           className="theme-icon"
           src={theme === LIGHT_THEME ? SunIcon : MoonIcon}
           alt="Toggle theme"
         />
       </button>
+
+      {/* 📲 PWA Install Button */}
+      {showInstallButton && (
+        <button className="install-pwa-btn" onClick={handleInstallClick}>
+          📲 Install App
+        </button>
+      )}
     </Router>
   );
 }
