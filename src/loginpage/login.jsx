@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import Swal from "sweetalert2";
 import { useNavigate } from "react-router-dom";
 import { loginUser } from "../api/loginapi";
-import "./Login.scss";
+import "./login.scss";
 import logo from "./Logow.png";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEye, faEyeSlash } from "@fortawesome/free-solid-svg-icons";
