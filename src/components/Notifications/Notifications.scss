@@ -1,149 +1,132 @@
 .notifications-page {
   padding: 20px;
-  background-color: var(--background-color);
   min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  animation: fadeIn 1s ease-in-out;
+  background: var(--background);
+  color: var(--text-color);
 
   .notifications-header {
     text-align: center;
     margin-bottom: 30px;
 
     h1 {
-      font-size: 2.5em;
-      font-weight: 700;
-      margin-bottom: 10px;
+      font-size: 2rem;
       color: var(--primary-color);
+      font-weight: 700;
     }
 
     p {
-      font-size: 1.1em;
+      margin-top: 6px;
       color: var(--text-color);
-      font-weight: 500;
+    }
+
+    .notification-actions {
+      margin-top: 1rem;
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+
+      button {
+        padding: 8px 14px;
+        font-size: 0.9rem;
+        background-color: var(--primary-color);
+        border: none;
+        color: white;
+        border-radius: 25px;
+        cursor: pointer;
+        transition: 0.3s;
+
+        &:hover {
+          background-color: #016c55;
+        }
+      }
     }
   }
 
   .notifications-list {
     display: flex;
     flex-direction: column;
-    gap: 15px;
-    width: 100%;
-    max-width: 900px;
+    gap: 1rem;
+    max-width: 800px;
+    margin: 0 auto;
 
     .notification-card {
       background-color: var(--card-background-color);
-      padding: 20px 25px;
       border-radius: 12px;
-      box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
       display: flex;
+      gap: 16px;
       align-items: flex-start;
-      gap: 20px;
-      transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
-
-      &:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
-      }
+      padding: 1.2rem;
+      position: relative;
+      animation: fadeIn 0.6s ease;
+      transition: 0.3s;
 
       &.unread {
-        border-left: 6px solid var(--primary-color);
+        border-left: 5px solid var(--primary-color);
       }
 
       .notification-icon {
-        font-size: 2.5em;
-        margin-right: 15px;
+        font-size: 2rem;
         color: var(--primary-color);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background-color: var(--secondary-color);
-        border-radius: 50%;
-        padding: 10px;
       }
 
       .notification-content {
         flex: 1;
 
         .notification-message {
-          font-size: 1.2em;
-          color: var(--text-color);
-          // font-weight: 600;
-          margin-bottom: 8px;
+          font-size: 1.1rem;
+          font-weight: 500;
         }
 
         .notification-time {
-          font-size: 0.9em;
-          color: var(--text-color);
-          font-style: italic;
+          font-size: 0.85rem;
+          color: gray;
+          margin-top: 4px;
+        }
+
+        .mark-as-read-btn {
+          margin-top: 0.5rem;
+          padding: 6px 12px;
+          font-size: 0.8rem;
+          border-radius: 16px;
+          border: none;
+          color: white;
+          background-color: var(--primary-color);
+          cursor: pointer;
+          transition: 0.2s;
+
+          &:hover {
+            background-color: #016c55;
+          }
         }
       }
 
       .notification-badge {
-        background-color: var(--primary-color);
+        background: var(--primary-color);
         color: white;
-        padding: 6px 12px;
-        border-radius: 50px;
-        font-size: 0.8em;
+        font-size: 0.7rem;
+        padding: 4px 10px;
+        border-radius: 20px;
+        align-self: start;
         font-weight: bold;
-        white-space: nowrap;
       }
     }
 
-    @media (prefers-color-scheme: dark) {
-      .notification-card {
-        background-color: var(--secondary-color);
+    .empty-state {
+      text-align: center;
+      color: var(--text-color);
+      opacity: 0.7;
+      padding: 4rem 0;
 
-        .notification-content {
-          .notification-message {
-            color: var(--text-color);
-          }
-
-          .notification-time {
-            color: var(--text-color);
-          }
-        }
+      .empty-icon {
+        font-size: 3rem;
+        color: var(--primary-color);
+        margin-bottom: 1rem;
       }
     }
   }
 
   @keyframes fadeIn {
-    from {
-      opacity: 0;
-    }
-    to {
-      opacity: 1;
-    }
-  }
-}
-
-.mark-as-read-btn {
-  display: inline-block;
-  padding: 8px 16px;
-  background-color: var(--primary-color);
-  color: #fff;
-  border: none;
-  border-radius: 25px;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: bold;
-  transition: all 0.3s ease;
-  text-align: center;
-  margin-top: 10px;
-
-  &:hover {
-    background-color: #0056b3;
-    transform: scale(1.05);
-  }
-
-  &:focus {
-    outline: none;
-    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.5);
-  }
-
-  &:active {
-    background-color: #00408a;
-    transform: scale(0.95);
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
   }
 }

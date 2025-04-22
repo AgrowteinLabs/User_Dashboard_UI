@@ -15,7 +15,7 @@ export const useMqttControl = (uid) => {
 
     const connect = () => {
       const clientId = `frontend-${Math.random().toString(16).substr(2, 8)}`;
-      const brokerUrl = "wss://a1zv6fodtw8hm-ats.iot.ap-south-1.amazonaws.com/mqtt"; // Replace with your broker URL
+      const brokerUrl = "wss://a1zv6fodtw8hm-ats.iot.ap-south-1.amazonaws.com/mqtt"; 
 
       clientRef.current = mqtt.connect(brokerUrl, {
         clientId,

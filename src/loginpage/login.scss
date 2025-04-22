@@ -2,30 +2,22 @@ body {
   font-family: "Poppins", sans-serif;
   margin: 0;
   padding: 0;
-  // display: flex;
-  justify-content: center;
-  align-items: center;
   height: 100vh;
-  background: url('./bg.jpg') no-repeat center center fixed;
+  background: url("./bg.jpg") no-repeat center center fixed;
   background-size: cover;
   position: relative;
   transition: background-color 0.3s ease;
 
-  /* Overlay for light mode (lighter overlay) */
   &::before {
-    content: '';
+    content: "";
     position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(44, 43, 43, 0.3); /* Light overlay for light mode */
+    inset: 0;
+    background: rgba(255, 255, 255, 0.2);
     z-index: -1;
   }
 
-  /* Overlay for dark mode (darker overlay) */
   &.dark-mode::before {
-    background: rgba(0, 0, 0, 0.6); /* Dark overlay for dark mode */
+    background: rgba(0, 0, 0, 0.6);
   }
 }
 
@@ -33,53 +25,47 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
-  width: 100%;
-  height: 100%;
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+  height: 100dvh;
 }
 
 .login-container {
+  width: 100%;
   display: flex;
   justify-content: center;
-  align-items: center;
-  width: 100%;
 }
 
-.login-box { 
-  background: rgba(255, 255, 255, 0.15); /* Transparent background */
-  padding: 2.5rem;
+.login-box {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 2rem;
   border-radius: 16px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.37); /* Stronger shadow for depth */
-  width: 450px;
-  max-width: 90%;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(10px);
+  width: 100%;
+  max-width: 420px;
   text-align: center;
-  backdrop-filter: blur(8px); /* Blur effect for a glassy look */
-  transition: all 0.3s ease;
-  animation: fadeIn 1s ease-in-out;
+  animation: fadeIn 0.8s ease-in-out;
 
   &:hover {
-    transform: translateY(-5px);
+    transform: translateY(-4px);
+    transition: 0.3s ease;
   }
 
   body.dark-mode & {
-    background: rgba(68, 68, 68, 0.15); /* Transparent background for dark mode */
+    background: rgba(34, 34, 34, 0.3);
     color: #fff;
   }
 }
 
 .logo {
-  width: 100%;
-  margin-bottom: 1rem;
+  width: 80%;
+  margin-bottom: 1.5rem;
 }
 
 h2 {
-  font-size: 28px;
-  font-weight: 600;
-  color: #ffffff; /* White text for contrast */
-  margin-bottom: 1.5rem;
+  font-size: 2rem;
+  font-weight: bold;
+  margin-bottom: 2rem;
+  color: var(--text-color);
 }
 
 .login-input {
@@ -87,31 +73,44 @@ h2 {
 
   input {
     width: 100%;
-    padding: 0.75rem;
-    border: 1px solid rgba(255, 255, 255, 0.3);
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
     border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.4);
     background: rgba(255, 255, 255, 0.2);
-    color: #fff;
+    color: var(--text-color);
     transition: all 0.3s ease;
-    font-size: 16px;
 
     &::placeholder {
-      color: rgba(255, 255, 255, 0.7);
+      color: rgba(255, 255, 255, 0.6);
     }
 
     &:focus {
-      border-color: #007bff;
-      box-shadow: 0 0 10px rgba(0, 123, 255, 0.5);
-    }
-
-    &:hover {
-      box-shadow: 0 0 5px rgba(0, 123, 255, 0.2);
+      outline: none;
+      border-color: var(--primary-color);
+      box-shadow: 0 0 10px var(--primary-color);
     }
 
     body.dark-mode & {
-      background: rgba(68, 68, 68, 0.2);
-      border: 1px solid rgba(255, 255, 255, 0.3);
-      color: #fff;
+      background: rgba(68, 68, 68, 0.3);
+    }
+  }
+}
+
+.password-input {
+  position: relative;
+
+  .eye-icon {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: rgba(255, 255, 255, 0.7);
+    cursor: pointer;
+    transition: color 0.3s ease;
+
+    &:hover {
+      color: var(--primary-color);
     }
   }
 }
@@ -119,107 +118,41 @@ h2 {
 .login-remember {
   display: flex;
   align-items: center;
+  font-size: 0.95rem;
+  color: var(--text-color);
+  gap: 8px;
   margin-bottom: 1.5rem;
-  color: rgba(255, 255, 255, 0.8); /* Lighter text color */
 
-  input[type="checkbox"] {
-    margin-right: 0.5rem;
-  }
-}
-
-.forgot-password {
-  text-decoration: none;
-  color: #007bff;
-  font-size: 14px;
-
-  &:hover {
-    text-decoration: underline;
-  }
-
-  body.dark-mode & {
-    color: #add8e6;
+  input {
+    accent-color: var(--primary-color);
   }
 }
 
 .login-button {
   width: 100%;
   padding: 0.75rem;
-  background-color: #007bff;
-  border: none;
-  color: #fff;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: background-color 0.3s ease, transform 0.3s ease;
-  font-size: 16px;
+  font-size: 1rem;
   font-weight: 600;
-
-  &:hover {
-    background-color: #0056b3;
-    transform: scale(1.05);
-  }
-
-  body.dark-mode & {
-    background-color: #0056b3;
-
-    &:hover {
-      background-color: #003d80;
-    }
-  }
-}
-
-/* Custom styles for SweetAlert2 in dark mode */
-.swal-container {
-  border-radius: 8px;
-}
-
-.swal-title {
-  color: #fff;
-}
-
-.swal-content {
-  color: #ccc;
-}
-
-.swal-confirm-button {
-  background-color: #007bff;
   border: none;
-  color: #fff;
-  padding: 0.75rem 1.5rem;
-  border-radius: 4px;
-  transition: background-color 0.3s ease;
+  background-color: var(--primary-color);
+  color: white;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: 0.3s ease;
 
   &:hover {
-    background-color: #0056b3;
+    filter: brightness(90%);
+    transform: scale(1.03);
   }
 }
 
-/* Keyframes for fade-in animation */
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(20px);
+    transform: translateY(15px);
   }
   to {
     opacity: 1;
     transform: translateY(0);
   }
 }
-
-.password-input {
-  position: relative; // Required to position the eye icon
-}
-
-.eye-icon {
-  position: absolute;
-  right: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  cursor: pointer;
-  color: rgba(255, 255, 255, 0.7);
-  transition: color 0.3s ease;
-
-  &:hover {
-    color: #007bff; // Change color on hover
-  }
-}
-

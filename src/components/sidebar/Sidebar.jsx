@@ -1,13 +1,24 @@
 import { useContext, useEffect, useRef } from "react";
 import { ThemeContext } from "../../context/ThemeContext";
-import { UserContext } from '../../context/UserContext';
+import { UserContext } from "../../context/UserContext";
+import { SidebarContext } from "../../context/SidebarContext";
 import { LIGHT_THEME } from "../../constants/themeConstants";
+import { NavLink } from "react-router-dom";
+
+import {
+  MdOutlineClose,
+  MdOutlineGridView,
+  MdOutlineLogout,
+  MdOutlineNotifications,
+  MdOutlinePerson,
+  MdOutlineQuestionAnswer,
+  MdOutlineShoppingBag,
+  MdMenu,
+} from "react-icons/md";
+
 import LogoBlue from "../../assets/images/Logo_leaf.png";
 import LogoWhite from "../../assets/images/Logo_leaf.png";
-import { MdOutlineClose, MdOutlineGridView, MdOutlineLogout, MdOutlineNotifications, MdOutlinePerson, MdOutlineQuestionAnswer, MdOutlineShoppingBag, MdMenu } from "react-icons/md";
-import { NavLink } from "react-router-dom";
 import "./Sidebar.scss";
-import { SidebarContext } from "../../context/SidebarContext";
 
 const Sidebar = () => {
   const { theme } = useContext(ThemeContext);
@@ -15,21 +26,22 @@ const Sidebar = () => {
   const { isSidebarOpen, toggleSidebar, closeSidebar } = useContext(SidebarContext);
   const navbarRef = useRef(null);
 
-  const handleClickOutside = (event) => {
-    if (navbarRef.current && 
-        !navbarRef.current.contains(event.target) && 
-        !event.target.closest('.sidebar-open-btn')) {
-      closeSidebar();
-    }
-  };
-
   useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        navbarRef.current &&
+        !navbarRef.current.contains(event.target) &&
+        !event.target.closest(".sidebar-open-btn")
+      ) {
+        closeSidebar();
+      }
+    };
+
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  }, [closeSidebar]);
 
-  const getNavLinkClassName = ({ isActive }) => 
-    `menu-link ${isActive ? 'active' : ''}`;
+  const getNavLinkClassName = ({ isActive }) => `menu-link ${isActive ? "active" : ""}`;
 
   if (!user) return <div className="loading-spinner">Loading...</div>;
 
@@ -37,22 +49,22 @@ const Sidebar = () => {
     <>
       {!isSidebarOpen && (
         <button className="sidebar-open-btn" onClick={toggleSidebar}>
-          <MdMenu size={35} />
+          <MdMenu size={32} />
         </button>
       )}
 
-      <nav className={`sidebar ${isSidebarOpen ? 'sidebar-show' : ''}`} ref={navbarRef}>
+      <nav className={`sidebar ${isSidebarOpen ? "sidebar-show" : ""}`} ref={navbarRef}>
         <div className="sidebar-top">
           <div className="sidebar-brand">
-            <img 
-              src={theme === LIGHT_THEME ? LogoBlue : LogoWhite} 
-              alt="AGROWTRACK Logo"
+            <img
+              src={theme === LIGHT_THEME ? LogoBlue : LogoWhite}
+              alt="AGROWTRACK"
               className="sidebar-logo"
             />
             <span className="sidebar-brand-text">AGROWTRACK</span>
           </div>
           <button className="sidebar-close-btn" onClick={closeSidebar}>
-            <MdOutlineClose size={24} />
+            <MdOutlineClose size={22} />
           </button>
         </div>
 
@@ -72,7 +84,7 @@ const Sidebar = () => {
                   <span className="menu-link-icon">
                     <MdOutlineShoppingBag size={20} />
                   </span>
-                  <span className="menu-link-text">Products & Services</span>
+                  <span className="menu-link-text">Products</span>
                 </NavLink>
               </li>
               <li className="menu-item">

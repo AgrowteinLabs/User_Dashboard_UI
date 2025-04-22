@@ -1,10 +1,10 @@
+// src/loginpage/Login.jsx
 import { useState, useEffect } from "react";
 import Swal from "sweetalert2";
-import { useNavigate } from "react-router-dom";  // Import useNavigate
+import { useNavigate } from "react-router-dom";
 import { loginUser } from "../api/loginapi";
-import "./login.scss";
+import "./Login.scss";
 import logo from "./Logow.png";
-// Import Font Awesome Icons
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEye, faEyeSlash } from "@fortawesome/free-solid-svg-icons";
 
@@ -12,23 +12,16 @@ const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
-  const [showPassword, setShowPassword] = useState(false); // State to toggle password visibility
-
-  // Initialize navigate hook
+  const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
 
-  // Check if user is already remembered and log them in automatically
   useEffect(() => {
     const savedEmail = localStorage.getItem("rememberedEmail");
     const isAuthenticated = localStorage.getItem("isAuthenticated");
 
-    if (savedEmail) {
-      setEmail(savedEmail);
-    }
-
-    // Check if the user is authenticated, otherwise redirect to /login
-    if (!isAuthenticated) {
-      navigate("/login");
+    if (savedEmail) setEmail(savedEmail);
+    if (isAuthenticated && localStorage.getItem("userId")) {
+      navigate("/");
     }
   }, [navigate]);
 
@@ -36,31 +29,26 @@ const Login = () => {
     e.preventDefault();
     const result = await loginUser(email, password);
 
-    if (result.success) {
+    if (result.success && result.userId) {
       if (rememberMe) {
         localStorage.setItem("rememberedEmail", email);
       } else {
         localStorage.removeItem("rememberedEmail");
       }
-      // Set authentication flag to true
+
       localStorage.setItem("isAuthenticated", "true");
-      navigate("/");  // Use navigate to redirect to homepage after login
+      localStorage.setItem("userId", result.userId);
+      localStorage.setItem("token", result.token);
+
+      navigate("/");
     } else {
       Swal.fire({
         icon: "error",
-        title: "Login failed",
-        text: result.message,
-        confirmButtonText: "OK",
-        customClass: {
-          container: "swal-container",
-          title: "swal-title",
-          content: "swal-content",
-          confirmButton: "swal-confirm-button",
-        },
-        backdrop: true,
-        background: "rgba(0,0,0,0.8)",
+        title: "Login Failed",
+        text: result.message || "Something went wrong. Try again.",
+        background: "#1e1e1e",
         color: "#fff",
-        confirmButtonColor: "#007bff",
+        confirmButtonColor: "#03856d",
       });
     }
   };
@@ -70,8 +58,8 @@ const Login = () => {
       <div className="login-container">
         <div className="login-box">
           <div className="login-header">
-            <img src={logo} alt="Company Logo" className="logo" />
-            <h2>Login</h2>
+            <img src={logo} alt="Agrowtrack Logo" className="logo" />
+            <h2>Welcome Back</h2>
           </div>
           <form onSubmit={handleLogin}>
             <div className="login-input">
@@ -85,16 +73,16 @@ const Login = () => {
             </div>
             <div className="login-input password-input">
               <input
-                type={showPassword ? "text" : "password"} // Toggle input type
+                type={showPassword ? "text" : "password"}
                 placeholder="Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
               />
               <FontAwesomeIcon
-                icon={showPassword ? faEyeSlash : faEye} // Switch icon
+                icon={showPassword ? faEyeSlash : faEye}
                 className="eye-icon"
-                onClick={() => setShowPassword(!showPassword)} // Toggle state
+                onClick={() => setShowPassword(!showPassword)}
               />
             </div>
             <div className="login-remember">
@@ -106,9 +94,7 @@ const Login = () => {
               />
               <label htmlFor="rememberMe">Remember me</label>
             </div>
-            <button type="submit" className="login-button">
-              Login
-            </button>
+            <button type="submit" className="login-button">Login</button>
           </form>
         </div>
       </div>

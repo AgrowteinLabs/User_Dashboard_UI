@@ -14,17 +14,33 @@ import Enquiries from './components/enquiries/Enquiries';
 import Logout from './components/logout/Logout';
 import { SidebarProvider } from './context/SidebarContext';
 import { UserProvider } from "./context/UserContext";
-import { ProductProvider } from "./context/ProductContext";  // Import ProductProvider
+import { ProductProvider } from "./context/ProductContext";
 import Login from "./loginpage/login";
-import ProtectedRoute from "./components/ProtectedRoute";  // Import ProtectedRoute
+import ProtectedRoute from "./components/ProtectedRoute";
 import Loader from "./components/loader/Loader";
 
+// ✅ PWA: Import Service Worker register
+import { registerSW } from "virtual:pwa-register";
 
 function App() {
   const { theme, toggleTheme } = useContext(ThemeContext);
   const [loading, setLoading] = useState(true);
 
-  // Apply dark or light theme based on the selected theme in the context
+  // ✅ PWA: Register and handle update
+  useEffect(() => {
+    const updateSW = registerSW({
+      onNeedRefresh() {
+        if (window.confirm("New update available. Refresh to update?")) {
+          updateSW(true); // force update
+        }
+      },
+      onOfflineReady() {
+        console.log("App is ready to work offline.");
+      },
+    });
+  }, []);
+
+  // Apply theme classes
   useEffect(() => {
     if (theme === DARK_THEME) {
       document.body.classList.add("dark-mode");
@@ -34,35 +50,28 @@ function App() {
   }, [theme]);
 
   useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 1000); 
+    const timer = setTimeout(() => setLoading(false), 1000);
     return () => clearTimeout(timer);
   }, []);
 
-  if (loading) {
-    return <div>
-      <Loader />
-    </div>;
-  }
+  if (loading) return <Loader />;
 
   return (
     <Router>
       <Routes>
-        {/* Route for Login without wrapping with providers */}
         <Route path="/login" element={<Login />} />
 
-        {/* Main application routes with Sidebar, User, and Product context providers */}
         <Route
           element={
             <SidebarProvider>
               <UserProvider>
-                <ProductProvider> {/* Wrapping inside ProductProvider */}
+                <ProductProvider>
                   <BaseLayout />
                 </ProductProvider>
               </UserProvider>
             </SidebarProvider>
           }
         >
-          {/* Dashboard Route */}
           <Route
             path="/"
             element={
@@ -71,58 +80,11 @@ function App() {
               </ProtectedRoute>
             }
           />
-
-          {/* Products Route */}
-          <Route
-            path="/products"
-            element={
-              <ProtectedRoute>
-                <Products />
-              </ProtectedRoute>
-            }
-          />
-
-          {/* Profile Route */}
-          <Route
-            path="/profile"
-            element={
-              <ProtectedRoute>
-                <Profile />
-              </ProtectedRoute>
-            }
-          />
-
-          {/* Notifications Route */}
-          <Route
-            path="/notifications"
-            element={
-              <ProtectedRoute>
-                <Notifications />
-              </ProtectedRoute>
-            }
-          />
-
-          {/* Enquiries Route */}
-          <Route
-            path="/enquiries"
-            element={
-              <ProtectedRoute>
-                <Enquiries />
-              </ProtectedRoute>
-            }
-          />
-
-          {/* Logout Route */}
-          <Route
-            path="/logout"
-            element={
-              <ProtectedRoute>
-                <Logout />
-              </ProtectedRoute>
-            }
-          />
-
-          {/* 404 - Page Not Found Route */}
+          <Route path="/products" element={<ProtectedRoute><Products /></ProtectedRoute>} />
+          <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+          <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
+          <Route path="/enquiries" element={<ProtectedRoute><Enquiries /></ProtectedRoute>} />
+          <Route path="/logout" element={<ProtectedRoute><Logout /></ProtectedRoute>} />
           <Route path="*" element={<PageNotFound />} />
         </Route>
       </Routes>

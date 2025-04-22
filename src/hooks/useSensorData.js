@@ -15,33 +15,27 @@ export const useSensorData = (uid) => {
         const endDate = new Date().toISOString();
         const startDate = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
-        const res = await axios.post(`${baseUrl}/api/v1/data/${uid}/date`, {
-          startDate,
-          endDate,
+        const res = await axios.get(`${baseUrl}/api/v1/data/${uid}/date-interval`, {
+          params: { startDate, endDate, interval: 30 }, // default to 30 min
         });
 
         const raw = Array.isArray(res.data) ? res.data : [];
 
-        // Process into { sensorName: [ {timestamp, value}, ... ] }
+        // Backend already filtered by 30 min; group by sensor
         const filtered = {};
-        const lastTimestamps = {};
 
         raw.forEach((entry) => {
           const time = new Date(entry.timestamp).getTime();
 
           for (const [sensor, value] of Object.entries(entry.data)) {
-            // Store value every 5 minutes max
-            if (!lastTimestamps[sensor] || time - lastTimestamps[sensor] >= 5 * 60 * 1000) {
-              if (!filtered[sensor]) filtered[sensor] = [];
-              filtered[sensor].push({ timestamp: time, value });
-              lastTimestamps[sensor] = time;
-            }
+            if (!filtered[sensor]) filtered[sensor] = [];
+            filtered[sensor].push({ timestamp: time, value });
           }
         });
 
         setHistory(filtered);
       } catch (err) {
-        console.error("❌ Error fetching history:", err);
+        console.error("❌ Error fetching interval data:", err);
         setHistory({});
       } finally {
         setLoading(false);
@@ -50,7 +44,7 @@ export const useSensorData = (uid) => {
 
     fetchHistoryData();
 
-    // Optional: refresh every 20 minutes
+    // Optional: auto-refresh every 20 min
     const interval = setInterval(fetchHistoryData, 20 * 60 * 1000);
     return () => clearInterval(interval);
   }, [uid]);
