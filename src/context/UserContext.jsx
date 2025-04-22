@@ -1,4 +1,5 @@
-import React, { createContext, useState, useEffect } from 'react';
+import { createContext, useState, useEffect } from 'react';
+import PropTypes from 'prop-types';
 import userData from '../mockData/userData';
 
 const UserContext = createContext();
@@ -18,6 +19,9 @@ const UserProvider = ({ children }) => {
       {children}
     </UserContext.Provider>
   );
+};
+UserProvider.propTypes = {
+  children: PropTypes.node.isRequired,
 };
 
 export { UserContext, UserProvider };

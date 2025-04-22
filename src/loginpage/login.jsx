@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
 import Swal from "sweetalert2";
-import { useNavigate } from "react-router-dom";  // Import useNavigate
+import { useNavigate } from "react-router-dom";
 import { loginUser } from "../api/loginapi";
 import "./login.scss";
 import logo from "./Logow.png";
-// Import Font Awesome Icons
+
+// Font Awesome Icons
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEye, faEyeSlash } from "@fortawesome/free-solid-svg-icons";
 
@@ -12,25 +13,17 @@ const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
-  const [showPassword, setShowPassword] = useState(false); // State to toggle password visibility
+  const [showPassword, setShowPassword] = useState(false);
 
-  // Initialize navigate hook
   const navigate = useNavigate();
 
-  // Check if user is already remembered and log them in automatically
+  // Load remembered email if it exists
   useEffect(() => {
     const savedEmail = localStorage.getItem("rememberedEmail");
-    const isAuthenticated = localStorage.getItem("isAuthenticated");
-
     if (savedEmail) {
       setEmail(savedEmail);
     }
-
-    // Check if the user is authenticated, otherwise redirect to /login
-    if (!isAuthenticated) {
-      navigate("/login");
-    }
-  }, [navigate]);
+  }, []);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -42,9 +35,12 @@ const Login = () => {
       } else {
         localStorage.removeItem("rememberedEmail");
       }
-      // Set authentication flag to true
+
+      // Set auth flag
       localStorage.setItem("isAuthenticated", "true");
-      navigate("/");  // Use navigate to redirect to homepage after login
+
+      // ✅ Redirect to dashboard and replace login page in history
+      navigate("/", { replace: true });
     } else {
       Swal.fire({
         icon: "error",
@@ -85,16 +81,16 @@ const Login = () => {
             </div>
             <div className="login-input password-input">
               <input
-                type={showPassword ? "text" : "password"} // Toggle input type
+                type={showPassword ? "text" : "password"}
                 placeholder="Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
               />
               <FontAwesomeIcon
-                icon={showPassword ? faEyeSlash : faEye} // Switch icon
+                icon={showPassword ? faEyeSlash : faEye}
                 className="eye-icon"
-                onClick={() => setShowPassword(!showPassword)} // Toggle state
+                onClick={() => setShowPassword(!showPassword)}
               />
             </div>
             <div className="login-remember">
