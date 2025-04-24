@@ -6,7 +6,12 @@ const AreaChartCard = ({ title, data, labels, unit }) => {
     chart: {
       type: "area",
       fontFamily: "inherit",
-      toolbar: { show: false },
+      toolbar: {
+        show: true,
+        tools: {
+          download: true,  // Enable the download button
+        },
+      },
     },
     xaxis: {
       categories: labels,
