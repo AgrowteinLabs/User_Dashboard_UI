@@ -16,7 +16,14 @@ const sensorChartMap = {
   Boiler_Temperature: { type: "bar", unit: "°C", label: "Boiler Temperature" },
   Pressure: { type: "bar", unit: "Pa", label: "Pressure" },
   Flow_Rate: { type: "bar", unit: "L/min", label: "Flow Rate" },
+
+  // New sensors added below
+  Temperature: { type: "bar", unit: "°C", label: "Temperature" },
+  Electric_Conductivity: { type: "bar", unit: "ppm", label: "Electric Conductivity" },
+  Turbidity: { type: "bar", unit: "NTU", label: "Turbidity" },
+  Dissolved_Oxygen: { type: "bar", unit: "mg/L", label: "Dissolved Oxygen" },
 };
+
 
 const isStale = (timestamp) => {
   const now = Date.now();
