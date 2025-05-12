@@ -10,6 +10,7 @@ const sensorChartMap = {
   Temperature: { type: "bar", unit: "°C", label: "Temperature" },
   Humidity_1: { type: "bar", unit: "%", label: "Humidity 1" },
   Humidity_2: { type: "bar", unit: "%", label: "Humidity 2" },
+  Humidity: { type: "bar", unit: "%", label: "Humidity" },
   pH: { type: "area", unit: "", label: "pH Level" },
   Water_Used: { type: "area", unit: "L", label: "Water Used" },
   Co2: { type: "bar", unit: "ppm", label: "CO₂ Level" },
@@ -17,9 +18,13 @@ const sensorChartMap = {
   Boiler_Temperature: { type: "bar", unit: "°C", label: "Boiler Temperature" },
   Pressure: { type: "bar", unit: "Pa", label: "Pressure" },
   Flow_Rate: { type: "bar", unit: "L/min", label: "Flow Rate" },
+  Turbidity: { type: "bar", unit: "NTU", label: "Turbidity" },
   "Electric Conductivity": { type: "bar", unit: "ppm", label: "Electric Conductivity" },
   "Dissolved Oxygen": { type: "bar", unit: "mg/L", label: "Dissolved Oxygen" },
-  Turbidity: { type: "bar", unit: "NTU", label: "Turbidity" }
+  "Co2 Sensor 1": { type: "bar", unit: "ppm", label: "Co2 Sensor 1" },
+  "Co2 Sensor 2": { type: "bar", unit: "ppm", label: "Co2 Sensor 2" },
+  "Co2 Sensor 3": { type: "bar", unit: "ppm", label: "Co2 Sensor 3" },
+  "Co2 Sensor 4": { type: "bar", unit: "ppm", label: "Co2 Sensor 4" },
 };
 
 
