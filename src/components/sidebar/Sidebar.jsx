@@ -86,6 +86,14 @@ const Sidebar = () => {
                 </NavLink>
               </li>
               <li className="menu-item">
+              <NavLink to="/overview" className={getNavLinkClassName} onClick={handleNavClick}>
+                <span className="menu-link-icon">
+                  <MdOutlineGridView size={20} />
+                </span>
+                <span className="menu-link-text">Products Overview</span>
+              </NavLink>
+            </li>
+              <li className="menu-item">
                 <NavLink to="/products" className={getNavLinkClassName} onClick={handleNavClick}>
                   <span className="menu-link-icon">
                     <MdOutlineShoppingBag size={20} />

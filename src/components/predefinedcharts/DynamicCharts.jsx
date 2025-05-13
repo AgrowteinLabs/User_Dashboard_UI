@@ -27,14 +27,18 @@ const sensorChartMap = {
   "CO2 Sensor 4": { type: "bar", unit: "ppm", label: "CO2 Sensor 4" }
 };
 
-
 const isStale = (timestamp) => {
   const now = Date.now();
   const STALE_THRESHOLD = 60 * 1000;
   return !timestamp || now - timestamp > STALE_THRESHOLD;
-  };
+};
 
-const DynamicCharts = ({ current, history, availableSensors, historyOnly = false }) => {
+const DynamicCharts = ({
+  current,
+  history,
+  availableSensors,
+  historyOnly = false,
+}) => {
   const currentData = current?.data || {};
   const [, forceUpdate] = useState(0);
 
@@ -49,8 +53,9 @@ const DynamicCharts = ({ current, history, availableSensors, historyOnly = false
   return (
     <>
       {Object.entries(sensorChartMap)
-        .filter(([sensorKey]) => availableSensors.includes(sensorKey.toLowerCase()))
-        .slice(0, 5)
+        .filter(([sensorKey]) =>
+          availableSensors.some(sensor => sensor.toLowerCase() === sensorKey.toLowerCase()) // Ensure correct filtering logic
+        )
         .map(([sensorKey, config]) => {
           const sensorInfo = currentData[sensorKey];
           const historyData = history[sensorKey] || [];
@@ -74,20 +79,24 @@ const DynamicCharts = ({ current, history, availableSensors, historyOnly = false
             ? "stale"
             : "live";
 
-          const isFullHistory = ["stale", "error", "no-data"].includes(currentStatus) || historyOnly;
+          const isFullHistory =
+            ["stale", "error", "no-data"].includes(currentStatus) ||
+            historyOnly;
 
           return (
-            <div className={`chart-pair ${isFullHistory ? "full-history" : ""}`} key={sensorKey}>
+            <div
+              className={`chart-pair ${isFullHistory ? "full-history" : ""}`}
+              key={sensorKey}
+            >
               {!historyOnly && currentStatus === "live" ? (
                 <div className="chart-current">
                   <BarChartCard
-  title={`${config.label} - Current`}
-  value={parseFloat(sensorInfo.value).toFixed(2)}
-  unit={config.unit}
-  status={currentStatus === "live" ? "active" : currentStatus}
-  timestamp={sensorInfo.timestamp}
-/>
-
+                    title={`${config.label} - Current`}
+                    value={parseFloat(sensorInfo.value).toFixed(2)}
+                    unit={config.unit}
+                    status={currentStatus === "live" ? "active" : currentStatus}
+                    timestamp={sensorInfo.timestamp}
+                  />
                 </div>
               ) : (
                 !historyOnly && (
@@ -127,7 +136,8 @@ DynamicCharts.propTypes = {
     data: PropTypes.objectOf(
       PropTypes.shape({
         status: PropTypes.string.isRequired,
-        value: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
+        value: PropTypes.oneOfType([PropTypes.number, PropTypes.string])
+          .isRequired,
         timestamp: PropTypes.number,
       })
     ),
