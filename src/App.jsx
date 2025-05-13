@@ -18,6 +18,7 @@ import { ProductProvider } from "./context/ProductContext";
 import Login from "./loginpage/login";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Loader from "./components/loader/Loader";
+import ProductsOverview from './components/productsoverview/ProductsOverview';
 
 // ✅ PWA support
 import { registerSW } from "virtual:pwa-register";
@@ -98,6 +99,7 @@ function App() {
           }
         >
           <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+          <Route path="/overview" element={<ProtectedRoute><ProductsOverview /></ProtectedRoute>} />
           <Route path="/products" element={<ProtectedRoute><Products /></ProtectedRoute>} />
           <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
           <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
