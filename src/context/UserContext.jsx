@@ -1,6 +1,5 @@
 import { createContext, useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import userData from '../mockData/userData';
 
 const UserContext = createContext();
 
@@ -9,6 +8,11 @@ const UserProvider = ({ children }) => {
 
   useEffect(() => {
     // Simulate fetching user data
+    const userData = {
+      id: 1,
+      name: 'John Doe',
+      email: 'john.doe@example.com'
+    };
     setTimeout(() => {
       setUser(userData);
     }, 1000);

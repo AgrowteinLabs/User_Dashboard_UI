@@ -1,56 +1,66 @@
-// apiUtils.js
 import axios from 'axios';
 
 /**
- * Fetch historical data for a product from the API
- * @param {string} productUid - The product UID
- * @param {string} endpoint - The specific data endpoint (e.g., 'Boiler_Temperature')
- * @param {string} startDate - The start date for the data range
- * @param {string} endDate - The end date for the data range
- * @returns {Promise} - Resolves with the filtered data
+ * Fetch historical data with interval grouping (default 30 mins)
+ * @param {string} uid - Product UID
+ * @param {string} startDate - Start date in YYYY-MM-DD format
+ * @param {string} endDate - End date in YYYY-MM-DD format
+ * @param {number} intervalMinutes - Interval in minutes (default 30)
+ * @returns {Promise<Array>} - Array of grouped data
  */
-export const fetchHistoryData = async (productUid, endpoint, startDate, endDate) => {
+export const fetchHistoryData = async (uid, startDate, endDate, intervalMinutes = 30) => {
   try {
-    if (!productUid) return [];
+    if (!uid) return [];
 
-    const response = await axios.post(
-      `${import.meta.env.VITE_REACT_APP_API_URL}/api/v1/data/${productUid}/date`,
-      {
+    const url = `${import.meta.env.VITE_REACT_APP_API_URL}/api/v1/data/${uid}/interval`;
+
+    const response = await axios.get(url, {
+      params: {
         startDate,
         endDate,
-      }
-    );
+        interval: intervalMinutes,
+      },
+    });
 
     if (response.data && response.data.length > 0) {
-      const filteredData = filterByThirtyMinutes(response.data, endpoint);
-      return filteredData;
+      return response.data;
     } else {
-      console.error('No data available for the selected date range.');
+      console.warn('No data found for the selected range.');
       return [];
     }
   } catch (error) {
-    console.error('Error fetching history data:', error);
+    console.error('Error fetching interval data:', error);
     return [];
   }
 };
 
 /**
- * Filter data by 30 minutes intervals
- * @param {Array} data - The data to filter
- * @param {string} endpoint - The specific data point to filter (e.g., 'Boiler_Temperature')
- * @returns {Array} - The filtered data
+ * Fetches interval-sampled data for the given product UID.
+ * @param {string} productUid - The product UID.
+ * @param {string} startDate - Start date in YYYY-MM-DD format.
+ * @param {string} endDate - End date in YYYY-MM-DD format.
+ * @param {number} interval - Sampling interval in minutes.
+ * @returns {Promise<Array>} - Array of interval-sampled data.
  */
-const filterByThirtyMinutes = (data) => {
-  const result = [];
-  let lastTimestamp = null;
+export const fetchIntervalData = async (productUid, startDate, endDate, interval) => {
+  try {
+    const url = `${import.meta.env.VITE_REACT_APP_API_URL}/api/v1/data/${productUid}/date-interval`;
+    const params = new URLSearchParams({
+      startDate,
+      endDate,
+      interval: interval.toString(),
+    }).toString();
 
-  data.forEach((entry) => {
-    const entryTime = new Date(entry.timestamp);
-    if (!lastTimestamp || entryTime - lastTimestamp >= 30 * 60 * 1000) {
-      result.push(entry);
-      lastTimestamp = entryTime;
+    const response = await axios.get(`${url}?${params}`);
+
+    if (response.data && response.data.length > 0) {
+      return response.data;
+    } else {
+      console.warn("No interval data returned.");
+      return [];
     }
-  });
-
-  return result;
+  } catch (error) {
+    console.error("Error fetching interval data:", error);
+    throw error;
+  }
 };

@@ -9,6 +9,7 @@ import { useMqttSensorData } from "../../../hooks/useMqttSensorData";
 import DynamicCharts from "../../predefinedcharts/DynamicCharts";
 import NoDataPlaceholder from "../../predefinedcharts/NoDataPlaceholder";
 import DeviceStatusBanner from "../../predefinedcharts/DeviceStatusBanner";
+import { useInView } from "react-intersection-observer";
 
 const AreaCharts = () => {
   const { selectedProductUid } = useContext(ProductContext);
@@ -20,6 +21,9 @@ const AreaCharts = () => {
   const { current, history } = useSensorData(selectedProductUid);
   const { message: mqttMessage, lastReceivedTime } =
     useMqttSensorData(selectedProductUid);
+
+  // Intersection Observer for lazy loading charts
+  const { ref, inView } = useInView({ triggerOnce: true, threshold: 0.1 });
 
   // Fetch available sensor names for this product
   useEffect(() => {
@@ -76,7 +80,7 @@ const AreaCharts = () => {
       const sensorTime = sensor.timestamp || now;
       const STALE_THRESHOLD = 60 * 1000;
       return now - sensorTime <= STALE_THRESHOLD;
-          });
+    });
   }, [finalCurrent]);
 
   // Auto-hide placeholder if data resumes
@@ -105,10 +109,9 @@ const AreaCharts = () => {
   }, [finalCurrent]);
 
   return (
-    <section className="content-area-charts">
+    <section className="content-area-charts" ref={ref}>
       {!loading && <DeviceStatusBanner lastSeen={lastReceivedTime} />}
 
-      
       {loading ? (
         <div className="loading-spinner">
           <CircularProgress />
@@ -119,14 +122,14 @@ const AreaCharts = () => {
           onShowHistory={() => setShowHistoryOnly(true)}
         />
       ) : (
-        <>
+        inView && (
           <DynamicCharts
             current={finalCurrent}
             history={history}
             availableSensors={availableSensors}
             historyOnly={showHistoryOnly}
           />
-        </>
+        )
       )}
     </section>
   );

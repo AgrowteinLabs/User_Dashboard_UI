@@ -1,5 +1,6 @@
 import PropTypes from "prop-types";
 import ReactApexChart from "react-apexcharts";
+import "./AreaChartCard.scss"; // Assuming you have some styles for the chart
 
 const AreaChartCard = ({ title, data, labels, unit }) => {
   const options = {
@@ -54,15 +55,15 @@ const AreaChartCard = ({ title, data, labels, unit }) => {
   const series = [{ name: title, data }];
 
   return (
-    <div className="progress-bar">
-      <div className="progress-bar-info">
-        <h4>{title}</h4>
-      </div>
-      <div className="chart-wrapper">
-        <ReactApexChart options={options} series={series} type="area" height={320} />
-      </div>
+  <div className="area-chart">
+    <div className="bar-chart-title">
+      <h4>{title}</h4>
     </div>
-  );
+    <div className="chart-wrapper-center">
+      <ReactApexChart options={options} series={series} type="area" height={312} />
+    </div>
+  </div>
+);
 };
 
 AreaChartCard.propTypes = {
