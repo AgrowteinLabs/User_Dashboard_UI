@@ -5,15 +5,17 @@ import { DARK_THEME, LIGHT_THEME } from "../constants/themeConstants";
 export const ThemeContext = createContext({});
 
 export const ThemeProvider = ({ children }) => {
-  // Check the initial theme from local storage or default to LIGHT_THEME
   const [theme, setTheme] = useState(() => {
     return window.localStorage.getItem("themeMode") || LIGHT_THEME;
   });
 
-  // Update the local storage whenever the theme changes
   useEffect(() => {
     window.localStorage.setItem("themeMode", theme);
-  }, [theme]); // runs when theme changes
+
+    // Sync body classes for SCSS compatibility
+    document.body.classList.toggle("dark-mode", theme === DARK_THEME);
+    document.body.classList.toggle("light-mode", theme === LIGHT_THEME);
+  }, [theme]);
 
   const toggleTheme = () => {
     setTheme((prevTheme) =>
@@ -22,12 +24,7 @@ export const ThemeProvider = ({ children }) => {
   };
 
   return (
-    <ThemeContext.Provider
-      value={{
-        theme,
-        toggleTheme,
-      }}
-    >
+    <ThemeContext.Provider value={{ theme, toggleTheme }}>
       {children}
     </ThemeContext.Provider>
   );

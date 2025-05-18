@@ -1,0 +1,21 @@
+.area-chart {
+  background-color: var(--secondary-color);
+  padding: 16px;
+  border-radius: 6px;
+  box-shadow: var(--light-shadow1);
+  transition: background 0.3s ease, transform 0.3s ease;
+
+  .bar-chart-title {
+    font-weight: 600;
+    color: var(--text-color);
+    margin-bottom: 8px;
+  }
+
+  .timestamp-label {
+      font-size: 13px;
+      text-align: right;
+      margin-top: 8px;
+      color: var(--text-color);
+    }
+
+}

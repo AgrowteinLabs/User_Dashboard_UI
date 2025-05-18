@@ -13,6 +13,9 @@ const Logout = () => {
     setTimeout(() => {
       localStorage.removeItem("userId");
       localStorage.removeItem("isAuthenticated");
+      localStorage.removeItem("selectedProductUid");   
+      localStorage.removeItem("homepagePreference");   
+      localStorage.removeItem("token");             
       navigate("/login");
     }, 1500);
   };

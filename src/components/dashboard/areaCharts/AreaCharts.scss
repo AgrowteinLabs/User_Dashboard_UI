@@ -1,17 +1,52 @@
+.content-area-charts {
+  h2 {
+    text-align: center;
+    color: var(--primary-color);
+    margin-bottom: 24px;
+  }
+
+  .loading-spinner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin: 40px 0;
+
+    .MuiCircularProgress-root {
+      margin-bottom: 12px;
+    }
+
+    p, span, div {
+      color: var(--text-color);
+      font-size: 0.95rem;
+    }
+  }
+}
+
 .chart-pair {
   display: flex;
-  gap: 16px;
+  flex-wrap: wrap;
+  gap: 24px;
+  margin-bottom: 24px;
+  padding: 16px;
+  background: var(--secondary-color);
+  border-radius: 12px;
+  box-shadow: var(--light-shadow1);
+  transition: box-shadow 0.3s ease;
+
+  &:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
 
   @media (max-width: 768px) {
     flex-direction: column;
   }
 
-  .chart-current {
-    flex: 1; // 1/3 width
-  }
-
+  .chart-current,
   .chart-history {
-    flex: 2; // 2/3 width
+    flex: 1;
+    width: 100%;
+    max-width: 100%;
   }
 
   &.full-history {
@@ -27,7 +62,6 @@
     }
   }
 
-
   .progress-bar,
   .chart-item {
     background-color: var(--secondary-color);
@@ -35,18 +69,25 @@
     border-radius: 8px;
     box-shadow: var(--light-shadow1);
     width: 100%;
+
+    h4,
+    h3 {
+      color: var(--primary-color);
+    }
   }
 }
 
 .sensor-error {
-  background-color: #fff0f0;
+  background-color: rgba(255, 0, 0, 0.1);
   padding: 16px;
+  border: 1px solid red;
   border-radius: 6px;
   color: red;
-  font-weight: bold;
+  font-weight: 600;
   text-align: center;
-  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
+  height: 100%;
 }
+

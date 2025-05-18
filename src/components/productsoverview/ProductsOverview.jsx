@@ -1,14 +1,14 @@
-import  { useState, useEffect } from "react";
-// import { CircularProgress } from "@mui/material";
+import { useState, useEffect } from "react";
 import { useMqttSensorData } from "../../hooks/useMqttSensorData"; // Your MQTT hook
 import Skeleton from "react-loading-skeleton"; // Skeleton Loader
 import "react-loading-skeleton/dist/skeleton.css"; // Import CSS for Skeleton
-import  fetchProducts  from "../../api/fetchProducts"; // Your fetchProducts API
+import fetchProducts from "../../api/fetchProducts"; // Your fetchProducts API
 import { PropTypes } from 'prop-types';
 import "./ProductsOverview.scss"; // Your CSS file
 
 // Material UI Icons
-import { DeviceThermostat, AcUnit, Water, FilterHdr } from '@mui/icons-material';
+import { DeviceThermostat, AcUnit, Water, FilterHdr, Home } from '@mui/icons-material';
+import { Tooltip } from "@mui/material";
 
 const sensorIconMap = {
   Temperature: <DeviceThermostat />,
@@ -29,6 +29,7 @@ const ProductsOverview = () => {
   const [products, setProducts] = useState([]); // State to store all products
   const [loading, setLoading] = useState(true); // Loading state while fetching
   const [error, setError] = useState(null); // Error handling state
+  const [isHomepage, setIsHomepage] = useState(localStorage.getItem("homepagePreference") || "dashboard"); // Set default homepage to "dashboard"
 
   useEffect(() => {
     const getProducts = async () => {
@@ -54,6 +55,11 @@ const ProductsOverview = () => {
     getProducts(); // Call the fetch function
   }, []); // Fetch products only once when the component mounts
 
+  const handleSetHomepage = (page) => {
+    localStorage.setItem("homepagePreference", page);
+    setIsHomepage(page);
+  };
+
   // Show loading skeleton while waiting for data or connection
   if (loading) {
     return (
@@ -74,7 +80,23 @@ const ProductsOverview = () => {
 
   return (
     <div className="products-overview">
-      <h2>Products Overview - Sensor Readings</h2>
+      <div className="header">
+        <h2>Products Overview - Sensor Readings</h2>
+
+        {/* Home Icon for setting the homepage */}
+        <Tooltip title="Set as Homepage" arrow>
+          <Home
+            className="home-icon"
+            onClick={() => handleSetHomepage(isHomepage === "productsOverview" ? "dashboard" : "productsOverview")}
+            style={{
+              cursor: "pointer",
+              color: isHomepage === "productsOverview" ? "#03856d" : "lightgray", // Active color or gray
+              fontSize: "2rem", // Adjust size as needed
+              transition: "color 0.3s ease",
+            }}
+          />
+        </Tooltip>
+      </div>
 
       {/* Display sensor data for all products */}
       <div className="sensor-list">
@@ -124,8 +146,8 @@ const ProductSensors = ({ product }) => {
       <h3>
         <DeviceThermostat /> {/* Example: Alias icon for product */}
         {alias}
-      </h3> 
-      
+      </h3>
+
       <div className="sensor-info">
         {message ? (
           Object.entries(message).map(([sensorName, sensorValue], index) => (
@@ -153,7 +175,6 @@ const ProductSensors = ({ product }) => {
   );
 };
 
-// Prop validation for ProductSensors component
 ProductSensors.propTypes = {
   product: PropTypes.shape({
     uid: PropTypes.string.isRequired,

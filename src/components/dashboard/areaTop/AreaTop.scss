@@ -1,51 +1,39 @@
 .content-area-top {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: center; /* Align items vertically */
   padding: 1rem 2rem;
-  flex-wrap: wrap; // Allow wrapping in small screens
+  flex-wrap: wrap;
   gap: 1rem;
 
   .area-top-left {
+    display: flex;
+    align-items: center; /* Center the logo vertically */
     .area-top-logo {
       height: 42px;
       object-fit: contain;
     }
   }
 
-  @media (max-width: 768px) {
-    margin-top: 50px;
-
   .area-top-right {
     display: flex;
-    align-items: center;
-    gap: 1rem;
+    align-items: center; /* Center the clock and home icon vertically */
+    gap: 1rem; /* Space between the clock and the home icon */
     flex-wrap: wrap;
-
-    .clock-chip {
-      font-size: 0.85rem;
-      background-color: #e6f5f1;
-      color: #034438;
-      font-weight: 600;
-      padding: 0.5rem 1rem;
-      border-radius: 20px;
-      max-width: 100%; // prevent overflow
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-
-      .MuiChip-icon {
-        color: inherit;
-      }
-    }
+    justify-content: flex-end; /* Align items to the right */
   }
 
+  /* For small screens */
   @media (max-width: 768px) {
-    padding: 1rem;
-    gap: 0.5rem;
+    flex-direction: column; /* Stack items vertically */
+    align-items: center; /* Center everything horizontally */
+    .area-top-left,
     .area-top-right {
-      width: 100%;
-      justify-content: flex-end;
+      width: 100%; /* Make the sections take full width */
+      justify-content: center; /* Center content horizontally */
+    }
+    .area-top-right {
+      gap: 0.5rem; /* Reduce gap between clock and home icon */
     }
   }
 
@@ -54,12 +42,46 @@
       background-color: #063f37;
       color: #d4f6ed;
     }
-
-    .user-avatar {
-      background-color: #016c55;
-    }
   }
 }
 
+.home-icon {
+  transition: color 0.3s ease; /* Smooth transition for color change */
+  font-size: 2rem; /* Adjust icon size */
+  cursor: pointer;
+}
 
+.clock-chip {
+  font-size: 0.85rem;
+  background-color: #e6f5f1;
+  color: #034438;
+  font-weight: 600;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  .MuiChip-icon {
+    color: inherit;
+  }
+}
+
+.settings-button {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  padding: 12px;
+  background-color: #03856d;
+  color: white;
+  border-radius: 50%;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  font-size: 16px;
+  cursor: pointer;
+  z-index: 1000;
+}
+
+.settings-button:hover {
+  background-color: #02684e;
 }

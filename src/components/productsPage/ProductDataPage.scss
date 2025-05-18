@@ -1,0 +1,142 @@
+.product-data-page {
+  padding: 20px;
+  font-family: "Nunito", sans-serif;
+  color: var(--text-color);
+
+  h2 {
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin-bottom: 16px;
+    text-align: center;
+  }
+
+  .view-toggle {
+    color: var(--text-color);
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+
+    .MuiToggleButton-root {
+      background-color: var(--background-color);
+      font-weight: 600;
+      padding: 8px 16px;
+    }
+  }
+
+  .filter-controls {
+    color: var(--text-color);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin: 20px 0;
+    align-items: center;
+    justify-content: center;
+
+    .MuiTextField-root,
+    .MuiSelect-root {
+      min-width: 180px;
+      background-color: var(--background-color);
+    }
+
+    .MuiButton-root {
+      height: 40px;
+      font-weight: 600;
+    }
+  }
+
+  .sticky-controls {
+    position: sticky;
+    top: 70px;
+    background: var(--background-color);
+    padding: 12px 16px;
+    z-index: 10;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    border-radius: 8px;
+    border: 1px solid var(--border-color-inverted);
+  }
+
+  .info-message {
+    text-align: center;
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--primary-color);
+    margin: 16px 0;
+    background-color: var(--background-color);
+    border: 1px solid var(--border-color-inverted);
+    border-radius: 6px;
+    padding: 10px 16px;
+  }
+
+  .charts-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    animation: fadeIn 0.6s ease-in-out;
+  }
+
+  .sensor-container {
+    border: 1px solid var(--border-color-inverted);
+    border-radius: 8px;
+    background-color: var(--background-color);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+    transition: all 0.4s ease-in-out;
+
+    .MuiAccordionSummary-root {
+      background-color: var(--side-link-hover-color);
+      padding: 0 16px;
+
+      .MuiTypography-root {
+        font-size: 1rem;
+      }
+    }
+
+    .MuiAccordionDetails-root {
+      padding: 16px;
+      background-color: var(--background-color);
+    }
+  }
+
+  .chart-date-range {
+    font-size: 0.9rem;
+    color: var(--base-text-color);
+    margin-bottom: 12px;
+    text-align: center;
+  }
+
+  .loading-spinner {
+    display: flex;
+    justify-content: center;
+    margin: 40px 0;
+  }
+
+  @media (max-width: 768px) {
+    .filter-controls {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .charts-container {
+      padding-bottom: 60px;
+    }
+
+    .sticky-controls {
+      top: 60px;
+    }
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.6s ease-in-out;
+}
