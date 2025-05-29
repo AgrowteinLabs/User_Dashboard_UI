@@ -29,6 +29,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import Loader from "./components/loader/Loader";
 import ProductsOverview from './components/productsoverview/ProductsOverview';
 import ProductDataPage from './components/productsPage/ProductDataPage';
+import AiAssistantPage from "./components/aiAssistant/AiAssistantPage";
 
 // ✅ PWA Support
 import { registerSW } from "virtual:pwa-register";
@@ -122,6 +123,7 @@ function App() {
             <Route path="/products/:uid/data" element={<ProtectedRoute><ProductDataPage /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
             <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
+            <Route path="/ai-assistant" element={<AiAssistantPage />} />
             <Route path="/enquiries" element={<ProtectedRoute><Enquiries /></ProtectedRoute>} />
             <Route path="/logout" element={<ProtectedRoute><Logout /></ProtectedRoute>} />
             <Route path="*" element={<PageNotFound />} />
