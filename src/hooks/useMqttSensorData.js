@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import mqtt from "mqtt";
 import { v4 as uuidv4 } from "uuid";
 
-// ✅ Backend API to fetch signed WebSocket URL
 const SIGN_URL_API = "https://apiv2.agrowtein.com/api/sign-mqtt-url";
 
 export const useMqttSensorData = (uid) => {
@@ -10,21 +9,18 @@ export const useMqttSensorData = (uid) => {
   const [connected, setConnected] = useState(false);
   const [lastReceivedTime, setLastReceivedTime] = useState(null);
 
-
   useEffect(() => {
     if (!uid) return;
+
     let client;
 
-    const connect = async () => {
+    const setupSensorMqtt = async () => {
       try {
         const res = await fetch(`${SIGN_URL_API}?uid=${uid}`);
         const { url } = await res.json();
 
-        const clientId = `frontend-${uuidv4()}`;
-        const topic = `esp32/${uid}/pub`;
-
         client = mqtt.connect(url, {
-          clientId,
+          clientId: `frontend-${uuidv4()}`,
           protocol: "wss",
           clean: true,
           reconnectPeriod: 5000,
@@ -34,8 +30,9 @@ export const useMqttSensorData = (uid) => {
         client.on("connect", () => {
           console.log("✅ MQTT connected");
           setConnected(true);
-          client.subscribe(topic, (err) => {
-            if (err) console.error("❌ Subscription error:", err);
+
+          client.subscribe(`esp32/${uid}/pub`, (err) => {
+            if (err) console.error("❌ Subscription failed:", err);
           });
         });
 
@@ -43,37 +40,25 @@ export const useMqttSensorData = (uid) => {
           try {
             const data = JSON.parse(payload.toString());
             setMessage(data);
-            setLastReceivedTime(Date.now()); 
+            setLastReceivedTime(Date.now());
           } catch (err) {
-            console.error("❌ Error parsing message:", err);
+            console.error("❌ JSON parse error:", err);
           }
         });
 
-        client.on("error", (err) => console.error("❌ MQTT error:", err));
+        client.on("error", (err) => console.error("MQTT error:", err));
         client.on("close", () => {
           console.warn("🚫 MQTT connection closed");
           setConnected(false);
         });
       } catch (err) {
-        console.error("❌ Failed to connect to MQTT via signed URL:", err);
+        console.error("❌ Error setting up MQTT:", err);
       }
     };
-    connect();
 
-    
-
-
-    return () => {
-      if (client) client.end();
-    };
-
-    
+    setupSensorMqtt();
+    return () => client?.end();
   }, [uid]);
 
-  
-
-
   return { message, connected, lastReceivedTime };
-
-
 };

@@ -1,20 +1,22 @@
 import { createTheme } from "@mui/material/styles";
 
-export const getMuiTheme = (mode) =>
-  createTheme({
+export const getMuiTheme = (mode) => {
+  const safeMode = mode === "dark" ? "dark" : "light"; // fallback safety
+  return createTheme({
     palette: {
-      mode,
+      mode: safeMode,
       primary: { main: "#03856d" },
       background: {
-        default: mode === "dark" ? "#121212" : "#fafafa",
-        paper: mode === "dark" ? "#1e1e1e" : "#ffffff",
+        default: safeMode === "dark" ? "#121212" : "#fafafa",
+        paper: safeMode === "dark" ? "#1e1e1e" : "#ffffff",
       },
       text: {
-        primary: mode === "dark" ? "#ffffff" : "#292929",
-        secondary: mode === "dark" ? "#cccccc" : "#555555",
+        primary: safeMode === "dark" ? "#ffffff" : "#292929",
+        secondary: safeMode === "dark" ? "#cccccc" : "#555555",
       },
     },
     typography: {
       fontFamily: "'Lato', 'Manrope', sans-serif",
     },
   });
+};

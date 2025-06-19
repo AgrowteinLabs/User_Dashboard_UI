@@ -6,15 +6,18 @@ export const ThemeContext = createContext({});
 
 export const ThemeProvider = ({ children }) => {
   const [theme, setTheme] = useState(() => {
-    return window.localStorage.getItem("themeMode") || LIGHT_THEME;
+    if (typeof window !== "undefined") {
+      return window.localStorage.getItem("themeMode") || LIGHT_THEME;
+    }
+    return LIGHT_THEME; // fallback for SSR
   });
 
   useEffect(() => {
-    window.localStorage.setItem("themeMode", theme);
-
-    // Sync body classes for SCSS compatibility
-    document.body.classList.toggle("dark-mode", theme === DARK_THEME);
-    document.body.classList.toggle("light-mode", theme === LIGHT_THEME);
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("themeMode", theme);
+      document.body.classList.toggle("dark-mode", theme === DARK_THEME);
+      document.body.classList.toggle("light-mode", theme === LIGHT_THEME);
+    }
   }, [theme]);
 
   const toggleTheme = () => {
@@ -29,6 +32,7 @@ export const ThemeProvider = ({ children }) => {
     </ThemeContext.Provider>
   );
 };
+
 
 ThemeProvider.propTypes = {
   children: PropTypes.node.isRequired,

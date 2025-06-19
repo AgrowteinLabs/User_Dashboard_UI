@@ -1,4 +1,3 @@
-// AreaCards.jsx
 import { useEffect, useState, useContext, useRef } from "react";
 import {
   Select,
@@ -12,6 +11,7 @@ import {
   Switch,
   Slider,
   Button,
+  Tooltip
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import SettingsRemoteIcon from "@mui/icons-material/SettingsRemote";
@@ -21,8 +21,8 @@ import { motion } from "framer-motion";
 import { ProductContext } from "../../../context/ProductContext";
 import fetchProducts from "../../../api/fetchProducts";
 import fetchUser from "../../../api/fetchuser";
-import { setControls } from "../../../api/setModeAndThreshold";
 import Swal from "sweetalert2";
+import { useMqttControl } from "../../../hooks/useMqttControl";
 import "./AreaCards.scss";
 
 const AreaCards = () => {
@@ -36,6 +36,8 @@ const AreaCards = () => {
   const userId = localStorage.getItem("userId");
   const timerRef = useRef(null);
 
+  const { publishCommandWithFeedback } = useMqttControl(selectedProductUid);
+
   useEffect(() => {
     const fetchInitial = async () => {
       const data = await fetchProducts();
@@ -45,7 +47,7 @@ const AreaCards = () => {
         setSelectedProductUid(saved);
         localStorage.setItem("selectedProductUid", saved);
       }
-      await fetchUser(); // optional
+      await fetchUser();
     };
     fetchInitial();
   }, [setSelectedProductUid]);
@@ -82,68 +84,147 @@ const AreaCards = () => {
     setThresholds((prev) => ({ ...prev, [controlId]: value }));
   };
 
-  const handleSaveThreshold = async (controlId, pin) => {
-    try {
-      await setControls({
+  const handleSaveThreshold = (controlId, pin) => {
+  const threshold = thresholds[controlId];
+  const payload = { command: "threshold", pin, threshold };
+
+  Swal.fire({ title: "Sending...", text: "Waiting for ESP32 feedback", allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+  publishCommandWithFeedback(
+    payload,
+    async () => {
+      console.log("📥 ESP32 confirmed threshold set:", payload);
+
+      Swal.close(); // ✅ FIX
+
+      const feedbackPayload = {
         uid: selectedProductUid,
         pin,
-        value: thresholds[controlId],
         controlId,
-        mode: "threshold",
-      });
-      Swal.fire("Saved!", "Threshold updated", "success");
-    } catch {
-      Swal.fire("Error", "Threshold update failed", "error");
-    }
-  };
+        value: threshold,
+        mode: "threshold"
+      };
 
-  const handleTogglePower = async (controlId, pin, currentState) => {
-    const newState = currentState === "ON" ? "off" : "on";
-    try {
-      const url = import.meta.env.VITE_REACT_APP_API_URL;
-      await fetch(`${url}/api/v1/command/`, {
+      console.log("📤 Sending threshold feedback to server:", feedbackPayload);
+
+      const res = await fetch(`${import.meta.env.VITE_REACT_APP_API_URL}/api/v1/command/control/save`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-        body: JSON.stringify({
-          uid: selectedProductUid,
-          pin,
-          value: newState,
-          controlId,
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(feedbackPayload),
       });
-      setControlStates((prev) => ({
-        ...prev,
-        [controlId]: newState.toUpperCase(),
-      }));
-      Swal.fire("Success", `Control turned ${newState.toUpperCase()}`, "success");
-    } catch {
-      Swal.fire("Error", "Failed to toggle power", "error");
-    }
-  };
 
-  const handleModeToggle = async () => {
-    const newMode = mode === "manual" ? "automate" : "manual";
-    setMode(newMode);
-    try {
-      await Promise.all(
-        productDetails.controls.map((c) =>
-          setControls({
-            uid: selectedProductUid,
-            pin: c.pin,
-            value: newMode === "automate" ? "true" : "false",
-            controlId: c.controlId,
-            mode: "automate",
-          })
-        )
-      );
-      Swal.fire("Updated", `Mode switched to ${newMode}`, "success");
-    } catch {
-      Swal.fire("Error", "Failed to update mode", "error");
+      const result = await res.json();
+      console.log("💾 Threshold saved to DB:", result);
+
+      Swal.fire("✅ Success", "Threshold confirmed by ESP32", "success");
+    },
+    () => {
+      Swal.close();
+      Swal.fire("❌ Timeout", "ESP32 did not respond", "error");
     }
-  };
+  );
+};
+
+
+  const handleTogglePower = (controlId, pin, currentState) => {
+  const newState = currentState === "ON" ? "off" : "on";
+  const payload = { command: "Manual", pin, threshold: thresholds[controlId] };
+
+  Swal.fire({ title: "Sending...", text: "Waiting for ESP32 feedback", allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+  publishCommandWithFeedback(
+    payload,
+    async () => {
+      console.log("📥 ESP32 confirmed power toggle:", payload);
+
+      Swal.close(); // ✅ FIX
+
+      const feedbackPayload = {
+        uid: selectedProductUid,
+        pin,
+        controlId,
+        value: newState.toUpperCase(),  // ✅ must be ON or OFF
+        mode: "state"                   // ✅ should be 'state' for ON/OFF
+      };
+
+      console.log("📤 Sending power toggle feedback to server:", feedbackPayload);
+
+      const res = await fetch(`${import.meta.env.VITE_REACT_APP_API_URL}/api/v1/command/control/save`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(feedbackPayload),
+      });
+
+      const result = await res.json();
+      console.log("💾 Power state saved to DB:", result);
+
+      setControlStates((prev) => ({ ...prev, [controlId]: newState.toUpperCase() }));
+      Swal.fire("✅ Success", `Control turned ${newState.toUpperCase()}`, "success");
+    },
+    () => {
+      Swal.close();
+      Swal.fire("❌ Timeout", "ESP32 did not confirm", "error");
+    }
+  );
+};
+
+
+  const handleModeToggle = () => {
+  const newMode = mode === "manual" ? "automate" : "manual";
+  setMode(newMode);
+
+  Swal.fire({ title: "Switching mode...", text: "Waiting for ESP32...", allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+  Promise.all(
+    productDetails.controls.map((c) =>
+      new Promise((resolve, reject) => {
+        const payload = {
+          command: newMode === "automate" ? "Auto" : "Manual",
+          pin: c.pin,
+          threshold: thresholds[c.controlId],
+        };
+
+        publishCommandWithFeedback(
+          payload,
+          async () => {
+            console.log("📥 ESP32 confirmed mode toggle:", payload);
+
+            Swal.close();
+
+            const feedbackPayload = {
+              uid: selectedProductUid,
+              pin: c.pin,
+              controlId: c.controlId,
+              value: newMode === "automate" ? "true" : "false",
+              mode: "automate"
+            };
+
+            console.log("📤 Sending automate mode feedback:", feedbackPayload);
+
+            const res = await fetch(`${import.meta.env.VITE_REACT_APP_API_URL}/api/v1/command/control/save`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(feedbackPayload),
+            });
+
+            const result = await res.json();
+            console.log("💾 Mode state saved to DB:", result);
+
+            resolve();
+          },
+          () => {
+            Swal.close();
+            reject(new Error(`ESP32 did not respond for pin ${c.pin}`));
+          }
+        );
+      })
+    )
+  )
+    .then(() => Swal.fire("✅ Mode Updated", `Switched to ${newMode.toUpperCase()}`, "success"))
+    .catch((err) => Swal.fire("❌ Failed", err.message, "error"));
+};
+
+
 
   const handleAutoCollapse = () => {
     clearTimeout(timerRef.current);
@@ -192,7 +273,11 @@ const AreaCards = () => {
           <div>
             <p className="info-title">Mode</p>
             <div className="mode-toggle">
-              <Switch checked={mode === "automate"} onChange={handleModeToggle} />
+              <Tooltip title={!controls.length ? "Mode toggle disabled — no controls" : ""} arrow>
+                <span>
+                  <Switch checked={mode === "automate"} onChange={handleModeToggle} disabled={!controls.length} />
+                </span>
+              </Tooltip>
               <span>{mode.toUpperCase()}</span>
             </div>
           </div>
@@ -229,20 +314,21 @@ const AreaCards = () => {
                 {controls.map((control) => (
                   <div className="control-card" key={control.controlId}>
                     <h5>{control.name}</h5>
-                    <div className="control-power-status">
-                      <span>
-                        ⚡ Power: <strong>{controlStates[control.controlId]}</strong>
-                      </span>
-                      <Button
-                        variant="outlined"
-                        size="small"
-                        onClick={() =>
-                          handleTogglePower(control.controlId, control.pin, controlStates[control.controlId])
-                        }
-                      >
-                        TURN {controlStates[control.controlId] === "ON" ? "OFF" : "ON"}
-                      </Button>
-                    </div>
+                    <Tooltip title={controlStates[control.controlId] ? "" : "No state data"}>
+  <span>
+    <Button
+      variant="outlined"
+      size="small"
+      onClick={() =>
+        handleTogglePower(control.controlId, control.pin, controlStates[control.controlId])
+      }
+      disabled={!controlStates[control.controlId]}
+    >
+      TURN {controlStates[control.controlId] === "ON" ? "OFF" : "ON"}
+    </Button>
+  </span>
+</Tooltip>
+
                     <Slider
                       value={thresholds[control.controlId] || 0}
                       min={control.min}
@@ -275,4 +361,3 @@ const AreaCards = () => {
 };
 
 export default AreaCards;
-  

@@ -1,16 +1,18 @@
 import PropTypes from "prop-types";
 import ReactApexChart from "react-apexcharts";
-import "./AreaChartCard.scss"; // Assuming you have some styles for the chart
+import { useMemo } from "react";
+import "./AreaChartCard.scss";
 
 const AreaChartCard = ({ title, data, labels, unit }) => {
-  const options = {
+  const options = useMemo(() => ({
     chart: {
       type: "area",
       fontFamily: "inherit",
+      animations: { enabled: false }, // Disable for perf
       toolbar: {
         show: true,
         tools: {
-          download: true,  // Enable the download button
+          download: true,
         },
       },
     },
@@ -50,20 +52,20 @@ const AreaChartCard = ({ title, data, labels, unit }) => {
       strokeDashArray: 5,
     },
     colors: ["#03856d"],
-  };
+  }), [labels, unit]);
 
-  const series = [{ name: title, data }];
+  const series = useMemo(() => [{ name: title, data }], [title, data]);
 
   return (
-  <div className="area-chart">
-    <div className="bar-chart-title">
-      <h4>{title}</h4>
+    <div className="area-chart">
+      <div className="bar-chart-title">
+        <h4>{title}</h4>
+      </div>
+      <div className="chart-wrapper-center">
+        <ReactApexChart options={options} series={series} type="area" height={312} />
+      </div>
     </div>
-    <div className="chart-wrapper-center">
-      <ReactApexChart options={options} series={series} type="area" height={312} />
-    </div>
-  </div>
-);
+  );
 };
 
 AreaChartCard.propTypes = {

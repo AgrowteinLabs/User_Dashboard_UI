@@ -1,81 +1,81 @@
-import { useEffect, useRef } from "react";
 import mqtt from "mqtt";
+import { useEffect, useRef } from "react";
+import { v4 as uuidv4 } from "uuid";
 
-/**
- * Hook to initialize MQTT connection for sending control commands to ESP32.
- * @param {string} uid - The unique product ID used in topic.
- * @returns {function} sendCommand - Function to publish control commands.
- */
+const SIGN_URL_API = "https://apiv2.agrowtein.com/api/sign-mqtt-url";
+
 export const useMqttControl = (uid) => {
   const clientRef = useRef(null);
-  const topic = `esp32/${uid}/sub`; // control topic
+
+  const publishCommandWithFeedback = (payload, onSuccess, onTimeout) => {
+    const client = clientRef.current;
+    if (!client?.connected) return console.warn("❌ MQTT not connected");
+
+    const timeoutId = setTimeout(() => {
+      client.removeListener("message", onMessage);
+      onTimeout?.();
+    }, 5000);
+
+    const onMessage = (topic, message) => {
+      try {
+        const feedback = JSON.parse(message.toString());
+        if (feedback.pin === payload.pin && feedback.command === payload.command) {
+          clearTimeout(timeoutId);
+          client.removeListener("message", onMessage);
+          onSuccess?.();
+        }
+      } catch (err) {
+        console.warn("⚠️ Invalid feedback received", err);
+      }
+    };
+
+    client.on("message", onMessage);
+
+    client.publish(`esp32/${uid}/sub`, JSON.stringify(payload), {}, (err) => {
+      if (err) {
+        clearTimeout(timeoutId);
+        client.removeListener("message", onMessage);
+        console.error("❌ Publish failed", err);
+      }
+    });
+  };
 
   useEffect(() => {
     if (!uid) return;
 
-    const connect = () => {
-      const clientId = `frontend-${Math.random().toString(16).substr(2, 8)}`;
-      const brokerUrl = "wss://a1zv6fodtw8hm-ats.iot.ap-south-1.amazonaws.com/mqtt"; 
+    const setupMqtt = async () => {
+      try {
+        const res = await fetch(`${SIGN_URL_API}?uid=${uid}`);
+        const { url } = await res.json();
 
-      clientRef.current = mqtt.connect(brokerUrl, {
-        clientId,
-        clean: true,
-        connectTimeout: 4000,
-        reconnectPeriod: 5000,
-        // Use auth if needed
-        // username: "xyz",
-        // password: "abc",
-      });
+        const mqttClient = mqtt.connect(url, {
+          clientId: `mqtt-control-${uuidv4()}`,
+          protocol: "wss",
+          clean: true,
+          reconnectPeriod: 5000,
+        });
 
-      clientRef.current.on("connect", () => {
-        console.log("✅ MQTT Control Connected");
-      });
+        mqttClient.on("connect", () => {
+          const topic = `esp32/${uid}/feed`;
+          mqttClient.subscribe(topic, (err) => {
+            if (err) console.error("❌ Subscription failed", err);
+            else console.log(`📡 Subscribed to ${topic}`);
+          });
+        });
 
-      clientRef.current.on("error", (err) => {
-        console.error("❌ MQTT Control Error:", err);
-      });
+        mqttClient.on("error", (err) => console.error("MQTT error:", err));
+        mqttClient.on("close", () => console.warn("🚫 MQTT disconnected"));
 
-      clientRef.current.on("close", () => {
-        console.warn("🚫 MQTT Control Disconnected");
-      });
-    };
-
-    connect();
-
-    return () => {
-      if (clientRef.current) {
-        clientRef.current.end();
+        clientRef.current = mqttClient;
+      } catch (e) {
+        console.error("❌ Failed to connect MQTT:", e);
       }
     };
+
+    setupMqtt();
+
+    return () => clientRef.current?.end();
   }, [uid]);
 
-  /**
-   * Sends a control command to the device.
-   * @param {object} payload - Command object, e.g., { pin: "P1", action: "on", type: "manual" }
-   */
-  const sendCommand = (payload) => {
-    if (!clientRef.current || !clientRef.current.connected) {
-      console.warn("MQTT not connected");
-      return;
-    }
-
-    try {
-      const message = JSON.stringify({
-        ...payload,
-        timestamp: new Date().toISOString(),
-      });
-
-      clientRef.current.publish(topic, message, {}, (err) => {
-        if (err) {
-          console.error("Failed to publish control message:", err);
-        } else {
-          console.log("✅ Control command sent:", message);
-        }
-      });
-    } catch (err) {
-      console.error("Error serializing MQTT command:", err);
-    }
-  };
-
-  return { sendCommand };
+  return { publishCommandWithFeedback };
 };

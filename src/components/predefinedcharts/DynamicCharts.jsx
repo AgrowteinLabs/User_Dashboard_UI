@@ -24,12 +24,12 @@ const sensorChartMap = {
   "CO2 Sensor 1": { type: "bar", unit: "ppm", label: "CO2 Sensor 1" },
   "CO2 Sensor 2": { type: "bar", unit: "ppm", label: "CO2 Sensor 2" },
   "CO2 Sensor 3": { type: "bar", unit: "ppm", label: "CO2 Sensor 3" },
-  "CO2 Sensor 4": { type: "bar", unit: "ppm", label: "CO2 Sensor 4" }
+  "CO2 Sensor 4": { type: "bar", unit: "ppm", label: "CO2 Sensor 4" },
 };
 
 const isStale = (timestamp) => {
   const now = Date.now();
-  const STALE_THRESHOLD = 60 * 1000;
+  const STALE_THRESHOLD = 60 * 1000; // 1 min
   return !timestamp || now - timestamp > STALE_THRESHOLD;
 };
 
@@ -44,9 +44,8 @@ const DynamicCharts = ({
 
   useEffect(() => {
     const interval = setInterval(() => {
-      forceUpdate((prev) => prev + 1); // triggers re-render
+      forceUpdate((prev) => prev + 1);
     }, 10000);
-
     return () => clearInterval(interval);
   }, []);
 
@@ -54,7 +53,9 @@ const DynamicCharts = ({
     <>
       {Object.entries(sensorChartMap)
         .filter(([sensorKey]) =>
-          availableSensors.some(sensor => sensor.toLowerCase() === sensorKey.toLowerCase()) // Ensure correct filtering logic
+          availableSensors.some(
+            (sensor) => sensor.toLowerCase() === sensorKey.toLowerCase()
+          )
         )
         .map(([sensorKey, config]) => {
           const sensorInfo = currentData[sensorKey];
@@ -94,7 +95,7 @@ const DynamicCharts = ({
                     title={`${config.label} - Current`}
                     value={parseFloat(sensorInfo.value).toFixed(2)}
                     unit={config.unit}
-                    status={currentStatus === "live" ? "active" : currentStatus}
+                    status="active"
                     timestamp={sensorInfo.timestamp}
                   />
                 </div>

@@ -3,7 +3,7 @@ import { ThemeProvider as MuiThemeProvider, CssBaseline } from "@mui/material";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeContext } from "./context/ThemeContext";
 import { DARK_THEME, LIGHT_THEME } from "./constants/themeConstants";
-import { getMuiTheme } from "./context/muiTheme";  // ✅ Import your MUI Theme Generator
+import { getMuiTheme } from "./context/muiTheme";
 
 import "./App.scss";
 

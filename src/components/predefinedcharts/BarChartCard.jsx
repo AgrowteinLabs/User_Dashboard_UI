@@ -1,15 +1,14 @@
 import PropTypes from "prop-types";
 import ReactApexChart from "react-apexcharts";
+import { useMemo } from "react";
 import "./BarChartCard.scss";
 
 const BarChartCard = ({ title, value, unit, status = "active" }) => {
-  const chartOptions = {
+  const chartOptions = useMemo(() => ({
     chart: {
       type: "bar",
       animations: {
-        enabled: true,
-        easing: "easeinout",
-        speed: 500,
+        enabled: false, // Disabled to reduce layout jank
       },
     },
     plotOptions: {
@@ -42,10 +41,13 @@ const BarChartCard = ({ title, value, unit, status = "active" }) => {
     fill: {
       colors: ["var(--primary-color)"],
     },
-  };
+  }), [unit]);
+
+  const series = useMemo(() => [
+    { name: title, data: [parseFloat(value)] }
+  ], [title, value]);
 
   const statusClass = `status-${status}`;
-
 
   return (
     <div className={`bar-chart ${statusClass}`}>
@@ -55,12 +57,11 @@ const BarChartCard = ({ title, value, unit, status = "active" }) => {
       <div className="chart-wrapper-center">
         <ReactApexChart
           options={chartOptions}
-          series={[{ name: title, data: [parseFloat(value)] }]}
+          series={series}
           type="bar"
           height={312}
         />
       </div>
-      
     </div>
   );
 };
