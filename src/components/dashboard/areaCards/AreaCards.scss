@@ -16,10 +16,10 @@
       border-radius: 12px;
       box-shadow: 0 1px 8px rgba(3, 133, 109, 0.1);
     }
-.css-1435mur-MuiSelect-select-MuiInputBase-input-MuiOutlinedInput-input {
-  padding-right: 32px;
-  background-color: var(--bg-color-inverted);
-}
+    .css-1435mur-MuiSelect-select-MuiInputBase-input-MuiOutlinedInput-input {
+      padding-right: 32px;
+      background-color: var(--bg-color-inverted);
+    }
   }
 
   .area-cards-row {
@@ -170,7 +170,6 @@
     margin: 2rem auto;
   }
 
-  // 🌙 Dark Mode
   .dark-mode & {
     .area-card,
     .control-card {
