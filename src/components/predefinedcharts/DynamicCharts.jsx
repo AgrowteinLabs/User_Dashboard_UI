@@ -38,13 +38,35 @@ const isStale = (timestamp) => {
   return !timestamp || now - timestamp > STALE_THRESHOLD;
 };
 
+// ✅ New helper to normalize raw sensor values
+const normalizeSensorData = (data, globalTimestamp) => {
+  const normalized = {};
+  for (const key in data) {
+    const value = data[key];
+    if (typeof value === "number") {
+      normalized[key] = {
+        status: "live",
+        value,
+        timestamp: globalTimestamp || Date.now(),
+      };
+    } else if (typeof value === "object" && value !== null) {
+      normalized[key] = value;
+    }
+  }
+  return normalized;
+};
+
 const DynamicCharts = ({
   current,
   history,
   availableSensors,
   historyOnly = false,
 }) => {
-  const currentData = current?.data || {};
+  const globalTimestamp = current?.data?.timestamp || Date.now();
+
+  // Normalize all sensor values so even raw numbers work
+  const currentData = normalizeSensorData(current?.data || {}, globalTimestamp);
+
   const [, forceUpdate] = useState(0);
 
   useEffect(() => {
@@ -88,9 +110,6 @@ const DynamicCharts = ({
           const isFullHistory =
             ["stale", "error", "no-data"].includes(currentStatus) ||
             historyOnly;
-
-          console.log("availableSensors:", availableSensors);
-          console.log("currentData keys:", Object.keys(currentData));
 
           return (
             <div
@@ -142,14 +161,7 @@ const DynamicCharts = ({
 
 DynamicCharts.propTypes = {
   current: PropTypes.shape({
-    data: PropTypes.objectOf(
-      PropTypes.shape({
-        status: PropTypes.string.isRequired,
-        value: PropTypes.oneOfType([PropTypes.number, PropTypes.string])
-          .isRequired,
-        timestamp: PropTypes.number,
-      })
-    ),
+    data: PropTypes.object,
   }).isRequired,
   history: PropTypes.object.isRequired,
   availableSensors: PropTypes.arrayOf(PropTypes.string).isRequired,
