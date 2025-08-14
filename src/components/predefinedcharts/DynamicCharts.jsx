@@ -20,6 +20,7 @@ const sensorChartMap = {
   Flow_Rate: { type: "bar", unit: "L/min", label: "Flow Rate" },
   Turbidity: { type: "bar", unit: "NTU", label: "Turbidity" },
   "Electric Conductivity": { type: "bar", unit: "ppm", label: "Electric Conductivity" },
+  "TDS": { type: "bar", unit: "ppm", label: "Electric Conductivity" },
   "Dissolved Oxygen": { type: "bar", unit: "mg/L", label: "Dissolved Oxygen" },
   "CO2 Sensor 1": { type: "bar", unit: "ppm", label: "CO2 Sensor 1" },
   "CO2 Sensor 2": { type: "bar", unit: "ppm", label: "CO2 Sensor 2" },
