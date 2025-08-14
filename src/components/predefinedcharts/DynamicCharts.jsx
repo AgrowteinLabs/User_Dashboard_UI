@@ -89,6 +89,9 @@ const DynamicCharts = ({
             ["stale", "error", "no-data"].includes(currentStatus) ||
             historyOnly;
 
+          console.log("availableSensors:", availableSensors);
+          console.log("currentData keys:", Object.keys(currentData));
+
           return (
             <div
               className={`chart-pair ${isFullHistory ? "full-history" : ""}`}
