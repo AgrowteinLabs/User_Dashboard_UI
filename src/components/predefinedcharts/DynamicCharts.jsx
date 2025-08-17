@@ -19,7 +19,7 @@ const sensorChartMap = {
   Pressure: { type: "bar", unit: "Pa", label: "Pressure" },
   Flow_Rate: { type: "bar", unit: "L/min", label: "Flow Rate" },
   Turbidity: { type: "bar", unit: "NTU", label: "Turbidity" },
-  TDS: { type: "bar", unit: "ppm", label: "TDS" },
+  TDS: { type: "bar", unit: "ppm", label: "Electric Conductivity" },
   "Electric Conductivity": {
     type: "bar",
     unit: "ppm",
