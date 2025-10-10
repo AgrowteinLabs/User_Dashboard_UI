@@ -35,18 +35,21 @@ const sensorChartMap = {
   Humidity: { type: "bar", unit: "%", label: "Humidity" },
   pH: { type: "area", unit: "", label: "pH Level" },
   Water_Used: { type: "area", unit: "L", label: "Water Used" },
-  Co2: { type: "bar", unit: "ppm", label: "CO₂ Level" },
   Bed_Temperature: { type: "bar", unit: "°C", label: "Bed Temperature" },
   Boiler_Temperature: { type: "bar", unit: "°C", label: "Boiler Temperature" },
   Pressure: { type: "bar", unit: "Pa", label: "Pressure" },
   Flow_Rate: { type: "bar", unit: "L/min", label: "Flow Rate" },
   Turbidity: { type: "bar", unit: "NTU", label: "Turbidity" },
+  TDS: { type: "bar", unit: "ppm", label: "Electric Conductivity" },
   "Electric Conductivity": { type: "bar", unit: "ppm", label: "Electric Conductivity" },
   "Dissolved Oxygen": { type: "bar", unit: "mg/L", label: "Dissolved Oxygen" },
   "CO2 Sensor 1": { type: "bar", unit: "ppm", label: "CO2 Sensor 1" },
   "CO2 Sensor 2": { type: "bar", unit: "ppm", label: "CO2 Sensor 2" },
   "CO2 Sensor 3": { type: "bar", unit: "ppm", label: "CO2 Sensor 3" },
-  "CO2 Sensor 4": { type: "bar", unit: "ppm", label: "CO2 Sensor 4" }
+  "CO2 Sensor 4": { type: "bar", unit: "ppm", label: "CO2 Sensor 4" },
+  "CO2 Sensor": { type: "bar", unit: "ppm", label: "CO₂ Level" },
+  CO2: { type: "bar", unit: "ppm", label: "CO₂ Level" },
+
 };
 
 const isStale = (timestamp) => Date.now() - timestamp > 60 * 1000;
