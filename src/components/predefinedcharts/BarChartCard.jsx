@@ -1,51 +1,70 @@
 import PropTypes from "prop-types";
 import ReactApexChart from "react-apexcharts";
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 import "./BarChartCard.scss";
 
 const BarChartCard = ({ title, value, unit, status = "active" }) => {
-  const chartOptions = useMemo(() => ({
-    chart: {
-      type: "bar",
-      animations: {
-        enabled: false, // Disabled to reduce layout jank
-      },
-    },
-    plotOptions: {
-      bar: {
-        borderRadius: 5,
-        horizontal: false,
-        columnWidth: "30%",
-      },
-    },
-    xaxis: {
-      categories: ["Sensor"],
-      labels: {
-        style: { colors: "var(--text-color)" },
-      },
-    },
-    yaxis: {
-      title: {
-        text: unit,
-        style: { color: "var(--text-color)" },
-      },
-      labels: {
-        style: { colors: "var(--text-color)" },
-      },
-    },
-    tooltip: {
-      y: {
-        formatter: (val) => `${val} ${unit}`,
-      },
-    },
-    fill: {
-      colors: ["var(--primary-color)"],
-    },
-  }), [unit]);
+  // Keep last valid numeric to prevent disappearing labels
+  const lastValidValueRef = useRef(null);
+  const numeric = useMemo(() => {
+    const n = Number(value);
+    if (Number.isFinite(n)) {
+      lastValidValueRef.current = n;
+      return n;
+    }
+    return lastValidValueRef.current ?? 0;
+  }, [value]);
 
-  const series = useMemo(() => [
-    { name: title, data: [parseFloat(value)] }
-  ], [title, value]);
+  const series = useMemo(
+    () => [{ name: title, data: [numeric] }],
+    [title, numeric]
+  );
+
+  const chartOptions = useMemo(
+    () => ({
+      chart: {
+        type: "bar",
+        animations: { enabled: false },
+        toolbar: { show: false },
+      },
+      plotOptions: {
+        bar: {
+          borderRadius: 5,
+          columnWidth: "30%",
+          dataLabels: {
+            position: "center", // 👈 put labels inside the bar
+          },
+        },
+      },
+      dataLabels: {
+        enabled: true,
+        formatter: (val) => `${val}${unit ? " " + unit : ""}`,
+        style: {
+          fontSize: "14px",
+          fontWeight: "600",
+          colors: ["#fff"], // white text for contrast inside the bar
+        },
+      },
+      xaxis: {
+        categories: ["Sensor"],
+        labels: { style: { colors: "var(--text-color)" } },
+        axisBorder: { show: false },
+        axisTicks: { show: false },
+      },
+      yaxis: {
+        title: {
+          text: unit,
+          style: { color: "var(--text-color)" },
+        },
+        labels: { style: { colors: "var(--text-color)" } },
+      },
+      tooltip: {
+        y: { formatter: (val) => `${val}${unit ? " " + unit : ""}` },
+      },
+      fill: { colors: ["var(--primary-color)"] },
+    }),
+    [unit]
+  );
 
   const statusClass = `status-${status}`;
 
