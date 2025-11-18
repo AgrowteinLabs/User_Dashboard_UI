@@ -85,144 +85,145 @@ const AreaCards = () => {
   };
 
   const handleSaveThreshold = (controlId, pin) => {
-  const threshold = thresholds[controlId];
-  const payload = { command: "threshold", pin, threshold };
+    const threshold = thresholds[controlId];
+    const payload = { command: "SetThreshold", pin, threshold };
 
-  Swal.fire({ title: "Sending...", text: "Waiting for ESP32 feedback", allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+    Swal.fire({ title: "Sending...", text: "Waiting for ESP32 feedback", allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
-  publishCommandWithFeedback(
-    payload,
-    async () => {
-      console.log("📥 ESP32 confirmed threshold set:", payload);
+    publishCommandWithFeedback(
+      payload,
+      async () => {
+        console.log("📥 ESP32 confirmed threshold set:", payload);
 
-      Swal.close(); // ✅ FIX
+        Swal.close(); // ✅ FIX
 
-      const feedbackPayload = {
-        uid: selectedProductUid,
-        pin,
-        controlId,
-        value: threshold,
-        mode: "threshold"
-      };
+        const feedbackPayload = {
+          uid: selectedProductUid,
+          pin,
+          controlId,
+          value: threshold,
+          mode: "threshold"
+        };
 
-      console.log("📤 Sending threshold feedback to server:", feedbackPayload);
+        console.log("📤 Sending threshold feedback to server:", feedbackPayload);
 
-      const res = await fetch(`${import.meta.env.VITE_REACT_APP_API_URL}/api/v1/command/control/save`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(feedbackPayload),
-      });
+        const res = await fetch(`${import.meta.env.VITE_REACT_APP_API_URL}/api/v1/command/control/save`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(feedbackPayload),
+        });
 
-      const result = await res.json();
-      console.log("💾 Threshold saved to DB:", result);
+        const result = await res.json();
+        console.log("💾 Threshold saved to DB:", result);
 
-      Swal.fire("✅ Success", "Threshold confirmed by ESP32", "success");
-    },
-    () => {
-      Swal.close();
-      Swal.fire("❌ Timeout", "ESP32 did not respond", "error");
-    }
-  );
-};
+        Swal.fire("✅ Success", "Threshold confirmed by ESP32", "success");
+      },
+      () => {
+        Swal.close();
+        Swal.fire("❌ Timeout", "ESP32 did not respond", "error");
+      }
+    );
+  };
 
 
   const handleTogglePower = (controlId, pin, currentState) => {
-  const newState = currentState === "ON" ? "off" : "on";
-  const payload = { command: "Manual", pin, threshold: thresholds[controlId] };
+    const newState = currentState === "ON" ? "OFF" : "ON";
+    const payload = { command: "SetPower", pin, state: newState };
 
-  Swal.fire({ title: "Sending...", text: "Waiting for ESP32 feedback", allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+    Swal.fire({ title: "Sending...", text: "Waiting for ESP32 feedback", allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
-  publishCommandWithFeedback(
-    payload,
-    async () => {
-      console.log("📥 ESP32 confirmed power toggle:", payload);
+    publishCommandWithFeedback(
+      payload,
+      async () => {
+        console.log("📥 ESP32 confirmed power toggle:", payload);
 
-      Swal.close(); // ✅ FIX
+        Swal.close(); // ✅ FIX
 
-      const feedbackPayload = {
-        uid: selectedProductUid,
-        pin,
-        controlId,
-        value: newState.toUpperCase(),  // ✅ must be ON or OFF
-        mode: "state"                   // ✅ should be 'state' for ON/OFF
-      };
+        const feedbackPayload = {
+          uid: selectedProductUid,
+          pin,
+          controlId,
+          value: newState,  // "ON" or "OFF"
+          mode: "state"
+        };
 
-      console.log("📤 Sending power toggle feedback to server:", feedbackPayload);
+        console.log("📤 Sending power toggle feedback to server:", feedbackPayload);
 
-      const res = await fetch(`${import.meta.env.VITE_REACT_APP_API_URL}/api/v1/command/control/save`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(feedbackPayload),
-      });
+        const res = await fetch(`${import.meta.env.VITE_REACT_APP_API_URL}/api/v1/command/control/save`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(feedbackPayload),
+        });
 
-      const result = await res.json();
-      console.log("💾 Power state saved to DB:", result);
+        const result = await res.json();
+        console.log("💾 Power state saved to DB:", result);
 
-      setControlStates((prev) => ({ ...prev, [controlId]: newState.toUpperCase() }));
-      Swal.fire("✅ Success", `Control turned ${newState.toUpperCase()}`, "success");
-    },
-    () => {
-      Swal.close();
-      Swal.fire("❌ Timeout", "ESP32 did not confirm", "error");
-    }
-  );
-};
+        setControlStates((prev) => ({ ...prev, [controlId]: newState }));
+        Swal.fire("✅ Success", `Control turned ${newState}`, "success");
+      },
+      () => {
+        Swal.close();
+        Swal.fire("❌ Timeout", "ESP32 did not confirm", "error");
+      }
+    );
+  };
 
 
   const handleModeToggle = () => {
-  const newMode = mode === "manual" ? "automate" : "manual";
-  setMode(newMode);
+    const newMode = mode === "manual" ? "automate" : "manual";
+    setMode(newMode);
 
-  Swal.fire({ title: "Switching mode...", text: "Waiting for ESP32...", allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+    Swal.fire({ title: "Switching mode...", text: "Waiting for ESP32...", allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
-  Promise.all(
-    productDetails.controls.map((c) =>
-      new Promise((resolve, reject) => {
-        const payload = {
-          command: newMode === "automate" ? "Auto" : "Manual",
-          pin: c.pin,
-          threshold: thresholds[c.controlId],
-        };
+    Promise.all(
+      productDetails.controls.map((c) =>
+        new Promise((resolve, reject) => {
+          const payload = {
+            command: "SetMode",
+            pin: c.pin,
+            mode: newMode === "automate" ? "Auto" : "Manual",
+            ...(newMode === "automate" && { threshold: thresholds[c.controlId] })
+          };
 
-        publishCommandWithFeedback(
-          payload,
-          async () => {
-            console.log("📥 ESP32 confirmed mode toggle:", payload);
+          publishCommandWithFeedback(
+            payload,
+            async () => {
+              console.log("📥 ESP32 confirmed mode toggle:", payload);
 
-            Swal.close();
+              Swal.close();
 
-            const feedbackPayload = {
-              uid: selectedProductUid,
-              pin: c.pin,
-              controlId: c.controlId,
-              value: newMode === "automate" ? "true" : "false",
-              mode: "automate"
-            };
+              const feedbackPayload = {
+                uid: selectedProductUid,
+                pin: c.pin,
+                controlId: c.controlId,
+                value: newMode === "automate" ? "true" : "false",
+                mode: "automate"
+              };
 
-            console.log("📤 Sending automate mode feedback:", feedbackPayload);
+              console.log("📤 Sending automate mode feedback:", feedbackPayload);
 
-            const res = await fetch(`${import.meta.env.VITE_REACT_APP_API_URL}/api/v1/command/control/save`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(feedbackPayload),
-            });
+              const res = await fetch(`${import.meta.env.VITE_REACT_APP_API_URL}/api/v1/command/control/save`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(feedbackPayload),
+              });
 
-            const result = await res.json();
-            console.log("💾 Mode state saved to DB:", result);
+              const result = await res.json();
+              console.log("💾 Mode state saved to DB:", result);
 
-            resolve();
-          },
-          () => {
-            Swal.close();
-            reject(new Error(`ESP32 did not respond for pin ${c.pin}`));
-          }
-        );
-      })
+              resolve();
+            },
+            () => {
+              Swal.close();
+              reject(new Error(`ESP32 did not respond for pin ${c.pin}`));
+            }
+          );
+        })
+      )
     )
-  )
-    .then(() => Swal.fire("✅ Mode Updated", `Switched to ${newMode.toUpperCase()}`, "success"))
-    .catch((err) => Swal.fire("❌ Failed", err.message, "error"));
-};
+      .then(() => Swal.fire("✅ Mode Updated", `Switched to ${newMode.toUpperCase()}`, "success"))
+      .catch((err) => Swal.fire("❌ Failed", err.message, "error"));
+  };
 
 
 
@@ -314,41 +315,50 @@ const AreaCards = () => {
                 {controls.map((control) => (
                   <div className="control-card" key={control.controlId}>
                     <h5>{control.name}</h5>
-                    <Tooltip title={controlStates[control.controlId] ? "" : "No state data"}>
-  <span>
-    <Button
-      variant="outlined"
-      size="small"
-      onClick={() =>
-        handleTogglePower(control.controlId, control.pin, controlStates[control.controlId])
-      }
-      disabled={!controlStates[control.controlId]}
-    >
-      TURN {controlStates[control.controlId] === "ON" ? "OFF" : "ON"}
-    </Button>
-  </span>
-</Tooltip>
 
-                    <Slider
-                      value={thresholds[control.controlId] || 0}
-                      min={control.min}
-                      max={control.max}
-                      step={0.1}
-                      onChange={(_, val) => handleThresholdChange(control.controlId, val)}
-                    />
-                    <input
-                      type="number"
-                      value={thresholds[control.controlId] || 0}
-                      onChange={(e) => handleThresholdChange(control.controlId, parseFloat(e.target.value))}
-                    />
-                    <Button
-                      variant="contained"
-                      fullWidth
-                      sx={{ mt: 1 }}
-                      onClick={() => handleSaveThreshold(control.controlId, control.pin)}
-                    >
-                      Save Threshold
-                    </Button>
+                    {/* Power Button - Only in Manual Mode */}
+                    {mode === "manual" && (
+                      <Tooltip title={!controlStates[control.controlId] ? "No state data" : ""}>
+                        <span>
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            onClick={() =>
+                              handleTogglePower(control.controlId, control.pin, controlStates[control.controlId])
+                            }
+                            disabled={!controlStates[control.controlId]}
+                          >
+                            TURN {controlStates[control.controlId] === "ON" ? "OFF" : "ON"}
+                          </Button>
+                        </span>
+                      </Tooltip>
+                    )}
+
+                    {/* Threshold Controls - Only in Automate Mode */}
+                    {mode === "automate" && (
+                      <>
+                        <Slider
+                          value={thresholds[control.controlId] || 0}
+                          min={control.min}
+                          max={control.max}
+                          step={0.1}
+                          onChange={(_, val) => handleThresholdChange(control.controlId, val)}
+                        />
+                        <input
+                          type="number"
+                          value={thresholds[control.controlId] || 0}
+                          onChange={(e) => handleThresholdChange(control.controlId, parseFloat(e.target.value))}
+                        />
+                        <Button
+                          variant="contained"
+                          fullWidth
+                          sx={{ mt: 1 }}
+                          onClick={() => handleSaveThreshold(control.controlId, control.pin)}
+                        >
+                          Save Threshold
+                        </Button>
+                      </>
+                    )}
                   </div>
                 ))}
               </div>
