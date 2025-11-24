@@ -14,7 +14,7 @@ export const useMqttControl = (uid) => {
     const timeoutId = setTimeout(() => {
       client.removeListener("message", onMessage);
       onTimeout?.();
-    }, 5000);
+    }, 10000);
 
     const onMessage = (topic, message) => {
       try {

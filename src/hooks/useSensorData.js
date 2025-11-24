@@ -13,11 +13,16 @@ export const useSensorData = (uid) => {
     const fetchHistoryData = async () => {
       try {
         const endDate = new Date().toISOString();
-        const startDate = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+        const startDate = new Date(
+          Date.now() - 12 * 60 * 60 * 1000
+        ).toISOString();
 
-        const res = await axios.get(`${baseUrl}/api/v1/data/${uid}/date-interval`, {
-          params: { startDate, endDate, interval: 30 },
-        });
+        const res = await axios.get(
+          `${baseUrl}/api/v1/data/${uid}/date-interval`,
+          {
+            params: { startDate, endDate, interval: 60 },
+          }
+        );
 
         const raw = Array.isArray(res.data) ? res.data : [];
 

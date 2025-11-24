@@ -1,11 +1,22 @@
 import PropTypes from "prop-types";
 import ReactApexChart from "react-apexcharts";
-import { useMemo, useRef } from "react";
+import { useMemo, useRef, useEffect, useState } from "react";
 import "./BarChartCard.scss";
 
 const BarChartCard = ({ title, value, unit, status = "active" }) => {
   // Keep last valid numeric to prevent disappearing labels
   const lastValidValueRef = useRef(null);
+  const lastValueRef = useRef(value);
+  const [renderKey, setRenderKey] = useState(0);
+
+  // Only force re-render when value actually changes
+  useEffect(() => {
+    if (lastValueRef.current !== value) {
+      lastValueRef.current = value;
+      setRenderKey(prev => prev + 1);
+    }
+  }, [value]);
+
   const numeric = useMemo(() => {
     const n = Number(value);
     if (Number.isFinite(n)) {
@@ -75,6 +86,7 @@ const BarChartCard = ({ title, value, unit, status = "active" }) => {
       </div>
       <div className="chart-wrapper-center">
         <ReactApexChart
+          key={renderKey}
           options={chartOptions}
           series={series}
           type="bar"
