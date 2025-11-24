@@ -1,7 +1,9 @@
 import PropTypes from "prop-types";
-import { useEffect, useState } from "react";
+import { useEffect, useState, memo } from "react";
 import BarChartCard from "./BarChartCard";
 import AreaChartCard from "./AreaChartCard";
+import { CircularProgress } from "@mui/material";
+import { useInView } from "react-intersection-observer";
 import "../dashboard/areaCharts/AreaCharts.scss";
 
 const sensorChartMap = {
@@ -41,24 +43,108 @@ const normalizeSensorData = (data, globalTimestamp) => {
   const normalized = {};
   for (const key in data) {
     const value = data[key];
-    if (typeof value === "number") {
+    // Handle objects with value property
+    if (typeof value === "object" && value !== null && "value" in value) {
+      normalized[key] = {
+        status: value.status || "live",
+        value: value.value,
+        timestamp: value.timestamp || globalTimestamp || Date.now(),
+      };
+    }
+    // Handle raw numbers
+    else if (typeof value === "number" || !isNaN(parseFloat(value))) {
       normalized[key] = {
         status: "live",
-        value,
+        value: parseFloat(value),
         timestamp: globalTimestamp || Date.now(),
       };
-    } else if (typeof value === "object" && value !== null) {
-      normalized[key] = value;
     }
   }
   return normalized;
 };
+
+// Memoized chart pair component for performance
+const ChartPair = memo(({ sensorKey, config, sensorInfo, historyData, historyOnly, historyLoading, currentStatus, isFullHistory }) => {
+  const { ref, inView } = useInView({
+    triggerOnce: true,
+    threshold: 0.1,
+    rootMargin: '200px'
+  });
+
+  const labels = historyData.map((entry) =>
+    new Date(entry.timestamp).toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+    })
+  );
+
+  const values = historyData.map((entry) =>
+    parseFloat(entry.value).toFixed(2)
+  );
+
+  return (
+    <div
+      ref={ref}
+      className={`chart-pair ${isFullHistory ? "full-history" : ""}`}
+      key={sensorKey}
+    >
+      {!historyOnly && currentStatus === "live" ? (
+        <div className="chart-current">
+          <BarChartCard
+            title={`${config.label} - Current`}
+            value={parseFloat(sensorInfo.value).toFixed(2)}
+            unit={config.unit}
+            status="active"
+            timestamp={sensorInfo.timestamp}
+          />
+        </div>
+      ) : (
+        !historyOnly && (
+          <div className="chart-current">
+            <div className="sensor-error">
+              {currentStatus === "error"
+                ? "Sensor Error"
+                : currentStatus === "stale"
+                  ? "No Real-Time Data"
+                  : "No Data"}
+            </div>
+          </div>
+        )
+      )}
+
+      <div className="chart-history">
+        {historyLoading ? (
+          <div className="history-loading">
+            <CircularProgress size={24} />
+            <span style={{ marginLeft: "8px" }}>Loading history...</span>
+          </div>
+        ) : !inView ? (
+          <div className="history-loading">
+            <CircularProgress size={24} />
+          </div>
+        ) : historyData.length > 0 ? (
+          <AreaChartCard
+            title={`${config.label} History (Last 12 Hours)`}
+            data={values}
+            labels={labels}
+            unit={config.unit}
+          />
+        ) : (
+          <div className="sensor-error">No history data available</div>
+        )}
+      </div>
+    </div>
+  );
+});
+
+ChartPair.displayName = 'ChartPair';
 
 const DynamicCharts = ({
   current,
   history,
   availableSensors,
   historyOnly = false,
+  historyLoading = false,
 }) => {
   const globalTimestamp = current?.data?.timestamp || Date.now();
 
@@ -86,17 +172,6 @@ const DynamicCharts = ({
           const sensorInfo = currentData[sensorKey];
           const historyData = history[sensorKey] || [];
 
-          const labels = historyData.map((entry) =>
-            new Date(entry.timestamp).toLocaleTimeString("en-US", {
-              hour: "2-digit",
-              minute: "2-digit",
-            })
-          );
-
-          const values = historyData.map((entry) =>
-            parseFloat(entry.value).toFixed(2)
-          );
-
           const currentStatus = !sensorInfo
             ? "no-data"
             : sensorInfo.status === "error"
@@ -110,47 +185,17 @@ const DynamicCharts = ({
             historyOnly;
 
           return (
-            <div
-              className={`chart-pair ${isFullHistory ? "full-history" : ""}`}
+            <ChartPair
               key={sensorKey}
-            >
-              {!historyOnly && currentStatus === "live" ? (
-                <div className="chart-current">
-                  <BarChartCard
-                    title={`${config.label} - Current`}
-                    value={parseFloat(sensorInfo.value).toFixed(2)}
-                    unit={config.unit}
-                    status="active"
-                    timestamp={sensorInfo.timestamp}
-                  />
-                </div>
-              ) : (
-                !historyOnly && (
-                  <div className="chart-current">
-                    <div className="sensor-error">
-                      {currentStatus === "error"
-                        ? "Sensor Error"
-                        : currentStatus === "stale"
-                          ? "No Real-Time Data"
-                          : "No Data"}
-                    </div>
-                  </div>
-                )
-              )}
-
-              <div className="chart-history">
-                {historyData.length > 0 ? (
-                  <AreaChartCard
-                    title={`${config.label} History (Last 24 Hours)`}
-                    data={values}
-                    labels={labels}
-                    unit={config.unit}
-                  />
-                ) : (
-                  <div className="sensor-error">No history data available</div>
-                )}
-              </div>
-            </div>
+              sensorKey={sensorKey}
+              config={config}
+              sensorInfo={sensorInfo}
+              historyData={historyData}
+              historyOnly={historyOnly}
+              historyLoading={historyLoading}
+              currentStatus={currentStatus}
+              isFullHistory={isFullHistory}
+            />
           );
         })}
     </>
@@ -164,6 +209,7 @@ DynamicCharts.propTypes = {
   history: PropTypes.object.isRequired,
   availableSensors: PropTypes.arrayOf(PropTypes.string).isRequired,
   historyOnly: PropTypes.bool,
+  historyLoading: PropTypes.bool,
 };
 
 export default DynamicCharts;

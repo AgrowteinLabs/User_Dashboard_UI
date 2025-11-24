@@ -11,7 +11,10 @@ import {
   Switch,
   Slider,
   Button,
-  Tooltip
+  Tooltip,
+  TextField,
+  Box,
+  Divider
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import SettingsRemoteIcon from "@mui/icons-material/SettingsRemote";
@@ -30,6 +33,7 @@ const AreaCards = () => {
   const [products, setProducts] = useState([]);
   const [productDetails, setProductDetails] = useState(null);
   const [thresholds, setThresholds] = useState({});
+  const [offsets, setOffsets] = useState({});
   const [controlStates, setControlStates] = useState({});
   const [mode, setMode] = useState("manual");
   const [expanded, setExpanded] = useState(false);
@@ -63,12 +67,15 @@ const AreaCards = () => {
         if (selected) {
           setProductDetails(selected);
           const initThresh = {};
+          const initOffsets = {};
           const initStates = {};
           selected.controls.forEach((c) => {
             initThresh[c.controlId] = c.threshHold || 0;
+            initOffsets[c.controlId] = c.offset || 0;
             initStates[c.controlId] = c.state || "OFF";
           });
           setThresholds(initThresh);
+          setOffsets(initOffsets);
           setControlStates(initStates);
           const allAuto = selected.controls.every((c) => c.automate);
           setMode(allAuto ? "automate" : "manual");
@@ -84,9 +91,14 @@ const AreaCards = () => {
     setThresholds((prev) => ({ ...prev, [controlId]: value }));
   };
 
+  const handleOffsetChange = (controlId, value) => {
+    setOffsets((prev) => ({ ...prev, [controlId]: value }));
+  };
+
   const handleSaveThreshold = (controlId, pin) => {
     const threshold = thresholds[controlId];
-    const payload = { command: "SetThreshold", pin, threshold };
+    const offset = offsets[controlId];
+    const payload = { command: "SetThreshold", pin, threshold, offset };
 
     Swal.fire({ title: "Sending...", text: "Waiting for ESP32 feedback", allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
@@ -115,6 +127,26 @@ const AreaCards = () => {
 
         const result = await res.json();
         console.log("💾 Threshold saved to DB:", result);
+
+        // Save offset separately
+        const offsetPayload = {
+          uid: selectedProductUid,
+          pin,
+          controlId,
+          value: offset,
+          mode: "offset"
+        };
+
+        console.log("📤 Sending offset feedback to server:", offsetPayload);
+
+        const offsetRes = await fetch(`${import.meta.env.VITE_REACT_APP_API_URL}/api/v1/command/control/save`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(offsetPayload),
+        });
+
+        const offsetResult = await offsetRes.json();
+        console.log("💾 Offset saved to DB:", offsetResult);
 
         Swal.fire("✅ Success", "Threshold confirmed by ESP32", "success");
       },
@@ -182,7 +214,10 @@ const AreaCards = () => {
             command: "SetMode",
             pin: c.pin,
             mode: newMode === "automate" ? "Auto" : "Manual",
-            ...(newMode === "automate" && { threshold: thresholds[c.controlId] })
+            ...(newMode === "automate" && {
+              threshold: thresholds[c.controlId],
+              offset: offsets[c.controlId]
+            })
           };
 
           publishCommandWithFeedback(
@@ -314,50 +349,136 @@ const AreaCards = () => {
               <div className="controls-grid">
                 {controls.map((control) => (
                   <div className="control-card" key={control.controlId}>
-                    <h5>{control.name}</h5>
+                    <Box sx={{ mb: 2, pb: 1.5, borderBottom: '2px solid #e0e0e0' }}>
+                      <Typography variant="h6" sx={{ fontWeight: 600, color: '#03856d' }}>
+                        {control.name}
+                      </Typography>
+                      <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                        {/* Pin: {control.pin} • ID: {control.controlId} */}
+                      </Typography>
+                    </Box>
 
                     {/* Power Button - Only in Manual Mode */}
                     {mode === "manual" && (
-                      <Tooltip title={!controlStates[control.controlId] ? "No state data" : ""}>
-                        <span>
-                          <Button
-                            variant="outlined"
-                            size="small"
-                            onClick={() =>
-                              handleTogglePower(control.controlId, control.pin, controlStates[control.controlId])
-                            }
-                            disabled={!controlStates[control.controlId]}
-                          >
-                            TURN {controlStates[control.controlId] === "ON" ? "OFF" : "ON"}
-                          </Button>
-                        </span>
-                      </Tooltip>
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                        <Box sx={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          p: 1.5,
+                          bgcolor: controlStates[control.controlId] === "ON" ? '#e8f5e9' : '#fafafa',
+                          borderRadius: 1,
+                          border: '1px solid',
+                          borderColor: controlStates[control.controlId] === "ON" ? '#4caf50' : '#e0e0e0'
+                        }}>
+                          <Box>
+                            <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                              Status
+                            </Typography>
+                            <Typography variant="h6" sx={{
+                              color: controlStates[control.controlId] === "ON" ? '#4caf50' : '#9e9e9e',
+                              fontWeight: 600
+                            }}>
+                              {controlStates[control.controlId] || 'N/A'}
+                            </Typography>
+                          </Box>
+                          <Tooltip title={!controlStates[control.controlId] ? "No state data" : ""}>
+                            <span>
+                              <Button
+                                variant={controlStates[control.controlId] === "ON" ? "contained" : "outlined"}
+                                color={controlStates[control.controlId] === "ON" ? "error" : "success"}
+                                onClick={() =>
+                                  handleTogglePower(control.controlId, control.pin, controlStates[control.controlId])
+                                }
+                                disabled={!controlStates[control.controlId]}
+                                sx={{ minWidth: 100 }}
+                              >
+                                TURN {controlStates[control.controlId] === "ON" ? "OFF" : "ON"}
+                              </Button>
+                            </span>
+                          </Tooltip>
+                        </Box>
+                      </Box>
                     )}
 
                     {/* Threshold Controls - Only in Automate Mode */}
                     {mode === "automate" && (
-                      <>
-                        <Slider
-                          value={thresholds[control.controlId] || 0}
-                          min={control.min}
-                          max={control.max}
-                          step={0.1}
-                          onChange={(_, val) => handleThresholdChange(control.controlId, val)}
-                        />
-                        <input
-                          type="number"
-                          value={thresholds[control.controlId] || 0}
-                          onChange={(e) => handleThresholdChange(control.controlId, parseFloat(e.target.value))}
-                        />
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+                        {/* Threshold Section */}
+                        <Box>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                            <Typography variant="body2" sx={{ fontWeight: 600, color: '#03856d' }}>
+                              Threshold
+                            </Typography>
+                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                              Range: {control.min} - {control.max}
+                            </Typography>
+                          </Box>
+                          <Slider
+                            value={thresholds[control.controlId] || 0}
+                            min={control.min}
+                            max={control.max}
+                            step={1}
+                            valueLabelDisplay="auto"
+                            onChange={(_, val) => handleThresholdChange(control.controlId, val)}
+                            sx={{ mb: 1 }}
+                          />
+                          <TextField
+                            type="number"
+                            value={thresholds[control.controlId] || 0}
+                            onChange={(e) => handleThresholdChange(control.controlId, parseInt(e.target.value) || 0)}
+                            size="small"
+                            fullWidth
+                            inputProps={{ min: control.min, max: control.max, step: 1 }}
+                          />
+                        </Box>
+
+                        {/* Offset Section */}
+                        <Box>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                            <Typography variant="body2" sx={{ fontWeight: 600, color: '#03856d' }}>
+                              Offset
+                            </Typography>
+                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                              Range: 0 - 50
+                            </Typography>
+                          </Box>
+                          <Slider
+                            value={offsets[control.controlId] || 0}
+                            min={0}
+                            max={50}
+                            step={1}
+                            valueLabelDisplay="auto"
+                            onChange={(_, val) => handleOffsetChange(control.controlId, val)}
+                            sx={{ mb: 1 }}
+                          />
+                          <TextField
+                            type="number"
+                            value={offsets[control.controlId] || 0}
+                            onChange={(e) => handleOffsetChange(control.controlId, parseInt(e.target.value) || 0)}
+                            size="small"
+                            fullWidth
+                            inputProps={{ min: 0, max: 50, step: 1 }}
+                          />
+                        </Box>
+
+                        <Divider />
+
                         <Button
                           variant="contained"
                           fullWidth
-                          sx={{ mt: 1 }}
+                          size="large"
                           onClick={() => handleSaveThreshold(control.controlId, control.pin)}
+                          sx={{
+                            bgcolor: '#03856d',
+                            '&:hover': { bgcolor: '#026d55' },
+                            py: 1.2,
+                            fontWeight: 600
+                          }}
                         >
-                          Save Threshold
+                          Save Configuration
                         </Button>
-                      </>
+                      </Box>
                     )}
                   </div>
                 ))}

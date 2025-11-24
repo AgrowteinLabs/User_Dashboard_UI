@@ -18,7 +18,7 @@ const AreaCharts = () => {
   const [showHistoryOnly, setShowHistoryOnly] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(null);
 
-  const { current, history } = useSensorData(selectedProductUid);
+  const { current, history, loading: historyLoading } = useSensorData(selectedProductUid);
   const { message: mqttMessage, lastReceivedTime } =
     useMqttSensorData(selectedProductUid);
 
@@ -52,6 +52,7 @@ const AreaCharts = () => {
   // Memoized real-time data (from MQTT or fallback to REST)
   const finalCurrent = useMemo(() => {
     if (mqttMessage && Object.keys(mqttMessage).length > 0) {
+      const timestamp = lastReceivedTime || Date.now();
       return {
         data: Object.fromEntries(
           Object.entries(mqttMessage).map(([k, v]) => [
@@ -60,14 +61,15 @@ const AreaCharts = () => {
               status:
                 typeof v === "string" && v.includes("-er") ? "error" : "ok",
               value: v,
-              timestamp: Date.now(),
+              timestamp: timestamp,
             },
           ])
         ),
+        timestamp: timestamp, // Add global timestamp
       };
     }
     return current;
-  }, [mqttMessage, current]);
+  }, [mqttMessage, current, lastReceivedTime]);
 
   // Check if all real-time sensors are stale or error
   const isStale = useMemo(() => {
@@ -128,6 +130,7 @@ const AreaCharts = () => {
             history={history}
             availableSensors={availableSensors}
             historyOnly={showHistoryOnly}
+            historyLoading={historyLoading}
           />
         )
       )}

@@ -16,7 +16,9 @@
       margin-bottom: 12px;
     }
 
-    p, span, div {
+    p,
+    span,
+    div {
       color: var(--text-color);
       font-size: 0.95rem;
     }
@@ -91,3 +93,19 @@
   height: 100%;
 }
 
+.history-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  background-color: var(--secondary-color);
+  border-radius: 8px;
+  box-shadow: var(--light-shadow1);
+  min-height: 120px;
+  color: var(--text-color);
+  font-size: 0.95rem;
+
+  .MuiCircularProgress-root {
+    color: var(--primary-color);
+  }
+}
