@@ -1,4 +1,4 @@
-import { useEffect, useState, useContext, useRef } from "react";
+import { useEffect, useState, useContext, useRef, useCallback } from "react";
 import {
   Select,
   MenuItem,
@@ -42,6 +42,36 @@ const AreaCards = () => {
 
   const { publishCommandWithFeedback } = useMqttControl(selectedProductUid);
 
+  // Reusable function to fetch product details from backend
+  const fetchDetails = useCallback(async () => {
+    if (!userId || !selectedProductUid) return;
+    try {
+      const url = import.meta.env.VITE_REACT_APP_API_URL;
+      const res = await fetch(`${url}/api/v1/user/product/${userId}`);
+      const data = await res.json();
+      const selected = data.find((p) => p.uid === selectedProductUid);
+      if (selected) {
+        setProductDetails(selected);
+        const initThresh = {};
+        const initOffsets = {};
+        const initStates = {};
+        selected.controls.forEach((c) => {
+          initThresh[c.controlId] = c.threshHold || 0;
+          initOffsets[c.controlId] = Math.max(1, c.offset || 1);
+          initStates[c.controlId] = c.state || "OFF";
+        });
+        setThresholds(initThresh);
+        setOffsets(initOffsets);
+        setControlStates(initStates);
+        const allAuto = selected.controls.every((c) => c.automate);
+        setMode(allAuto ? "automate" : "manual");
+        console.log("✅ Product details refreshed from backend");
+      }
+    } catch (err) {
+      console.error("Error loading product:", err);
+    }
+  }, [userId, selectedProductUid]);
+
   useEffect(() => {
     const fetchInitial = async () => {
       const data = await fetchProducts();
@@ -57,35 +87,8 @@ const AreaCards = () => {
   }, [setSelectedProductUid]);
 
   useEffect(() => {
-    const fetchDetails = async () => {
-      if (!userId || !selectedProductUid) return;
-      try {
-        const url = import.meta.env.VITE_REACT_APP_API_URL;
-        const res = await fetch(`${url}/api/v1/user/product/${userId}`);
-        const data = await res.json();
-        const selected = data.find((p) => p.uid === selectedProductUid);
-        if (selected) {
-          setProductDetails(selected);
-          const initThresh = {};
-          const initOffsets = {};
-          const initStates = {};
-          selected.controls.forEach((c) => {
-            initThresh[c.controlId] = c.threshHold || 0;
-            initOffsets[c.controlId] = c.offset || 0;
-            initStates[c.controlId] = c.state || "OFF";
-          });
-          setThresholds(initThresh);
-          setOffsets(initOffsets);
-          setControlStates(initStates);
-          const allAuto = selected.controls.every((c) => c.automate);
-          setMode(allAuto ? "automate" : "manual");
-        }
-      } catch (err) {
-        console.error("Error loading product:", err);
-      }
-    };
     fetchDetails();
-  }, [selectedProductUid, userId]);
+  }, [selectedProductUid, userId, fetchDetails]);
 
   const handleThresholdChange = (controlId, value) => {
     setThresholds((prev) => ({ ...prev, [controlId]: value }));
@@ -148,7 +151,10 @@ const AreaCards = () => {
         const offsetResult = await offsetRes.json();
         console.log("💾 Offset saved to DB:", offsetResult);
 
-        Swal.fire("✅ Success", "Threshold confirmed by ESP32", "success");
+        // Refetch to sync UI with backend
+        await fetchDetails();
+
+        Swal.fire("✅ Success", "Configuration saved successfully", "success");
       },
       () => {
         Swal.close();
@@ -190,7 +196,9 @@ const AreaCards = () => {
         const result = await res.json();
         console.log("💾 Power state saved to DB:", result);
 
-        setControlStates((prev) => ({ ...prev, [controlId]: newState }));
+        // Refetch to sync UI with backend
+        await fetchDetails();
+
         Swal.fire("✅ Success", `Control turned ${newState}`, "success");
       },
       () => {
@@ -203,7 +211,6 @@ const AreaCards = () => {
 
   const handleModeToggle = () => {
     const newMode = mode === "manual" ? "automate" : "manual";
-    setMode(newMode);
 
     Swal.fire({ title: "Switching mode...", text: "Waiting for ESP32...", allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
@@ -215,8 +222,8 @@ const AreaCards = () => {
             pin: c.pin,
             mode: newMode === "automate" ? "Auto" : "Manual",
             ...(newMode === "automate" && {
-              threshold: thresholds[c.controlId],
-              offset: offsets[c.controlId]
+              threshold: thresholds[c.controlId] || 1,
+              offset: Math.max(1, offsets[c.controlId] || 1)
             })
           };
 
@@ -224,8 +231,6 @@ const AreaCards = () => {
             payload,
             async () => {
               console.log("📥 ESP32 confirmed mode toggle:", payload);
-
-              Swal.close();
 
               const feedbackPayload = {
                 uid: selectedProductUid,
@@ -236,28 +241,58 @@ const AreaCards = () => {
               };
 
               console.log("📤 Sending automate mode feedback:", feedbackPayload);
-
-              const res = await fetch(`${import.meta.env.VITE_REACT_APP_API_URL}/api/v1/command/control/save`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(feedbackPayload),
+              console.log("📤 Full payload details:", {
+                uid: feedbackPayload.uid,
+                pin: feedbackPayload.pin,
+                controlId: feedbackPayload.controlId,
+                value: feedbackPayload.value,
+                valueType: typeof feedbackPayload.value,
+                mode: feedbackPayload.mode
               });
 
-              const result = await res.json();
-              console.log("💾 Mode state saved to DB:", result);
+              try {
+                const res = await fetch(`${import.meta.env.VITE_REACT_APP_API_URL}/api/v1/command/control/save`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify(feedbackPayload),
+                });
 
-              resolve();
+                const responseText = await res.text();
+                console.log("📥 Backend response status:", res.status);
+                console.log("📥 Backend response body:", responseText);
+
+                if (!res.ok) {
+                  console.error("❌ Backend error response:", responseText);
+                  throw new Error(`Server error: ${res.status} - ${responseText}`);
+                }
+
+                const result = JSON.parse(responseText);
+                console.log("💾 Mode state saved to DB:", result);
+                resolve();
+              } catch (error) {
+                console.error("❌ Failed to save to DB:", error);
+                reject(new Error(`Failed to save mode for pin ${c.pin}: ${error.message}`));
+              }
             },
             () => {
-              Swal.close();
               reject(new Error(`ESP32 did not respond for pin ${c.pin}`));
             }
           );
         })
       )
     )
-      .then(() => Swal.fire("✅ Mode Updated", `Switched to ${newMode.toUpperCase()}`, "success"))
-      .catch((err) => Swal.fire("❌ Failed", err.message, "error"));
+      .then(async () => {
+        Swal.close();
+        // Refetch to sync UI with backend
+        await fetchDetails();
+        Swal.fire("✅ Mode Updated", `Switched to ${newMode.toUpperCase()}`, "success");
+      })
+      .catch((err) => {
+        Swal.close();
+        // Revert to original mode if failed
+        fetchDetails();
+        Swal.fire("❌ Failed", err.message, "error");
+      });
   };
 
 
@@ -440,13 +475,13 @@ const AreaCards = () => {
                               Offset
                             </Typography>
                             <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                              Range: 0 - 50
+                              Range: 1 - 100
                             </Typography>
                           </Box>
                           <Slider
-                            value={offsets[control.controlId] || 0}
-                            min={0}
-                            max={50}
+                            value={offsets[control.controlId] || 1}
+                            min={1}
+                            max={100}
                             step={1}
                             valueLabelDisplay="auto"
                             onChange={(_, val) => handleOffsetChange(control.controlId, val)}
@@ -454,11 +489,11 @@ const AreaCards = () => {
                           />
                           <TextField
                             type="number"
-                            value={offsets[control.controlId] || 0}
-                            onChange={(e) => handleOffsetChange(control.controlId, parseInt(e.target.value) || 0)}
+                            value={offsets[control.controlId] || 1}
+                            onChange={(e) => handleOffsetChange(control.controlId, Math.max(1, parseInt(e.target.value) || 1))}
                             size="small"
                             fullWidth
-                            inputProps={{ min: 0, max: 50, step: 1 }}
+                            inputProps={{ min: 1, max: 100, step: 1 }}
                           />
                         </Box>
 
