@@ -26,9 +26,11 @@ const BarChartCard = ({ title, value, unit, status = "active" }) => {
     return lastValidValueRef.current ?? 0;
   }, [value]);
 
+  // Format value to 0 decimals for display
+  const formattedValue = Math.round(numeric);
   const series = useMemo(
-    () => [{ name: title, data: [numeric] }],
-    [title, numeric]
+    () => [{ name: title, data: [formattedValue] }],
+    [title, formattedValue]
   );
 
   const chartOptions = useMemo(
@@ -43,7 +45,7 @@ const BarChartCard = ({ title, value, unit, status = "active" }) => {
           borderRadius: 5,
           columnWidth: "30%",
           dataLabels: {
-            position: "center", // 👈 put labels inside the bar
+            position: "center",
           },
         },
       },
@@ -51,9 +53,9 @@ const BarChartCard = ({ title, value, unit, status = "active" }) => {
         enabled: true,
         formatter: (val) => `${val}${unit ? " " + unit : ""}`,
         style: {
-          fontSize: "14px",
+          fontSize: "12px", // smaller font size
           fontWeight: "600",
-          colors: ["#fff"], // white text for contrast inside the bar
+          colors: ["#fff"],
         },
       },
       xaxis: {
@@ -92,6 +94,20 @@ const BarChartCard = ({ title, value, unit, status = "active" }) => {
           type="bar"
           height={312}
         />
+        {/* Value label outside bar for overflow cases */}
+        <div
+          className="bar-chart-value-label"
+          style={{
+            fontSize: "13px",
+            fontWeight: 600,
+            color: "var(--primary-color)",
+            marginTop: "8px",
+            textAlign: "center",
+          }}
+        >
+          {formattedValue}
+          {unit ? ` ${unit}` : ""}
+        </div>
       </div>
     </div>
   );
