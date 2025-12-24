@@ -19,11 +19,14 @@ const BarChartCard = ({ title, value, unit, status = "active" }) => {
 
   const numeric = useMemo(() => {
     const n = Number(value);
-    if (Number.isFinite(n)) {
+    // Ensure we always have a finite number, never NaN
+    if (Number.isFinite(n) && n >= 0) {
       lastValidValueRef.current = n;
       return n;
     }
-    return lastValidValueRef.current ?? 0;
+    // Fallback to last valid value or 0
+    const fallback = lastValidValueRef.current ?? 0;
+    return Number.isFinite(fallback) ? fallback : 0;
   }, [value]);
 
   // Format value to 0 decimals for display

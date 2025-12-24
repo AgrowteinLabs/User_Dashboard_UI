@@ -4,6 +4,18 @@ import { useMemo } from "react";
 import "./AreaChartCard.scss";
 
 const AreaChartCard = ({ title, data, labels, unit }) => {
+  // Filter out NaN and invalid values to prevent transform errors
+  const sanitizedData = useMemo(() => {
+    return data.map(val => {
+      const num = Number(val);
+      return Number.isFinite(num) ? num : 0;
+    });
+  }, [data]);
+
+  const sanitizedLabels = useMemo(() => {
+    return labels && labels.length > 0 ? labels : Array.from({ length: sanitizedData.length }, (_, i) => `Point ${i + 1}`);
+  }, [labels, sanitizedData]);
+
   const options = useMemo(() => ({
     chart: {
       type: "area",
@@ -17,7 +29,7 @@ const AreaChartCard = ({ title, data, labels, unit }) => {
       },
     },
     xaxis: {
-      categories: labels,
+      categories: sanitizedLabels,
       title: { text: "Time", style: { color: "#555" } },
       labels: { style: { colors: "#777" } },
     },
@@ -52,9 +64,9 @@ const AreaChartCard = ({ title, data, labels, unit }) => {
       strokeDashArray: 5,
     },
     colors: ["#03856d"],
-  }), [labels, unit]);
+  }), [sanitizedLabels, unit]);
 
-  const series = useMemo(() => [{ name: title, data }], [title, data]);
+  const series = useMemo(() => [{ name: title, data: sanitizedData }], [title, sanitizedData]);
 
   return (
     <div className="area-chart">

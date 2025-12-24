@@ -103,12 +103,12 @@ const AreaCards = () => {
     const offset = offsets[controlId];
     const payload = { command: "SetThreshold", pin, threshold, offset };
 
-    Swal.fire({ title: "Sending...", text: "Waiting for ESP32 feedback", allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+    Swal.fire({ title: "Sending...", text: "Waiting for Device feedback", allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
     publishCommandWithFeedback(
       payload,
       async () => {
-        console.log("📥 ESP32 confirmed threshold set:", payload);
+        console.log("📥 Device confirmed threshold set:", payload);
 
         Swal.close(); // ✅ FIX
 
@@ -158,7 +158,7 @@ const AreaCards = () => {
       },
       () => {
         Swal.close();
-        Swal.fire("❌ Timeout", "ESP32 did not respond", "error");
+        Swal.fire("❌ Timeout", "Device did not respond", "error");
       }
     );
   };
@@ -168,12 +168,12 @@ const AreaCards = () => {
     const newState = currentState === "ON" ? "OFF" : "ON";
     const payload = { command: "SetPower", pin, state: newState };
 
-    Swal.fire({ title: "Sending...", text: "Waiting for ESP32 feedback", allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+    Swal.fire({ title: "Sending...", text: "Waiting for Device feedback", allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
     publishCommandWithFeedback(
       payload,
       async () => {
-        console.log("📥 ESP32 confirmed power toggle:", payload);
+        console.log("📥 Device confirmed power toggle:", payload);
 
         Swal.close(); // ✅ FIX
 
@@ -203,7 +203,7 @@ const AreaCards = () => {
       },
       () => {
         Swal.close();
-        Swal.fire("❌ Timeout", "ESP32 did not confirm", "error");
+        Swal.fire("❌ Timeout", "Device did not confirm", "error");
       }
     );
   };
@@ -212,7 +212,7 @@ const AreaCards = () => {
   const handleModeToggle = () => {
     const newMode = mode === "manual" ? "automate" : "manual";
 
-    Swal.fire({ title: "Switching mode...", text: "Waiting for ESP32...", allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+    Swal.fire({ title: "Switching mode...", text: "Waiting for Device...", allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
     Promise.all(
       productDetails.controls.map((c) =>
@@ -230,7 +230,7 @@ const AreaCards = () => {
           publishCommandWithFeedback(
             payload,
             async () => {
-              console.log("📥 ESP32 confirmed mode toggle:", payload);
+              console.log("📥 Device confirmed mode toggle:", payload);
 
               const feedbackPayload = {
                 uid: selectedProductUid,
@@ -271,11 +271,11 @@ const AreaCards = () => {
                 resolve();
               } catch (error) {
                 console.error("❌ Failed to save to DB:", error);
-                reject(new Error(`Failed to save mode for pin ${c.pin}: ${error.message}`));
+                reject(new Error(`Failed to save mode for ${c.name}: ${error.message}`));
               }
             },
             () => {
-              reject(new Error(`ESP32 did not respond for pin ${c.pin}`));
+              reject(new Error(`Device did not respond for ${c.name}`));
             }
           );
         })
@@ -361,6 +361,16 @@ const AreaCards = () => {
             <p className="info-value">{controls.length}</p>
           </div>
         </motion.div>
+
+        {/* <motion.div className="area-card" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Box sx={{ width: 12, height: 12, borderRadius: '50%', backgroundColor: '#4caf50', animation: 'pulse 2s infinite' }} />
+          </Box>
+          <div>
+            <p className="info-title">Device Status</p>
+            <p className="info-value" style={{ fontSize: '12px' }}>Connected</p>
+          </div>
+        </motion.div> */}
       </div>
 
       <div className="control-panel">
