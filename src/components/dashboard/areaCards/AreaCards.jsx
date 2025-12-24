@@ -361,6 +361,16 @@ const AreaCards = () => {
             <p className="info-value">{controls.length}</p>
           </div>
         </motion.div>
+
+        {/* <motion.div className="area-card" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Box sx={{ width: 12, height: 12, borderRadius: '50%', backgroundColor: '#4caf50', animation: 'pulse 2s infinite' }} />
+          </Box>
+          <div>
+            <p className="info-title">Device Status</p>
+            <p className="info-value" style={{ fontSize: '12px' }}>Connected</p>
+          </div>
+        </motion.div> */}
       </div>
 
       <div className="control-panel">

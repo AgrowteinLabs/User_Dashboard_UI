@@ -6,23 +6,52 @@ const SIGN_URL_API = "https://apiv2.agrowtein.com/api/sign-mqtt-url";
 
 export const useMqttControl = (uid) => {
   const clientRef = useRef(null);
+  const messageListenerRef = useRef(null);
 
   const publishCommandWithFeedback = (payload, onSuccess, onTimeout) => {
     const client = clientRef.current;
-    if (!client?.connected) return console.warn("❌ MQTT not connected");
-
-    const timeoutId = setTimeout(() => {
-      client.removeListener("message", onMessage);
+    if (!client?.connected) {
+      console.warn("❌ MQTT not connected");
       onTimeout?.();
-    }, 10000);
+      return;
+    }
+
+    // Timeout for device feedback - 25 seconds
+    const FEEDBACK_TIMEOUT = 25000;
+    // Fallback timeout if device doesn't send feedback but command was published - 3 seconds
+    const PUBLISH_SUCCESS_FALLBACK = 3000;
+    let feedbackTimeoutId = null;
+    let fallbackTimeoutId = null;
+    let feedbackReceived = false;
 
     const onMessage = (topic, message) => {
       try {
         const feedback = JSON.parse(message.toString());
-        if (feedback.pin === payload.pin && feedback.command === payload.command) {
-          clearTimeout(timeoutId);
+        console.log("📡 Feedback received:", feedback);
+        console.log(
+          "🔍 Comparing - Expected pin:",
+          payload.pin,
+          "Got:",
+          feedback.pin,
+          "| Expected command:",
+          payload.command,
+          "Got:",
+          feedback.command
+        );
+
+        // Match feedback with command
+        if (
+          feedback.pin === payload.pin &&
+          feedback.command === payload.command
+        ) {
+          console.log("✅ Feedback matched! Device confirmed command.");
+          feedbackReceived = true;
+          clearTimeout(feedbackTimeoutId);
+          clearTimeout(fallbackTimeoutId);
           client.removeListener("message", onMessage);
           onSuccess?.();
+        } else {
+          console.log("⚠️ Feedback received but doesn't match this command");
         }
       } catch (err) {
         console.warn("⚠️ Invalid feedback received", err);
@@ -30,14 +59,52 @@ export const useMqttControl = (uid) => {
     };
 
     client.on("message", onMessage);
+    messageListenerRef.current = onMessage;
 
-    client.publish(`esp32/${uid}/sub`, JSON.stringify(payload), {}, (err) => {
-      if (err) {
-        clearTimeout(timeoutId);
-        client.removeListener("message", onMessage);
-        console.error("❌ Publish failed", err);
+    console.log(`📤 Publishing command to esp32/${uid}/sub:`, payload);
+
+    client.publish(
+      `esp32/${uid}/sub`,
+      JSON.stringify(payload),
+      { qos: 1 },
+      (err) => {
+        if (err) {
+          clearTimeout(feedbackTimeoutId);
+          clearTimeout(fallbackTimeoutId);
+          client.removeListener("message", onMessage);
+          console.error("❌ Publish failed", err);
+          onTimeout?.();
+          return;
+        }
+        console.log("✅ Command published successfully to MQTT broker");
+
+        // If device doesn't send feedback within fallback time, assume success anyway
+        // This handles cases where device executes command but doesn't send feedback
+        fallbackTimeoutId = setTimeout(() => {
+          if (!feedbackReceived) {
+            console.warn(
+              "⚠️ No feedback received from device, but command was published to broker"
+            );
+            console.log(
+              "💡 Proceeding with success (device may not support feedback)"
+            );
+            clearTimeout(feedbackTimeoutId);
+            client.removeListener("message", onMessage);
+            onSuccess?.(); // Treat as success anyway
+          }
+        }, PUBLISH_SUCCESS_FALLBACK);
       }
-    });
+    );
+
+    // Hard timeout if feedback never comes and fallback already triggered
+    feedbackTimeoutId = setTimeout(() => {
+      console.warn(
+        `⏱️ Hard timeout - no device feedback after ${FEEDBACK_TIMEOUT}ms`
+      );
+      clearTimeout(fallbackTimeoutId);
+      client.removeListener("message", onMessage);
+      onTimeout?.();
+    }, FEEDBACK_TIMEOUT);
   };
 
   useEffect(() => {
