@@ -18,10 +18,7 @@ export const useMqttControl = (uid) => {
 
     // Timeout for device feedback - 25 seconds
     const FEEDBACK_TIMEOUT = 25000;
-    // Fallback timeout if device doesn't send feedback but command was published - 3 seconds
-    const PUBLISH_SUCCESS_FALLBACK = 3000;
     let feedbackTimeoutId = null;
-    let fallbackTimeoutId = null;
     let feedbackReceived = false;
 
     const onMessage = (topic, message) => {
@@ -47,7 +44,6 @@ export const useMqttControl = (uid) => {
           console.log("✅ Feedback matched! Device confirmed command.");
           feedbackReceived = true;
           clearTimeout(feedbackTimeoutId);
-          clearTimeout(fallbackTimeoutId);
           client.removeListener("message", onMessage);
           onSuccess?.();
         } else {
@@ -70,29 +66,12 @@ export const useMqttControl = (uid) => {
       (err) => {
         if (err) {
           clearTimeout(feedbackTimeoutId);
-          clearTimeout(fallbackTimeoutId);
           client.removeListener("message", onMessage);
           console.error("❌ Publish failed", err);
           onTimeout?.();
           return;
         }
         console.log("✅ Command published successfully to MQTT broker");
-
-        // If device doesn't send feedback within fallback time, assume success anyway
-        // This handles cases where device executes command but doesn't send feedback
-        fallbackTimeoutId = setTimeout(() => {
-          if (!feedbackReceived) {
-            console.warn(
-              "⚠️ No feedback received from device, but command was published to broker"
-            );
-            console.log(
-              "💡 Proceeding with success (device may not support feedback)"
-            );
-            clearTimeout(feedbackTimeoutId);
-            client.removeListener("message", onMessage);
-            onSuccess?.(); // Treat as success anyway
-          }
-        }, PUBLISH_SUCCESS_FALLBACK);
       }
     );
 
@@ -101,9 +80,10 @@ export const useMqttControl = (uid) => {
       console.warn(
         `⏱️ Hard timeout - no device feedback after ${FEEDBACK_TIMEOUT}ms`
       );
-      clearTimeout(fallbackTimeoutId);
       client.removeListener("message", onMessage);
-      onTimeout?.();
+      if (!feedbackReceived) {
+        onTimeout?.();
+      }
     }, FEEDBACK_TIMEOUT);
   };
 
