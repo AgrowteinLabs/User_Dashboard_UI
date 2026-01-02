@@ -57,7 +57,7 @@ const AreaCards = () => {
         const initStates = {};
         selected.controls.forEach((c) => {
           initThresh[c.controlId] = c.threshHold || 0;
-          initOffsets[c.controlId] = Math.max(1, c.offset || 1);
+          initOffsets[c.controlId] = c.offset || c.min || 0;
           initStates[c.controlId] = c.state || "OFF";
         });
         setThresholds(initThresh);
@@ -471,7 +471,28 @@ const AreaCards = () => {
                           <TextField
                             type="number"
                             value={thresholds[control.controlId] || 0}
-                            onChange={(e) => handleThresholdChange(control.controlId, parseInt(e.target.value) || 0)}
+                            onChange={(e) => {
+                              const rawValue = e.target.value.trim();
+                              if (rawValue === '') {
+                                handleThresholdChange(control.controlId, '');
+                              } else {
+                                const parsed = parseInt(rawValue, 10);
+                                if (!isNaN(parsed)) {
+                                  handleThresholdChange(control.controlId, parsed);
+                                }
+                              }
+                            }}
+                            onBlur={(e) => {
+                              const rawValue = e.target.value.trim();
+                              if (rawValue === '') {
+                                handleThresholdChange(control.controlId, 0);
+                              } else {
+                                const parsed = parseInt(rawValue, 10);
+                                if (!isNaN(parsed)) {
+                                  handleThresholdChange(control.controlId, parsed);
+                                }
+                              }
+                            }}
                             size="small"
                             fullWidth
                             inputProps={{ min: control.min, max: control.max, step: 1 }}
@@ -485,13 +506,13 @@ const AreaCards = () => {
                               Offset
                             </Typography>
                             <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                              Range: 1 - 100
+                              Range: {control.min} - {control.max}
                             </Typography>
                           </Box>
                           <Slider
-                            value={offsets[control.controlId] || 1}
-                            min={1}
-                            max={100}
+                            value={offsets[control.controlId] || control.min}
+                            min={control.min}
+                            max={control.max}
                             step={1}
                             valueLabelDisplay="auto"
                             onChange={(_, val) => handleOffsetChange(control.controlId, val)}
@@ -499,11 +520,32 @@ const AreaCards = () => {
                           />
                           <TextField
                             type="number"
-                            value={offsets[control.controlId] || 1}
-                            onChange={(e) => handleOffsetChange(control.controlId, Math.max(1, parseInt(e.target.value) || 1))}
+                            value={offsets[control.controlId] || control.min}
+                            onChange={(e) => {
+                              const rawValue = e.target.value.trim();
+                              if (rawValue === '') {
+                                handleOffsetChange(control.controlId, '');
+                              } else {
+                                const parsed = parseInt(rawValue, 10);
+                                if (!isNaN(parsed)) {
+                                  handleOffsetChange(control.controlId, parsed);
+                                }
+                              }
+                            }}
+                            onBlur={(e) => {
+                              const rawValue = e.target.value.trim();
+                              if (rawValue === '') {
+                                handleOffsetChange(control.controlId, control.min);
+                              } else {
+                                const parsed = parseInt(rawValue, 10);
+                                if (!isNaN(parsed)) {
+                                  handleOffsetChange(control.controlId, parsed);
+                                }
+                              }
+                            }}
                             size="small"
                             fullWidth
-                            inputProps={{ min: 1, max: 100, step: 1 }}
+                            inputProps={{ min: control.min, max: control.max, step: 1 }}
                           />
                         </Box>
 
