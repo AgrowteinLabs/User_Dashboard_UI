@@ -154,6 +154,10 @@ const AreaCards = () => {
         // Refetch to sync UI with backend
         await fetchDetails();
 
+        window.dispatchEvent(
+          new CustomEvent("thresholds-updated", { detail: { uid: selectedProductUid } })
+        );
+
         Swal.fire("✅ Success", "Configuration saved successfully", "success");
       },
       () => {
