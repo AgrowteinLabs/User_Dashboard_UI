@@ -16,6 +16,7 @@ import BaseLayout from "./layout/BaseLayout";
 import { SidebarProvider } from "./context/SidebarContext";
 import { UserProvider } from "./context/UserContext";
 import { ProductProvider } from "./context/ProductContext";
+import { NotificationProvider } from "./hooks/useNotificationManager";
 
 // Screens and Components
 import { Dashboard, PageNotFound } from "./screens";
@@ -110,7 +111,9 @@ function App() {
               <SidebarProvider>
                 <UserProvider>
                   <ProductProvider>
-                    <BaseLayout />
+                    <NotificationProvider>
+                      <BaseLayout />
+                    </NotificationProvider>
                   </ProductProvider>
                 </UserProvider>
               </SidebarProvider>

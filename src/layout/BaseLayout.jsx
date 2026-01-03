@@ -1,5 +1,6 @@
 import { Outlet } from "react-router-dom";
 import { Sidebar } from "../components";
+import PushInit from "../components/PushInit";
 
 const BaseLayout = () => {
   return (
@@ -8,6 +9,7 @@ const BaseLayout = () => {
       <Sidebar />
       {/* right side/content of the page */}
       <div className="content-wrapper">
+        <PushInit />
         <Outlet />
       </div>
     </main>

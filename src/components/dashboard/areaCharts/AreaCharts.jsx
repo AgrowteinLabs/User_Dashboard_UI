@@ -6,6 +6,8 @@ import { ProductContext } from "../../../context/ProductContext";
 import Swal from "sweetalert2";
 import { useSensorData } from "../../../hooks/useSensorData";
 import { useMqttSensorData } from "../../../hooks/useMqttSensorData";
+import { useNotificationManager } from "../../../hooks/useNotificationManager";
+import { useThresholdAlerts } from "../../../hooks/useThresholdAlerts";
 import DynamicCharts from "../../predefinedcharts/DynamicCharts";
 import NoDataPlaceholder from "../../predefinedcharts/NoDataPlaceholder";
 import DeviceStatusBanner from "../../predefinedcharts/DeviceStatusBanner";
@@ -70,6 +72,14 @@ const AreaCharts = () => {
     }
     return current;
   }, [mqttMessage, current, lastReceivedTime]);
+
+  const { addNotification } = useNotificationManager({ currentData: finalCurrent });
+
+  useThresholdAlerts({
+    uid: selectedProductUid,
+    currentData: finalCurrent,
+    notify: addNotification,
+  });
 
   // Check if all real-time sensors are stale or error
   const isStale = useMemo(() => {
