@@ -10,6 +10,7 @@ const normalizeKey = (key) =>
 export const useThresholdAlerts = ({ uid, currentData, notify }) => {
   const [controls, setControls] = useState([]);
   const triggeredRef = useRef({});
+  const loggedKeysRef = useRef({});
 
   const loadControls = useCallback(async () => {
     if (!uid) return;
@@ -75,10 +76,24 @@ export const useThresholdAlerts = ({ uid, currentData, notify }) => {
 
     Object.entries(currentData.data).forEach(([sensorKey, sensorData]) => {
       const normalizedKey = normalizeKey(sensorKey);
-      const thresholdConfig = normalizedThresholds.find(
-        (c) => c.key === normalizedKey
-      );
-      if (!thresholdConfig) return;
+      const thresholdConfig =
+        normalizedThresholds.find((c) => c.key === normalizedKey) ||
+        normalizedThresholds.find(
+          (c) => normalizedKey.includes(c.key) || c.key.includes(normalizedKey)
+        );
+      if (!thresholdConfig) {
+        if (!loggedKeysRef.current[normalizedKey]) {
+          console.debug(
+            "ℹ️ No threshold configured for sensor",
+            sensorKey,
+            "(normalized:",
+            normalizedKey,
+            ")"
+          );
+          loggedKeysRef.current[normalizedKey] = true;
+        }
+        return;
+      }
 
       const rawValue =
         typeof sensorData === "object" &&
@@ -95,6 +110,14 @@ export const useThresholdAlerts = ({ uid, currentData, notify }) => {
       const wasTriggered = triggeredRef.current[normalizedKey]?.triggered;
 
       if (numericValue > threshold && !wasTriggered) {
+        console.info("🚨 Threshold exceeded", {
+          sensorKey,
+          normalizedKey,
+          value: numericValue,
+          threshold,
+          offset,
+        });
+
         notify({
           type: "error",
           message: `${

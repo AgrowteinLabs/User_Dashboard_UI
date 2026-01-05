@@ -7,10 +7,28 @@ const useNotificationState = () => {
     const [notifications, setNotifications] = useState([]);
     const [unread, setUnread] = useState(0);
 
+    const showNativeNotification = useCallback((notification) => {
+        if (typeof window === "undefined" || typeof Notification === "undefined") return;
+        if (Notification.permission !== "granted") return;
+
+        try {
+            const title = notification.title || "Agrowtrack Alert";
+            const tag = `agrowtrack-${notification.id || Date.now()}`;
+            new Notification(title, {
+                body: notification.message,
+                tag,
+                data: notification,
+            });
+        } catch (err) {
+            console.warn("⚠️ Native notification failed", err);
+        }
+    }, []);
+
     const addNotification = useCallback((notification) => {
         setNotifications((prev) => [{ id: Date.now(), ...notification, read: false }, ...prev]);
         setUnread((prev) => prev + 1);
-    }, []);
+        showNativeNotification(notification);
+    }, [showNativeNotification]);
 
     const notifyPasswordChange = useCallback(() => {
         addNotification({ type: "success", message: "Password changed successfully.", time: new Date().toLocaleString() });
