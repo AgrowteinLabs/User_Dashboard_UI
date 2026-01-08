@@ -2,7 +2,7 @@ import mqtt from "mqtt";
 import { useEffect, useRef } from "react";
 import { v4 as uuidv4 } from "uuid";
 
-const SIGN_URL_API = `${import.meta.env.VITE_REACT_APP_API_BASE_URL}/api/sign-mqtt-url`;
+const SIGN_URL_API = "https://apiv2.agrowtein.com/api/sign-mqtt-url";
 
 export const useMqttControl = (uid) => {
   const clientRef = useRef(null);
@@ -92,44 +92,10 @@ export const useMqttControl = (uid) => {
 
     const setupMqtt = async () => {
       try {
-        console.log(`🔌 Fetching MQTT config for uid: ${uid}`);
         const res = await fetch(`${SIGN_URL_API}?uid=${uid}`);
+        const { url } = await res.json();
 
-        // Read response body once as text
-        const bodyText = await res.text();
-
-        // Check if request succeeded
-        if (!res.ok) {
-          console.error(
-            `❌ Backend returned ${res.status}:`,
-            bodyText.slice(0, 500)
-          );
-          throw new Error(
-            `Failed to get MQTT config: ${res.status} - Check backend logs at apiv2.agrowtein.com`
-          );
-        }
-
-        // Try to parse JSON
-        let mqttConfig;
-        try {
-          mqttConfig = JSON.parse(bodyText);
-        } catch (parseError) {
-          console.error("❌ Invalid JSON response:", bodyText.slice(0, 500));
-          throw new Error(
-            `Backend returned non-JSON response. Received: ${bodyText.slice(
-              0,
-              100
-            )}`
-          );
-        }
-
-        if (!mqttConfig.url) {
-          throw new Error("MQTT config missing 'url' property");
-        }
-
-        console.log("✅ MQTT config received, connecting...");
-
-        const mqttClient = mqtt.connect(mqttConfig.url, {
+        const mqttClient = mqtt.connect(url, {
           clientId: `mqtt-control-${uuidv4()}`,
           protocol: "wss",
           clean: true,
@@ -150,13 +116,6 @@ export const useMqttControl = (uid) => {
         clientRef.current = mqttClient;
       } catch (e) {
         console.error("❌ Failed to connect MQTT:", e);
-        console.error("📋 Troubleshooting:");
-        console.error("   1. Check backend logs at apiv2.agrowtein.com");
-        console.error("   2. Verify AWS IoT credentials are configured");
-        console.error(
-          "   3. Ensure AWS_IOT_ENDPOINT and AWS_REGION env vars are set"
-        );
-        console.error("   4. Check IAM permissions for iot:Connect");
       }
     };
 
