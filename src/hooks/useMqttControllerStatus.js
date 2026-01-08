@@ -2,7 +2,9 @@ import { useEffect, useState } from "react";
 import mqtt from "mqtt";
 import { v4 as uuidv4 } from "uuid";
 
-const SIGN_URL_API = "https://apiv2.agrowtein.com/api/sign-mqtt-url";
+const SIGN_URL_API = `${
+  import.meta.env.VITE_REACT_APP_API_BASE_URL
+}/api/sign-mqtt-url`;
 
 const normalizeKey = (key) => key?.toString().trim().toLowerCase() || "";
 
@@ -19,10 +21,41 @@ export const useMqttControllerStatus = (uid) => {
 
     const setupMqtt = async () => {
       try {
+        console.log(`🔌 Fetching MQTT config for control-status (uid: ${uid})`);
         const res = await fetch(`${SIGN_URL_API}?uid=${uid}`);
-        const { url } = await res.json();
 
-        client = mqtt.connect(url, {
+        // Read response body once as text
+        const bodyText = await res.text();
+
+        // Check if request succeeded
+        if (!res.ok) {
+          console.error(
+            `❌ Backend returned ${res.status}:`,
+            bodyText.slice(0, 500)
+          );
+          throw new Error(
+            `Failed to get MQTT config: ${res.status} - Backend route may not exist`
+          );
+        }
+
+        // Try to parse JSON
+        let mqttConfig;
+        try {
+          mqttConfig = JSON.parse(bodyText);
+        } catch (parseError) {
+          console.error("❌ Invalid JSON response:", bodyText.slice(0, 300));
+          throw new Error(
+            `Backend returned HTML instead of JSON. Route /api/sign-mqtt-url not found.`
+          );
+        }
+
+        if (!mqttConfig.url) {
+          throw new Error("MQTT config missing 'url' property");
+        }
+
+        console.log("✅ MQTT config received for control-status");
+
+        client = mqtt.connect(mqttConfig.url, {
           clientId: `frontend-ctrl-${uuidv4()}`,
           protocol: "wss",
           clean: true,
