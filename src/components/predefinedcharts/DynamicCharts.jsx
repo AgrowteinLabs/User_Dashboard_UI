@@ -29,6 +29,7 @@ const sensorChartMap = {
   "CO2 Sensor 4": { type: "bar", unit: "ppm", label: "CO2 Sensor 4" },
   "CO2 Sensor": { type: "bar", unit: "ppm", label: "CO₂ Level" },
   CO2: { type: "bar", unit: "ppm", label: "CO₂ Level" },
+  Gas_Kohm: { type: "bar", unit: "kΩ", label: "Gas Sensor (KΩ)" },
 
 };
 
