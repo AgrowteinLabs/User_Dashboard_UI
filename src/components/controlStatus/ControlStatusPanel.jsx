@@ -28,7 +28,7 @@ StateBadge.propTypes = {
 const ControlStatusPanel = () => {
   const { selectedProductUid } = useContext(ProductContext);
   const [controls, setControls] = useState([]);
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(false);
   const { statusMap, connected } = useMqttControllerStatus(selectedProductUid);
 
   useEffect(() => {
@@ -51,15 +51,26 @@ const ControlStatusPanel = () => {
     fetchControls();
   }, [selectedProductUid]);
 
+  // Auto-close panel after 30 seconds
+  useEffect(() => {
+    let timer;
+    if (isOpen) {
+      timer = setTimeout(() => {
+        setIsOpen(false);
+      }, 30000);
+    }
+    return () => clearTimeout(timer);
+  }, [isOpen]);
+
   const enrichedControls = useMemo(() => {
     return (controls || []).map((control) => {
       // Try matching by controlId first, then by pin separately
       const controlIdKey = normalizeKey(control.controlId);
       const pinKey = normalizeKey(control.pin);
-      
+
       let live = null;
       let matchedVia = null;
-      
+
       if (controlIdKey && statusMap[controlIdKey]) {
         live = statusMap[controlIdKey];
         matchedVia = "controlId";
@@ -67,18 +78,18 @@ const ControlStatusPanel = () => {
         live = statusMap[pinKey];
         matchedVia = "pin";
       }
-      
-      console.log(`🔍 Matching control:`, { 
-        name: control.name, 
+
+      console.log(`🔍 Matching control:`, {
+        name: control.name,
         controlId: control.controlId,
         pin: control.pin,
         normalizedControlId: controlIdKey,
         normalizedPin: pinKey,
         matchedVia,
-        found: !!live, 
-        state: live?.state 
+        found: !!live,
+        state: live?.state
       });
-      
+
       return {
         ...control,
         state: live?.state || control.state || "UNKNOWN",
