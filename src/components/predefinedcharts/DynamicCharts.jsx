@@ -30,7 +30,8 @@ const sensorChartMap = {
   "CO2 Sensor": { type: "bar", unit: "ppm", label: "CO₂ Level" },
   CO2: { type: "bar", unit: "ppm", label: "CO₂ Level" },
   Gas_Kohm: { type: "bar", unit: "kΩ", label: "Gas Sensor (KΩ)" },
-
+  Water_Level: { type: "area", unit: "cm", label: "Water Level" },
+  "Water Level": { type: "area", unit: "cm", label: "Water Level" },
 };
 
 const isStale = (timestamp) => {
@@ -65,7 +66,7 @@ const normalizeSensorData = (data, globalTimestamp) => {
 };
 
 // Memoized chart pair component for performance
-const ChartPair = memo(({ sensorKey, config, sensorInfo, historyData, historyOnly, historyLoading, currentStatus, isFullHistory }) => {
+const ChartPair = memo(({ config, sensorInfo, historyData, historyOnly, historyLoading, currentStatus, isFullHistory }) => {
   const { ref, inView } = useInView({
     triggerOnce: true,
     threshold: 0.1,
@@ -87,7 +88,7 @@ const ChartPair = memo(({ sensorKey, config, sensorInfo, historyData, historyOnl
     <div
       ref={ref}
       className={`chart-pair ${isFullHistory ? "full-history" : ""}`}
-      key={sensorKey}
+    // key prop removed here as it should be on the component instance, not the root element
     >
       {!historyOnly && currentStatus === "live" ? (
         <div className="chart-current">
@@ -140,6 +141,27 @@ const ChartPair = memo(({ sensorKey, config, sensorInfo, historyData, historyOnl
 
 ChartPair.displayName = 'ChartPair';
 
+ChartPair.propTypes = {
+
+  config: PropTypes.shape({
+    label: PropTypes.string,
+    unit: PropTypes.string,
+  }).isRequired,
+  sensorInfo: PropTypes.shape({
+    value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    timestamp: PropTypes.number,
+    status: PropTypes.string,
+  }),
+  historyData: PropTypes.arrayOf(PropTypes.shape({
+    value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    timestamp: PropTypes.number,
+  })).isRequired,
+  historyOnly: PropTypes.bool,
+  historyLoading: PropTypes.bool,
+  currentStatus: PropTypes.string.isRequired,
+  isFullHistory: PropTypes.bool.isRequired,
+};
+
 const DynamicCharts = ({
   current,
   history,
@@ -170,8 +192,10 @@ const DynamicCharts = ({
           )
         )
         .map(([sensorKey, config]) => {
-          const sensorInfo = currentData[sensorKey];
-          const historyData = history[sensorKey] || [];
+          // Loose lookup to handle "Water Level" vs "Water_Level" mismatch
+          const lookup = (src, k) => src[k] || src[k.replace(/ /g, "_")] || src[k.replace(/_/g, " ")];
+          const sensorInfo = lookup(currentData, sensorKey);
+          const historyData = lookup(history, sensorKey) || [];
 
           const currentStatus = !sensorInfo
             ? "no-data"
@@ -188,7 +212,7 @@ const DynamicCharts = ({
           return (
             <ChartPair
               key={sensorKey}
-              sensorKey={sensorKey}
+
               config={config}
               sensorInfo={sensorInfo}
               historyData={historyData}
