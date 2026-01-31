@@ -131,7 +131,7 @@ const ControlStatusPanel = () => {
                     <StateBadge state={c.state} />
                   </div>
                   <div className="meta">
-                    <span>Pin: {c.pin ?? "—"}</span>
+
                     <span>Last updated: {formatTime(c.lastUpdated)}</span>
                   </div>
                   <div className="sensor">

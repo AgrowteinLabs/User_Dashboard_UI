@@ -474,7 +474,7 @@ const AreaCards = () => {
                           />
                           <TextField
                             type="number"
-                            value={thresholds[control.controlId] || 0}
+                            value={thresholds[control.controlId] ?? 0}
                             onChange={(e) => {
                               const rawValue = e.target.value.trim();
                               if (rawValue === '') {
@@ -524,7 +524,7 @@ const AreaCards = () => {
                           />
                           <TextField
                             type="number"
-                            value={offsets[control.controlId] || control.min}
+                            value={offsets[control.controlId] ?? control.min}
                             onChange={(e) => {
                               const rawValue = e.target.value.trim();
                               if (rawValue === '') {
