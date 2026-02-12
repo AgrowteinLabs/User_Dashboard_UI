@@ -56,6 +56,8 @@ export default defineConfig({
         changeOrigin: true,
         secure: false,
         cookieDomainRewrite: "localhost",
+        timeout: 120000, // 2 minutes
+        proxyTimeout: 120000, // 2 minutes
       },
     },
   },
