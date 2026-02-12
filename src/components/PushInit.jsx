@@ -12,7 +12,8 @@ const PushInit = () => {
         if (!user || !isPushSupported() || alreadyAsked === "denied") return;
 
         const run = async () => {
-            const result = await ensureSubscription({ vapidKey, userId: user?._id });
+            const userId = user?._id || localStorage.getItem("userId");
+            const result = await ensureSubscription({ vapidKey, userId });
             if (result.permission === "denied") {
                 localStorage.setItem("agrowtrack-push-optin", "denied");
             }
