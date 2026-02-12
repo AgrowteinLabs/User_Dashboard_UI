@@ -1,4 +1,7 @@
+import { useContext, useEffect, useState, useCallback } from "react";
 import { useNotificationManager } from "../../hooks/useNotificationManager";
+import { UserContext } from "../../context/UserContext";
+import { usePushNotifications } from "../../hooks/usePushNotifications";
 import { MdCheckCircle, MdError, MdInfo } from "react-icons/md";
 import "./Notifications.scss";
 
@@ -20,6 +23,28 @@ const Notifications = () => {
     // unread,
   } = useNotificationManager(); // No need to pass anything
 
+  const { user } = useContext(UserContext);
+  const { checkSubscriptionStatus, ensureSubscription, isPushSupported } = usePushNotifications();
+  const [pushStatus, setPushStatus] = useState(null);
+  const vapidKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
+
+  const checkStatus = useCallback(async () => {
+    const status = await checkSubscriptionStatus();
+    setPushStatus(status);
+  }, [checkSubscriptionStatus]);
+
+  useEffect(() => {
+    checkStatus();
+  }, [checkStatus]);
+
+  const handleSubscribe = async () => {
+    const userId = user?._id || localStorage.getItem("userId");
+    if (!userId) return alert("User ID not found in context or local storage");
+    const result = await ensureSubscription({ vapidKey, userId });
+    alert(JSON.stringify(result));
+    checkStatus();
+  };
+
   return (
     <div className="notifications-page">
       <div className="notifications-header">
@@ -34,6 +59,22 @@ const Notifications = () => {
             </>
           )}
         </div>
+      </div>
+
+      {/* Debug UI for Production */}
+      <div className="push-debug-section" style={{ padding: "10px", margin: "10px 0", background: "#f5f5f5", borderRadius: "5px", fontSize: "12px", color: "#333" }}>
+        <h3>Push Notification Status (Debug)</h3>
+        <p><strong>Supported:</strong> {isPushSupported() ? "Yes" : "No"}</p>
+        <p><strong>VAPID Key:</strong> {vapidKey ? "Present" : "Missing"}</p>
+        <p><strong>User ID:</strong> {user?._id || localStorage.getItem("userId") || "Missing"}</p>
+        <p><strong>Permission:</strong> {pushStatus?.permission || "Unknown"}</p>
+        <p><strong>Subscription:</strong> {pushStatus?.status || "Unknown"}</p>
+        <button onClick={handleSubscribe} style={{ marginTop: "5px", padding: "5px 10px" }}>
+          Retry Subscription
+        </button>
+        <button onClick={checkStatus} style={{ marginTop: "5px", marginLeft: "5px", padding: "5px 10px" }}>
+          Refresh Status
+        </button>
       </div>
 
       <div className="notifications-list">

@@ -51,5 +51,19 @@ export const usePushNotifications = () => {
     return { supported: true, permission, subscription };
   }, []);
 
-  return { ensureSubscription, isPushSupported };
+  const checkSubscriptionStatus = useCallback(async () => {
+    if (!isPushSupported()) return { status: "not-supported" };
+    
+    const permission = Notification.permission;
+    const registration = await navigator.serviceWorker.ready;
+    const existing = await registration.pushManager.getSubscription();
+    
+    return { 
+      status: existing ? "subscribed" : "not-subscribed", 
+      subscription: existing,
+      permission 
+    };
+  }, []);
+
+  return { ensureSubscription, isPushSupported, checkSubscriptionStatus };
 };
