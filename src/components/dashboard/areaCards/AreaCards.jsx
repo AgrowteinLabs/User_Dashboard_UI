@@ -113,10 +113,10 @@ const AreaCards = () => {
         Swal.close(); // ✅ FIX
 
         const feedbackPayload = {
-          uid: selectedProductUid,
-          pin,
-          controlId,
-          value: threshold,
+          uid: String(selectedProductUid),
+          pin: String(pin),
+          controlId: String(controlId),
+          value: String(threshold),
           mode: "threshold"
         };
 
@@ -133,10 +133,10 @@ const AreaCards = () => {
 
         // Save offset separately
         const offsetPayload = {
-          uid: selectedProductUid,
-          pin,
-          controlId,
-          value: offset,
+          uid: String(selectedProductUid),
+          pin: String(pin),
+          controlId: String(controlId),
+          value: String(offset),
           mode: "offset"
         };
 
@@ -182,10 +182,10 @@ const AreaCards = () => {
         Swal.close(); // ✅ FIX
 
         const feedbackPayload = {
-          uid: selectedProductUid,
-          pin,
-          controlId,
-          value: newState,  // "ON" or "OFF"
+          uid: String(selectedProductUid),
+          pin: String(pin),
+          controlId: String(controlId),
+          value: String(newState),  // "ON" or "OFF"
           mode: "state"
         };
 
@@ -237,9 +237,9 @@ const AreaCards = () => {
               console.log("📥 Device confirmed mode toggle:", payload);
 
               const feedbackPayload = {
-                uid: selectedProductUid,
-                pin: c.pin,
-                controlId: c.controlId,
+                uid: String(selectedProductUid),
+                pin: String(c.pin),
+                controlId: String(c.controlId),
                 value: newMode === "automate" ? "true" : "false",
                 mode: "automate"
               };
