@@ -234,9 +234,48 @@ const AreaCards = () => {
     );
   };
 
+  const updateGlobalModeInBackend = async (newMode) => {
+    const baseUrl = import.meta.env.VITE_REACT_APP_API_URL;
+    const endpointCandidates = [
+      { url: `${baseUrl}/api/v1/user/product/mode/${selectedProductUid}`, method: "POST" },
+      { url: `${baseUrl}/api/v1/user/product/mode/${selectedProductUid}`, method: "PUT" },
+      { url: `${baseUrl}/api/v1/product/${selectedProductUid}/mode`, method: "POST" },
+      { url: `${baseUrl}/api/v1/product/${selectedProductUid}/mode`, method: "PUT" },
+    ];
+
+    let lastError = null;
+
+    for (const candidate of endpointCandidates) {
+      try {
+        const response = await fetch(candidate.url, {
+          method: candidate.method,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ mode: newMode }),
+        });
+
+        const result = await parseApiResponse(response);
+
+        if (response.ok) {
+          return result;
+        }
+
+        const message = result?.message || result || `HTTP ${response.status}`;
+        lastError = new Error(`${candidate.method} ${candidate.url} failed: ${message}`);
+
+        if (response.status !== 404) {
+          throw lastError;
+        }
+      } catch (error) {
+        lastError = error;
+      }
+    }
+
+    throw lastError || new Error("Failed to update backend global mode");
+  };
+
 
   const handleModeToggle = async () => {
-    if (!selectedProductUid || modeSwitchLoading) return;
+    if (!selectedProductUid || modeSwitchLoading || !productDetails?.controls?.length) return;
 
     const newMode = productDetails.mode === "manual" ? "automate" : "manual";
     setModeSwitchLoading(true);
@@ -249,18 +288,48 @@ const AreaCards = () => {
     });
 
     try {
-      const url = import.meta.env.VITE_REACT_APP_API_URL;
-      const response = await fetch(`${url}/api/v1/user/product/mode/${selectedProductUid}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mode: newMode }),
-      });
+      await Promise.all(
+        productDetails.controls.map(
+          (control) =>
+            new Promise((resolve, reject) => {
+              const threshold = Number(thresholds[control.controlId] ?? control.threshHold ?? 1);
+              const offset = Number(offsets[control.controlId] ?? control.offset ?? control.min ?? 1);
+              const supportsAuto = control.supportsAuto !== false;
+              const shouldSendAuto = newMode === "automate" && supportsAuto;
 
-      const result = await parseApiResponse(response);
+              const modePayload =
+                shouldSendAuto
+                  ? {
+                    command: "SetMode",
+                    pin: control.pin,
+                    mode: "Auto",
+                    threshold,
+                    offset: Math.max(1, offset),
+                  }
+                  : {
+                    command: "SetMode",
+                    pin: control.pin,
+                    mode: "Manual",
+                  };
 
-      if (!response.ok) {
-        throw new Error(result?.message || result || `Failed to update mode (HTTP ${response.status})`);
-      }
+              console.log("📤 Sending mode payload:", {
+                controlId: control.controlId,
+                supportsAuto,
+                requestedMode: newMode,
+                sentMode: modePayload.mode,
+                payload: modePayload,
+              });
+
+              publishCommandWithFeedback(
+                modePayload,
+                () => resolve(),
+                () => reject(new Error(`Device did not confirm mode command for ${control.name || control.pin}`))
+              );
+            })
+        )
+      );
+
+      const result = await updateGlobalModeInBackend(newMode);
 
       console.log("✅ Global mode updated:", result);
       console.log("📋 Updated controls:", result.updatedControls);
