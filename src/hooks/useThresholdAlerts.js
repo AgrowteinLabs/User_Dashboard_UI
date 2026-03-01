@@ -53,7 +53,7 @@ export const useThresholdAlerts = ({ uid, currentData, notify }) => {
             control.name ||
             control.controlId;
           const threshold = Number(
-            control.threshHold ?? control.threshold ?? control.thresholdValue
+            control.threshHold ?? control.threshold ?? control.thresholdValue,
           );
           const offsetValue = Number(control.offset ?? 0);
 
@@ -65,9 +65,9 @@ export const useThresholdAlerts = ({ uid, currentData, notify }) => {
           };
         })
         .filter(
-          (item) => item.key && item.threshold !== null && item.threshold > 0
+          (item) => item.key && item.threshold !== null && item.threshold > 0,
         ),
-    [controls]
+    [controls],
   );
 
   useEffect(() => {
@@ -79,7 +79,7 @@ export const useThresholdAlerts = ({ uid, currentData, notify }) => {
       const thresholdConfig =
         normalizedThresholds.find((c) => c.key === normalizedKey) ||
         normalizedThresholds.find(
-          (c) => normalizedKey.includes(c.key) || c.key.includes(normalizedKey)
+          (c) => normalizedKey.includes(c.key) || c.key.includes(normalizedKey),
         );
       if (!thresholdConfig) {
         if (!loggedKeysRef.current[normalizedKey]) {
@@ -88,7 +88,7 @@ export const useThresholdAlerts = ({ uid, currentData, notify }) => {
             sensorKey,
             "(normalized:",
             normalizedKey,
-            ")"
+            ")",
           );
           loggedKeysRef.current[normalizedKey] = true;
         }
