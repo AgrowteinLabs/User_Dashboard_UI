@@ -82,12 +82,12 @@ export const useAutoControl = ({
                 console.info(
                   "✅ Auto-control command executed:",
                   control.name,
-                  actionOnExceed
+                  actionOnExceed,
                 );
               },
               () => {
                 console.warn("⚠️ Auto-control failed for", control.name);
-              }
+              },
             );
           } else if (wasTriggered && numericValue <= releaseBelow) {
             triggeredRef.current[controlKey] = { triggered: false };
@@ -105,18 +105,18 @@ export const useAutoControl = ({
                 console.info(
                   "✅ Auto-control recovery executed:",
                   control.name,
-                  actionOnRecover
+                  actionOnRecover,
                 );
               },
               () => {
                 console.warn(
                   "⚠️ Auto-control recovery failed for",
-                  control.name
+                  control.name,
                 );
-              }
+              },
             );
           }
-        }
+        },
       );
     });
   }, [currentData, controlsByLinkedSensor, publishCommandWithFeedback, uid]);

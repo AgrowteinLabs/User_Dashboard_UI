@@ -25,6 +25,38 @@ export async function setControls(mode, bodyData) {
   }
 }
 
+/**
+ * Update global product mode (manual or automate)
+ * Automatically handles controls based on their supportsAuto capability
+ * @param {string} uid - Product UID
+ * @param {string} mode - "manual" or "automate"
+ * @returns {Promise} Response with updatedControls and skippedControls
+ */
+export async function setProductMode(uid, mode) {
+  try {
+    const url = `${import.meta.env.VITE_REACT_APP_API_URL}/api/v1/product/${uid}/mode`;
+
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify({ mode }),
+    });
+
+    if (!response.ok) {
+      const errorDetails = await response.text();
+      throw new Error(`Error: ${response.status}, ${errorDetails}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Error setting product mode:", error);
+    throw error;
+  }
+}
+
 export async function setPower(uid, pin, controlId, value) {
   try {
     const response = await fetch(
@@ -36,7 +68,7 @@ export async function setPower(uid, pin, controlId, value) {
         },
         credentials: "include",
         body: JSON.stringify({ uid, pin, controlId, value }),
-      }
+      },
     );
 
     if (!response.ok) {

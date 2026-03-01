@@ -35,8 +35,8 @@ const AreaCards = () => {
   const [thresholds, setThresholds] = useState({});
   const [offsets, setOffsets] = useState({});
   const [controlStates, setControlStates] = useState({});
-  const [mode, setMode] = useState("manual");
   const [expanded, setExpanded] = useState(false);
+  const [modeSwitchLoading, setModeSwitchLoading] = useState(false);
   const userId = localStorage.getItem("userId");
   const timerRef = useRef(null);
 
@@ -63,9 +63,9 @@ const AreaCards = () => {
         setThresholds(initThresh);
         setOffsets(initOffsets);
         setControlStates(initStates);
-        const allAuto = selected.controls.every((c) => c.automate);
-        setMode(allAuto ? "automate" : "manual");
         console.log("✅ Product details refreshed from backend");
+        console.log("📊 Product mode:", selected.mode);
+        console.log("🎛️ Controls with supportsAuto:", selected.controls.map(c => ({ name: c.name, supportsAuto: c.supportsAuto, automate: c.automate })));
       }
     } catch (err) {
       console.error("Error loading product:", err);
@@ -213,90 +213,56 @@ const AreaCards = () => {
   };
 
 
-  const handleModeToggle = () => {
-    const newMode = mode === "manual" ? "automate" : "manual";
+  const handleModeToggle = async () => {
+    if (!selectedProductUid || modeSwitchLoading) return;
 
-    Swal.fire({ title: "Switching mode...", text: "Waiting for Device...", allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+    const newMode = productDetails.mode === "manual" ? "automate" : "manual";
+    setModeSwitchLoading(true);
 
-    Promise.all(
-      productDetails.controls.map((c) =>
-        new Promise((resolve, reject) => {
-          const payload = {
-            command: "SetMode",
-            pin: c.pin,
-            mode: newMode === "automate" ? "Auto" : "Manual",
-            ...(newMode === "automate" && {
-              threshold: thresholds[c.controlId] || 1,
-              offset: Math.max(1, offsets[c.controlId] || 1)
-            })
-          };
+    Swal.fire({
+      title: "Switching mode...",
+      text: "Updating product configuration...",
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading()
+    });
 
-          publishCommandWithFeedback(
-            payload,
-            async () => {
-              console.log("📥 Device confirmed mode toggle:", payload);
-
-              const feedbackPayload = {
-                uid: String(selectedProductUid),
-                pin: String(c.pin),
-                controlId: String(c.controlId),
-                value: newMode === "automate" ? "true" : "false",
-                mode: "automate"
-              };
-
-              console.log("📤 Sending automate mode feedback:", feedbackPayload);
-              console.log("📤 Full payload details:", {
-                uid: feedbackPayload.uid,
-                pin: feedbackPayload.pin,
-                controlId: feedbackPayload.controlId,
-                value: feedbackPayload.value,
-                valueType: typeof feedbackPayload.value,
-                mode: feedbackPayload.mode
-              });
-
-              try {
-                const res = await fetch(`${import.meta.env.VITE_REACT_APP_API_URL}/api/v1/command/control/save`, {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify(feedbackPayload),
-                });
-
-                const responseText = await res.text();
-                console.log("📥 Backend response status:", res.status);
-                console.log("📥 Backend response body:", responseText);
-
-                if (!res.ok) {
-                  console.error("❌ Backend error response:", responseText);
-                  throw new Error(`Server error: ${res.status} - ${responseText}`);
-                }
-
-                const result = JSON.parse(responseText);
-                console.log("💾 Mode state saved to DB:", result);
-                resolve();
-              } catch (error) {
-                console.error("❌ Failed to save to DB:", error);
-                reject(new Error(`Failed to save mode for ${c.name}: ${error.message}`));
-              }
-            },
-            () => {
-              reject(new Error(`Device did not respond for ${c.name}`));
-            }
-          );
-        })
-      )
-    )
-      .then(async () => {
-        Swal.close();
-        // Refetch to sync UI with backend
-        await fetchDetails();
-        Swal.fire("✅ Mode Updated", `Switched to ${newMode.toUpperCase()}`, "success");
-      })
-      .catch((err) => {
-        Swal.close();
-        // Revert to original mode if failed
-        fetchDetails();
-        Swal.fire("❌ Failed", err.message, "error");
+    try {
+      const url = import.meta.env.VITE_REACT_APP_API_URL;
+      const response = await fetch(`${url}/api/v1/user/product/mode/${selectedProductUid}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mode: newMode }),
       });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.message || "Failed to update mode");
+      }
+
+      console.log("✅ Global mode updated:", result);
+      console.log("📋 Updated controls:", result.updatedControls);
+      console.log("⏭️ Skipped controls (manual-only):", result.skippedControls);
+
+      // Refetch product details to sync UI
+      await fetchDetails();
+
+      // Show success message with details
+      const messageLines = [
+        `Switched to ${newMode.toUpperCase()} mode`,
+        `\n✅ Updated: ${result.updatedControls?.length || 0} controls`,
+        result.skippedControls?.length > 0 ? `⏭️ Manual-only: ${result.skippedControls.length} controls` : ""
+      ].filter(Boolean);
+
+      Swal.fire("✅ Mode Updated", messageLines.join(""), "success");
+    } catch (error) {
+      console.error("❌ Mode toggle failed:", error);
+      Swal.fire("❌ Failed", error.message || "Could not switch mode. Please try again.", "error");
+      // Refetch to ensure UI matches backend state
+      await fetchDetails();
+    } finally {
+      setModeSwitchLoading(false);
+    }
   };
 
 
@@ -350,10 +316,14 @@ const AreaCards = () => {
             <div className="mode-toggle">
               <Tooltip title={!controls.length ? "Mode toggle disabled — no controls" : ""} arrow>
                 <span>
-                  <Switch checked={mode === "automate"} onChange={handleModeToggle} disabled={!controls.length} />
+                  <Switch
+                    checked={productDetails?.mode === "automate"}
+                    onChange={handleModeToggle}
+                    disabled={!controls.length || modeSwitchLoading}
+                  />
                 </span>
               </Tooltip>
-              <span>{mode.toUpperCase()}</span>
+              <span>{productDetails?.mode?.toUpperCase() || "MANUAL"}</span>
             </div>
           </div>
         </motion.div>
@@ -407,8 +377,8 @@ const AreaCards = () => {
                       </Typography>
                     </Box>
 
-                    {/* Power Button - Only in Manual Mode */}
-                    {mode === "manual" && (
+                    {/* Power Button - In Manual Mode OR for Manual-Only Controls */}
+                    {(productDetails?.mode === "manual" || (productDetails?.mode === "automate" && !control.supportsAuto)) && (
                       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
                         <Box sx={{
                           display: 'flex',
@@ -450,8 +420,23 @@ const AreaCards = () => {
                       </Box>
                     )}
 
-                    {/* Threshold Controls - Only in Automate Mode */}
-                    {mode === "automate" && (
+                    {/* Manual-Only Indicator */}
+                    {productDetails?.mode === "manual" && !control.supportsAuto && (
+                      <Box sx={{
+                        p: 1.5,
+                        bgcolor: '#fff3e0',
+                        borderRadius: 1,
+                        border: '1px solid #ffb74d',
+                        textAlign: 'center'
+                      }}>
+                        <Typography variant="caption" sx={{ color: '#e65100', fontWeight: 600 }}>
+                          🪜 Manual Control Only
+                        </Typography>
+                      </Box>
+                    )}
+
+                    {/* Threshold Controls - Only in Automate Mode for Controls that Support Automation */}
+                    {productDetails?.mode === "automate" && control.supportsAuto && (
                       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
                         {/* Threshold Section */}
                         <Box>
@@ -570,6 +555,13 @@ const AreaCards = () => {
                           Save Configuration
                         </Button>
                       </Box>
+                    )}
+
+                    {/* Manual-Only Notice in Automate Mode */}
+                    {productDetails?.mode === "automate" && !control.supportsAuto && (
+                      <Typography variant="caption" sx={{ color: '#d84315' }}>
+                        This controller does not support automatic mode. Manual controls are shown above.
+                      </Typography>
                     )}
                   </div>
                 ))}
