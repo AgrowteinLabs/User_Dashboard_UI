@@ -42,13 +42,35 @@ const AreaCards = () => {
 
   const { publishCommandWithFeedback } = useMqttControl(selectedProductUid);
 
+  // Safe response parser - handles HTML error pages that crash JSON.parse
+  const parseApiResponse = async (response) => {
+    const rawBody = await response.text();
+    const contentType = response.headers.get("content-type") || "";
+
+    if (!rawBody) return null;
+
+    if (contentType.includes("application/json")) {
+      try {
+        return JSON.parse(rawBody);
+      } catch {
+        return rawBody;
+      }
+    }
+
+    try {
+      return JSON.parse(rawBody);
+    } catch {
+      return rawBody;
+    }
+  };
+
   // Reusable function to fetch product details from backend
   const fetchDetails = useCallback(async () => {
     if (!userId || !selectedProductUid) return;
     try {
       const url = import.meta.env.VITE_REACT_APP_API_URL;
       const res = await fetch(`${url}/api/v1/user/product/${userId}`);
-      const data = await res.json();
+      const data = await parseApiResponse(res);
       const selected = data.find((p) => p.uid === selectedProductUid);
       if (selected) {
         setProductDetails(selected);
@@ -128,7 +150,7 @@ const AreaCards = () => {
           body: JSON.stringify(feedbackPayload),
         });
 
-        const result = await res.json();
+        const result = await parseApiResponse(res);
         console.log("💾 Threshold saved to DB:", result);
 
         // Save offset separately
@@ -148,7 +170,7 @@ const AreaCards = () => {
           body: JSON.stringify(offsetPayload),
         });
 
-        const offsetResult = await offsetRes.json();
+        const offsetResult = await parseApiResponse(offsetRes);
         console.log("💾 Offset saved to DB:", offsetResult);
 
         // Refetch to sync UI with backend
@@ -197,7 +219,7 @@ const AreaCards = () => {
           body: JSON.stringify(feedbackPayload),
         });
 
-        const result = await res.json();
+        const result = await parseApiResponse(res);
         console.log("💾 Power state saved to DB:", result);
 
         // Refetch to sync UI with backend
@@ -234,10 +256,10 @@ const AreaCards = () => {
         body: JSON.stringify({ mode: newMode }),
       });
 
-      const result = await response.json();
+      const result = await parseApiResponse(response);
 
       if (!response.ok) {
-        throw new Error(result.message || "Failed to update mode");
+        throw new Error(result?.message || result || `Failed to update mode (HTTP ${response.status})`);
       }
 
       console.log("✅ Global mode updated:", result);
