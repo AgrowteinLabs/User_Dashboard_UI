@@ -4,6 +4,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-d
 import { ThemeContext } from "./context/ThemeContext";
 import { DARK_THEME, LIGHT_THEME } from "./constants/themeConstants";
 import { getMuiTheme } from "./context/muiTheme";
+import { SpeedInsights } from '@vercel/speed-insights/react';
 
 import "./App.scss";
 
@@ -132,6 +133,8 @@ function App() {
             <Route path="*" element={<PageNotFound />} />
           </Route>
         </Routes>
+
+        <SpeedInsights />
 
         {/* 🌗 Theme Toggle */}
         <button type="button" className="theme-toggle-btn" onClick={toggleTheme}>
