@@ -1,59 +1,115 @@
 .area-table {
-  background-color: var(--secondary-color);
-  padding: 16px;
-  border-radius: 6px;
-  box-shadow: var(--light-shadow1);
+  background-color: var(--card-bg);
+  backdrop-filter: var(--glass-blur);
+  padding: 24px;
+  border-radius: 24px;
+  border: 1px solid var(--card-border);
+  box-shadow: var(--shadow-premium);
   overflow-x: auto;
+  transition: var(--transition-smooth);
+
+  &:hover {
+    box-shadow: var(--shadow-premium), var(--shadow-glow);
+    border-color: rgba(0, 242, 155, 0.2);
+  }
 
   table {
     width: 100%;
     border-collapse: collapse;
 
     th, td {
-      padding: 10px;
+      padding: 16px 20px;
       text-align: left;
       color: var(--text-color);
-      font-size: 14px;
+      font-size: 0.9rem;
       white-space: nowrap;
     }
 
     th {
-      background-color: var(--primary-color);
-      color: white;
+      background-color: var(--thead-bg-color);
+      color: var(--text-color);
+      font-family: var(--font-family-jakarta);
+      font-weight: 800;
+      text-transform: uppercase;
+      font-size: 0.76rem;
+      letter-spacing: 0.08em;
+      border-bottom: 2px solid var(--tbl-border-color);
+    }
+    
+    td {
+      font-weight: 700;
+      font-family: var(--font-family-jakarta);
+      border-bottom: 1px solid var(--tbl-border-color);
     }
 
-    tr:nth-child(even) {
-      background-color: rgba(255, 255, 255, 0.02);
+    tr {
+      transition: var(--transition-smooth);
+      
+      &:hover {
+        background-color: rgba(255, 255, 255, 0.012);
+      }
+      
+      &:last-child td {
+        border-bottom: none;
+      }
     }
   }
 
   .dt-status {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
 
     .dt-status-dot {
-      width: 10px;
-      height: 10px;
+      width: 8px;
+      height: 8px;
       border-radius: 50%;
+      position: relative;
+      
+      &::after {
+        content: "";
+        position: absolute;
+        inset: -2px;
+        border-radius: 50%;
+        opacity: 0.5;
+      }
 
       &.dot-active {
-        background-color: #28a745;
+        background-color: var(--color-success);
+        box-shadow: 0 0 8px var(--color-success);
+        &::after {
+          border: 1px solid var(--color-success);
+          animation: statusPulse 1.6s infinite;
+        }
       }
       &.dot-stale {
-        background-color: #ffc107;
+        background-color: var(--color-warning);
+        box-shadow: 0 0 6px var(--color-warning);
       }
       &.dot-error {
-        background-color: #dc3545;
+        background-color: var(--color-error);
+        box-shadow: 0 0 8px var(--color-error);
+        &::after {
+          border: 1px solid var(--color-error);
+          animation: statusPulse 1.2s infinite;
+        }
       }
       &.dot-inactive {
-        background-color: #6c757d;
+        background-color: var(--text-muted);
       }
     }
 
     .dt-status-text {
-      font-weight: 500;
-      text-transform: capitalize;
+      font-family: var(--font-family-jakarta);
+      font-weight: 800;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      
+      &.active { color: var(--color-success); }
+      &.stale { color: var(--color-warning); }
+      &.error { color: var(--color-error); }
+      &.inactive { color: var(--text-muted); }
     }
   }
 
@@ -61,8 +117,30 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 10px;
-    padding: 30px;
+    justify-content: center;
+    gap: 14px;
+    padding: 48px;
     color: var(--text-color);
+    font-weight: 700;
+    font-family: var(--font-family-jakarta);
+    
+    .MuiCircularProgress-root {
+      color: var(--primary-color);
+    }
   }
+
+  .MuiIconButton-root {
+    color: var(--text-secondary);
+    transition: var(--transition-fast);
+
+    &:hover {
+      color: var(--primary-emerald);
+      background-color: var(--side-link-hover);
+    }
+  }
+}
+
+@keyframes statusPulse {
+  0% { transform: scale(1); opacity: 0.8; }
+  100% { transform: scale(2.3); opacity: 0; }
 }

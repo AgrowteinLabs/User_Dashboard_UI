@@ -9,9 +9,10 @@ import "./AiAssistant.scss";
 import { UserContext } from "../../context/UserContext";
 import GroboLogo from "./GroboLogo";
 import groboLogo from "../../assets/images/grobo-logo.png";
+import { MdAutoAwesome, MdSensors } from "react-icons/md";
 
 const AiAssistantPage = () => {
-  useContext(UserContext); // FIX: Destructure user from context
+  useContext(UserContext);
   const [products, setProducts] = useState([]);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [report, setReport] = useState(null);
@@ -21,9 +22,8 @@ const AiAssistantPage = () => {
   useEffect(() => {
     const getProducts = async () => {
       try {
-        // If fetchProducts needs user info, pass it here (e.g., user?.uid)
         const result = await fetchProducts();
-        setProducts(result);
+        setProducts(result || []);
       } catch (err) {
         console.error("Failed to fetch products:", err);
         setError("⚠️ Unable to load your products. Please try again later.");
@@ -37,15 +37,18 @@ const AiAssistantPage = () => {
     setLoadingReport(true);
     setError("");
     setSelectedProduct(uid);
+    setReport(null);
 
     try {
       const res = await axios.post(
-        `https://apiv2.agrowtein.com/api/v1/bot/report/${uid}`
+        `${import.meta.env.VITE_REACT_APP_API_URL}/api/v1/bot/report/${uid}`,
+        {},
+        { withCredentials: true }
       );
-      setReport(res.data.report);
+      setReport(res.data?.report);
     } catch (err) {
       console.error("Error fetching report:", err);
-      setError("⚠️ Failed to generate report. Please try again.");
+      setError("⚠️ Failed to generate AI report. Please check if the device has telemetry data.");
     } finally {
       setLoadingReport(false);
     }
@@ -53,115 +56,112 @@ const AiAssistantPage = () => {
 
   return (
     <div className="ai-assistant-page">
+      {/* ── Hero Welcome Banner ─────────────────────── */}
       <motion.header
-        className="welcome-header"
-        initial={{ opacity: 0, y: -20 }}
+        className="welcome-hero-card"
+        initial={{ opacity: 0, y: -16 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
+        transition={{ duration: 0.5 }}
       >
-        <div className="header-logo-wrapper">
-          <GroboLogo size={50} />
-          <h2>
-            👋 Welcome to{" "}
-            <span className="highlight">Grobo - The Ai Assistant </span>
-          </h2>
+        <div className="hero-content">
+          <div className="hero-badge">
+            <MdAutoAwesome /> Precision Agriculture Intelligence
+          </div>
+          <h1 className="hero-title">
+            Meet <span className="highlight">Grobo</span> — Your AI Farm Advisor
+          </h1>
+          <p className="hero-subtitle">
+            Autonomous data analytics, growth optimization insights, and real-time telemetry diagnostics powered by AI.
+          </p>
         </div>
-        <p className="subtitle">
-          Your smart AI assistant for precision farming insights.
-        </p>
+
+        <div className="hero-logo-box">
+          <GroboLogo size={74} />
+        </div>
       </motion.header>
 
-      <section className="product-list">
-        <motion.h3
-          initial={{ opacity: 0, x: -10 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.2, duration: 0.5 }}
-        >
-          Select a Product to Analyze
-        </motion.h3>
+      {/* ── Product Selection Section ───────────────── */}
+      <section className="ai-products-section">
+        <div className="section-title-bar">
+          <div className="title-wrap">
+            <MdSensors className="section-icon" />
+            <h2>Select a Connected Farm Device</h2>
+          </div>
+          <span className="section-count">{products.length} device{products.length !== 1 ? "s" : ""} available</span>
+        </div>
 
-        <div className="product-cards">
-  {products.length > 0 ? (
-    products.map((product, i) => {
-  if ((!product?.name && !product?.alias) || !product?.uid) {
-    console.warn("Skipping invalid product:", product);
-    return null;
-  }
+        <div className="ai-products-grid">
+          {products.length > 0 ? (
+            products.map((product, i) => {
+              if ((!product?.name && !product?.alias) || !product?.uid) {
+                return null;
+              }
 
-  return (
-    <motion.div
-      key={product.uid}
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.2 + i * 0.1 }}
-    >
-      <ProductCard
-        product={product}
-        onGenerate={() => generateReport(product.uid)}
-      />
-    </motion.div>
-  );
-})
-
-  ) : (
-    <p className="no-products-msg">No products found in your account.</p>
-  )}
-</div>
-
+              return (
+                <motion.div
+                  key={product.uid}
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 + i * 0.06 }}
+                >
+                  <ProductCard
+                    product={product}
+                    isSelected={selectedProduct === product.uid}
+                    onGenerate={() => generateReport(product.uid)}
+                  />
+                </motion.div>
+              );
+            })
+          ) : (
+            <div className="no-products-box">
+              <p>No registered devices found in your farm account.</p>
+            </div>
+          )}
+        </div>
       </section>
 
+      {/* ── Loading Animation ───────────────────────── */}
       {loadingReport && (
         <motion.div
-          className="grobo-loading"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.5 }}
+          className="grobo-analyzing-card"
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.4 }}
         >
-          <motion.img
-            src={groboLogo}
-            alt="Grobo logo"
-            className="grobo-logo"
-            animate={{
-              scale: [1, 1.1, 1],
-              filter: [
-                "drop-shadow(0 0 0px #00ff88)",
-                "drop-shadow(0 0 10px #00ff88)",
-                "drop-shadow(0 0 0px #00ff88)",
-              ],
-            }}
-            transition={{
-              duration: 1.5,
-              repeat: Infinity,
-              ease: "easeInOut",
-            }}
-          />
+          <div className="orbital-loader">
+            <div className="orbital-ring ring-1" />
+            <div className="orbital-ring ring-2" />
+            <img
+              src={groboLogo}
+              alt="Grobo AI"
+              className="analyzing-logo"
+            />
+          </div>
 
-          <motion.p
-            className="grobo-text"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.5 }}
-          >
-            🌱 Grobo is crunching the data for smart farming insights…
-          </motion.p>
+          <div className="analyzing-text">
+            <h3>Grobo is Analyzing Farm Telemetry…</h3>
+            <p>Evaluating multi-sensor historical trends, micro-climate stability, and nutrient absorption ranges.</p>
+          </div>
         </motion.div>
       )}
 
-      {error && (
-        <motion.p
-          className="error-msg"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
+      {/* ── Error Banner ────────────────────────────── */}
+      {error && !loadingReport && (
+        <motion.div
+          className="ai-error-banner"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
         >
-          {error}
-        </motion.p>
+          <span>{error}</span>
+        </motion.div>
       )}
 
+      {/* ── Generated Report & Interactive Chat ──────── */}
       {report && (
-        <>
+        <div className="ai-results-wrapper">
           <ReportDisplay report={report} uid={selectedProduct} />
           <ChatBot uid={selectedProduct} />
-        </>
+        </div>
       )}
     </div>
   );

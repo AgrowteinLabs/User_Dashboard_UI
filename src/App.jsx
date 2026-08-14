@@ -8,8 +8,6 @@ import { getMuiTheme } from "./context/muiTheme";
 import "./App.scss";
 
 // Assets
-import MoonIcon from "./assets/icons/moon.svg";
-import SunIcon from "./assets/icons/sun.svg";
 
 // Layout and Providers
 import BaseLayout from "./layout/BaseLayout";
@@ -36,7 +34,7 @@ import AiAssistantPage from "./components/aiAssistant/AiAssistantPage";
 import { registerSW } from "virtual:pwa-register";
 
 function App() {
-  const { theme, toggleTheme } = useContext(ThemeContext);
+  const { theme } = useContext(ThemeContext);
   const muiTheme = getMuiTheme(theme);  // ✅ Generate theme dynamically
 
   const [loading, setLoading] = useState(true);
@@ -133,14 +131,7 @@ function App() {
           </Route>
         </Routes>
 
-        {/* 🌗 Theme Toggle */}
-        <button type="button" className="theme-toggle-btn" onClick={toggleTheme}>
-          <img
-            className="theme-icon"
-            src={theme === LIGHT_THEME ? SunIcon : MoonIcon}
-            alt="Toggle theme"
-          />
-        </button>
+
 
         {/* 📲 PWA Install Button */}
         {showInstallButton && (

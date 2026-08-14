@@ -21,6 +21,7 @@ export const useSensorData = (uid) => {
           `${baseUrl}/api/v1/data/${uid}/date-interval`,
           {
             params: { startDate, endDate, interval: 60 },
+            withCredentials: true,
           }
         );
 

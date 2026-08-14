@@ -1,10 +1,8 @@
 import { useParams, useLocation } from "react-router-dom";
-import { useEffect, useMemo, useState } from "react";
-import { useMqttSensorData } from "../../hooks/useMqttSensorData";
+import { useEffect, useState, useCallback } from "react";
 import { useSensorData } from "../../hooks/useSensorData";
 import { fetchSensorList } from "../../api/fetchsensorlist";
 import { fetchIntervalData } from "../../api/fetchHistoryData";
-import BarChartCard from "../predefinedcharts/BarChartCard";
 import AreaChartCard from "../predefinedcharts/AreaChartCard";
 import {
   ToggleButton,
@@ -19,6 +17,7 @@ import {
   MenuItem,
   CircularProgress,
   Snackbar,
+  Box,
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { useTheme } from "@mui/material/styles";
@@ -49,10 +48,8 @@ const sensorChartMap = {
   "CO2 Sensor 4": { type: "bar", unit: "ppm", label: "CO2 Sensor 4" },
   "CO2 Sensor": { type: "bar", unit: "ppm", label: "CO₂ Level" },
   CO2: { type: "bar", unit: "ppm", label: "CO₂ Level" },
-
 };
 
-const isStale = (timestamp) => Date.now() - timestamp > 60 * 1000;
 
 const ProductDataPage = () => {
   const theme = useTheme();
@@ -60,16 +57,20 @@ const ProductDataPage = () => {
   const location = useLocation();
   const alias = location.state?.alias || uid;
 
-  const { message: mqttMessage } = useMqttSensorData(uid);
-  const { current, history } = useSensorData(uid);
+  const { history } = useSensorData(uid);
 
   const [availableSensors, setAvailableSensors] = useState([]);
-  const [viewMode, setViewMode] = useState("current");
+  const [viewMode, setViewMode] = useState("history");
   const [startDate, setStartDate] = useState(dayjs().subtract(1, "day").format("YYYY-MM-DD"));
   const [endDate, setEndDate] = useState(dayjs().format("YYYY-MM-DD"));
   const [filteredHistory, setFilteredHistory] = useState({});
   const [interval, setInterval] = useState(60);
   const [loading, setLoading] = useState(false);
+
+  // Resolved ProductId and Activities states
+  const [productId, setProductId] = useState(null);
+  const [activities, setActivities] = useState([]);
+  const [activitiesLoading, setActivitiesLoading] = useState(false);
 
   const [snackbarMessage, setSnackbarMessage] = useState("");
   const [snackbarOpen, setSnackbarOpen] = useState(false);
@@ -79,6 +80,53 @@ const ProductDataPage = () => {
     setSnackbarOpen(true);
   };
 
+  // Resolve ProductId from UID
+  useEffect(() => {
+    const resolveProductId = async () => {
+      try {
+        const userId = localStorage.getItem("userId");
+        const url = import.meta.env.VITE_REACT_APP_API_URL;
+        const res = await fetch(`${url}/api/v1/user/product/${userId}`, { credentials: "include" });
+        if (res.ok) {
+          const products = await res.json();
+          const found = products.find((p) => p.uid === uid);
+          if (found) {
+            setProductId(found.id || found._id);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to resolve product ID:", err);
+      }
+    };
+    resolveProductId();
+  }, [uid]);
+
+  // Fetch Activity logs when selected and productId resolved
+  const fetchActivityLogs = useCallback(async () => {
+    if (!productId) return;
+    setActivitiesLoading(true);
+    try {
+      const url = import.meta.env.VITE_REACT_APP_API_URL;
+      const res = await fetch(`${url}/api/v1/products/${productId}/activity-log?limit=50`, {
+        credentials: "include",
+      });
+      if (res.ok) {
+        const result = await res.json();
+        setActivities(result.data?.activities || []);
+      }
+    } catch (err) {
+      console.error("Failed to fetch activity logs:", err);
+    } finally {
+      setActivitiesLoading(false);
+    }
+  }, [productId]);
+
+  useEffect(() => {
+    if (viewMode === "activity") {
+      fetchActivityLogs();
+    }
+  }, [viewMode, fetchActivityLogs]);
+
   useEffect(() => {
     const fetchSensors = async () => {
       const sensors = await fetchSensorList(uid);
@@ -87,19 +135,6 @@ const ProductDataPage = () => {
     fetchSensors();
   }, [uid]);
 
-  const finalCurrent = useMemo(() => {
-    if (mqttMessage && Object.keys(mqttMessage).length > 0) {
-      return {
-        data: Object.fromEntries(
-          Object.entries(mqttMessage).map(([k, v]) => [
-            k,
-            { status: typeof v === "string" && v.includes("-er") ? "error" : "ok", value: v, timestamp: Date.now() },
-          ])
-        ),
-      };
-    }
-    return current || { data: {} };
-  }, [mqttMessage, current]);
 
   const handleFilterData = async () => {
     const start = dayjs(startDate);
@@ -138,11 +173,10 @@ const ProductDataPage = () => {
     return result;
   };
 
-  const renderCharts = (dataSource) =>
+  const renderCharts = () =>
     Object.entries(sensorChartMap)
       .filter(([key]) => availableSensors.includes(key.toLowerCase()))
       .map(([sensorKey, config]) => {
-        const sensorInfo = dataSource?.data?.[sensorKey];
         const historyData = filteredHistory[sensorKey] || history[sensorKey] || [];
         const labels = historyData.map((e) => new Date(e.timestamp).toLocaleString());
         const values = historyData.map((e) => parseFloat(e.value).toFixed(2));
@@ -165,22 +199,7 @@ const ProductDataPage = () => {
               </Typography>
             </AccordionSummary>
             <AccordionDetails>
-              {viewMode === "current" ? (
-                sensorInfo && sensorInfo.status !== "error" ? (
-                  <>
-                    <BarChartCard
-                      title={`${config.label} - Current`}
-                      value={parseFloat(sensorInfo.value).toFixed(2)}
-                      unit={config.unit}
-                      status={isStale(sensorInfo.timestamp) ? "stale" : "active"}
-                    />
-                  </>
-                ) : (
-                  <Typography color="error" align="center">
-                    Error or no data for {sensorKey}
-                  </Typography>
-                )
-              ) : historyData.length > 0 ? (
+              {historyData.length > 0 ? (
                 <>
                   <Typography variant="subtitle2" align="center" sx={{ color: theme.palette.text.secondary, mb: 1 }}>
                     Data from {startDate} to {endDate}
@@ -208,8 +227,8 @@ const ProductDataPage = () => {
         color="primary"
         sx={{ display: "flex", justifyContent: "center", mb: 2 }}
       >
-        <ToggleButton value="current">Current</ToggleButton>
         <ToggleButton value="history">History</ToggleButton>
+        <ToggleButton value="activity">Activity Log</ToggleButton>
       </ToggleButtonGroup>
 
       {viewMode === "history" && (
@@ -225,12 +244,39 @@ const ProductDataPage = () => {
         </div>
       )}
 
-      {loading ? (
-        <div style={{ display: "flex", justifyContent: "center", margin: "40px 0" }}>
-          <CircularProgress />
+      {viewMode === "activity" && (
+        <div style={{ backgroundColor: theme.palette.background.paper, padding: "20px", borderRadius: "8px", marginBottom: "20px" }}>
+          <Typography variant="h6" color="primary" sx={{ mb: 2 }}>Device Activity Timeline</Typography>
+          {activitiesLoading ? (
+            <Box display="flex" justifyContent="center" p={4}><CircularProgress /></Box>
+          ) : activities.length === 0 ? (
+            <Typography align="center" color="text.secondary">No activities logged for this device.</Typography>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+              {activities.map((act) => (
+                <div key={act.id || act._id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px", borderBottom: `1px solid ${theme.palette.divider}` }}>
+                  <div>
+                    <Typography variant="body1" fontWeight={600}>{act.description}</Typography>
+                    <Typography variant="caption" color="text.secondary">Type: {act.type}</Typography>
+                  </div>
+                  <Typography variant="body2" color="text.secondary">
+                    {new Date(act.timestamp).toLocaleString()}
+                  </Typography>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
-      ) : (
-        <div className="charts-container">{renderCharts(finalCurrent)}</div>
+      )}
+
+      {viewMode !== "activity" && (
+        loading ? (
+          <div style={{ display: "flex", justifyContent: "center", margin: "40px 0" }}>
+            <CircularProgress />
+          </div>
+        ) : (
+          <div className="charts-container">{renderCharts()}</div>
+        )
       )}
 
       <Snackbar open={snackbarOpen} autoHideDuration={4000} onClose={() => setSnackbarOpen(false)} message={snackbarMessage} />

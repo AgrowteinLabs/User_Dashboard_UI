@@ -1,5 +1,6 @@
 import { createContext, useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
+import fetchUser from '../api/fetchuser';
 
 const UserContext = createContext();
 
@@ -7,15 +8,17 @@ const UserProvider = ({ children }) => {
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-    // Simulate fetching user data
-    const userData = {
-      id: 1,
-      name: 'John Doe',
-      email: 'john.doe@example.com'
+    const loadUser = async () => {
+      const data = await fetchUser();
+      if (data && !data.error) {
+        setUser(data);
+      } else {
+        // Fallback: at minimum show the stored email from login
+        const email = localStorage.getItem('rememberedEmail') || '';
+        setUser({ name: '', email });
+      }
     };
-    setTimeout(() => {
-      setUser(userData);
-    }, 1000);
+    loadUser();
   }, []);
 
   return (
@@ -24,6 +27,7 @@ const UserProvider = ({ children }) => {
     </UserContext.Provider>
   );
 };
+
 UserProvider.propTypes = {
   children: PropTypes.node.isRequired,
 };

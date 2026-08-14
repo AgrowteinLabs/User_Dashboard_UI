@@ -2,7 +2,7 @@ import mqtt from "mqtt";
 import { useEffect, useRef } from "react";
 import { v4 as uuidv4 } from "uuid";
 
-const SIGN_URL_API = "https://apiv2.agrowtein.com/api/sign-mqtt-url";
+const SIGN_URL_API = `${import.meta.env.VITE_REACT_APP_API_URL}/api/sign-mqtt-url`;
 
 export const useMqttControl = (uid) => {
   const clientRef = useRef(null);
@@ -92,7 +92,7 @@ export const useMqttControl = (uid) => {
 
     const setupMqtt = async () => {
       try {
-        const res = await fetch(`${SIGN_URL_API}?uid=${uid}`);
+        const res = await fetch(`${SIGN_URL_API}?uid=${uid}`, { credentials: "include" });
         const { url } = await res.json();
 
         const mqttClient = mqtt.connect(url, {

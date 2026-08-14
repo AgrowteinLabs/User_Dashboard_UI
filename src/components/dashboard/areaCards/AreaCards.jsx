@@ -1,22 +1,18 @@
-import { useEffect, useState, useContext, useRef, useCallback } from "react";
+import { useEffect, useState, useContext, useCallback, useRef } from "react";
+import PropTypes from "prop-types";
 import {
   Select,
   MenuItem,
   FormControl,
   InputLabel,
   Typography,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
   Switch,
   Slider,
   Button,
   Tooltip,
   TextField,
-  Box,
   Divider
 } from "@mui/material";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import SettingsRemoteIcon from "@mui/icons-material/SettingsRemote";
 import PrecisionManufacturingIcon from "@mui/icons-material/PrecisionManufacturing";
 import ElectricBoltIcon from "@mui/icons-material/ElectricBolt";
@@ -26,29 +22,50 @@ import fetchProducts from "../../../api/fetchProducts";
 import fetchUser from "../../../api/fetchuser";
 import Swal from "sweetalert2";
 import { useMqttControl } from "../../../hooks/useMqttControl";
+import ControlTimers from "../../controlTimers/ControlTimers";
 import "./AreaCards.scss";
 
-const AreaCards = () => {
+const AreaCards = ({ expanded, setExpanded }) => {
   const { selectedProductUid, setSelectedProductUid } = useContext(ProductContext);
   const [products, setProducts] = useState([]);
   const [productDetails, setProductDetails] = useState(null);
   const [thresholds, setThresholds] = useState({});
   const [offsets, setOffsets] = useState({});
   const [controlStates, setControlStates] = useState({});
-  const [expanded, setExpanded] = useState(false);
   const [modeSwitchLoading, setModeSwitchLoading] = useState(false);
   const userId = localStorage.getItem("userId");
-  const timerRef = useRef(null);
 
   const { publishCommandWithFeedback } = useMqttControl(selectedProductUid);
 
-  // Safe response parser - handles HTML error pages that crash JSON.parse
+  const collapseTimerRef = useRef(null);
+
+  const startCollapseTimer = useCallback(() => {
+    if (collapseTimerRef.current) clearTimeout(collapseTimerRef.current);
+    collapseTimerRef.current = setTimeout(() => {
+      setExpanded(false);
+    }, 10000); // Collapse automatically after 10 seconds of no interaction
+  }, [setExpanded]);
+
+  const clearCollapseTimer = useCallback(() => {
+    if (collapseTimerRef.current) {
+      clearTimeout(collapseTimerRef.current);
+      collapseTimerRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => {
+    if (expanded) {
+      startCollapseTimer();
+    } else {
+      clearCollapseTimer();
+    }
+    return () => clearCollapseTimer();
+  }, [expanded, startCollapseTimer, clearCollapseTimer]);
+
   const parseApiResponse = async (response) => {
     const rawBody = await response.text();
     const contentType = response.headers.get("content-type") || "";
-
     if (!rawBody) return null;
-
     if (contentType.includes("application/json")) {
       try {
         return JSON.parse(rawBody);
@@ -56,7 +73,6 @@ const AreaCards = () => {
         return rawBody;
       }
     }
-
     try {
       return JSON.parse(rawBody);
     } catch {
@@ -64,12 +80,11 @@ const AreaCards = () => {
     }
   };
 
-  // Reusable function to fetch product details from backend
   const fetchDetails = useCallback(async () => {
     if (!userId || !selectedProductUid) return;
     try {
       const url = import.meta.env.VITE_REACT_APP_API_URL;
-      const res = await fetch(`${url}/api/v1/user/product/${userId}`);
+      const res = await fetch(`${url}/api/v1/user/product/${userId}`, { credentials: "include" });
       const data = await parseApiResponse(res);
       const selected = data.find((p) => p.uid === selectedProductUid);
       if (selected) {
@@ -85,12 +100,9 @@ const AreaCards = () => {
         setThresholds(initThresh);
         setOffsets(initOffsets);
         setControlStates(initStates);
-        console.log("✅ Product details refreshed from backend");
-        console.log("📊 Product mode:", selected.mode);
-        console.log("🎛️ Controls with supportsAuto:", selected.controls.map(c => ({ name: c.name, supportsAuto: c.supportsAuto, automate: c.automate })));
       }
     } catch (err) {
-      console.error("Error loading product:", err);
+      console.error("Error loading product details:", err);
     }
   }, [userId, selectedProductUid]);
 
@@ -101,7 +113,6 @@ const AreaCards = () => {
         setProducts(data);
         const saved = localStorage.getItem("selectedProductUid") || data[0]?.uid;
         setSelectedProductUid(saved);
-        localStorage.setItem("selectedProductUid", saved);
       }
       await fetchUser();
     };
@@ -111,6 +122,13 @@ const AreaCards = () => {
   useEffect(() => {
     fetchDetails();
   }, [selectedProductUid, userId, fetchDetails]);
+
+  // Sync mode changes internally
+  useEffect(() => {
+    const handleRefresh = () => fetchDetails();
+    window.addEventListener("thresholds-updated", handleRefresh);
+    return () => window.removeEventListener("thresholds-updated", handleRefresh);
+  }, [fetchDetails]);
 
   const handleThresholdChange = (controlId, value) => {
     setThresholds((prev) => ({ ...prev, [controlId]: value }));
@@ -130,9 +148,7 @@ const AreaCards = () => {
     publishCommandWithFeedback(
       payload,
       async () => {
-        console.log("📥 Device confirmed threshold set:", payload);
-
-        Swal.close(); // ✅ FIX
+        Swal.close();
 
         const feedbackPayload = {
           uid: String(selectedProductUid),
@@ -142,18 +158,14 @@ const AreaCards = () => {
           mode: "threshold"
         };
 
-        console.log("📤 Sending threshold feedback to server:", feedbackPayload);
-
         const res = await fetch(`${import.meta.env.VITE_REACT_APP_API_URL}/api/v1/command/control/save`, {
           method: "POST",
+          credentials: "include",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(feedbackPayload),
         });
+        await parseApiResponse(res);
 
-        const result = await parseApiResponse(res);
-        console.log("💾 Threshold saved to DB:", result);
-
-        // Save offset separately
         const offsetPayload = {
           uid: String(selectedProductUid),
           pin: String(pin),
@@ -162,18 +174,14 @@ const AreaCards = () => {
           mode: "offset"
         };
 
-        console.log("📤 Sending offset feedback to server:", offsetPayload);
-
         const offsetRes = await fetch(`${import.meta.env.VITE_REACT_APP_API_URL}/api/v1/command/control/save`, {
           method: "POST",
+          credentials: "include",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(offsetPayload),
         });
+        await parseApiResponse(offsetRes);
 
-        const offsetResult = await parseApiResponse(offsetRes);
-        console.log("💾 Offset saved to DB:", offsetResult);
-
-        // Refetch to sync UI with backend
         await fetchDetails();
 
         window.dispatchEvent(
@@ -189,7 +197,6 @@ const AreaCards = () => {
     );
   };
 
-
   const handleTogglePower = (controlId, pin, currentState) => {
     const newState = currentState === "ON" ? "OFF" : "ON";
     const payload = { command: "SetPower", pin, state: newState };
@@ -199,30 +206,24 @@ const AreaCards = () => {
     publishCommandWithFeedback(
       payload,
       async () => {
-        console.log("📥 Device confirmed power toggle:", payload);
-
-        Swal.close(); // ✅ FIX
+        Swal.close();
 
         const feedbackPayload = {
           uid: String(selectedProductUid),
           pin: String(pin),
           controlId: String(controlId),
-          value: String(newState),  // "ON" or "OFF"
+          value: String(newState),
           mode: "state"
         };
 
-        console.log("📤 Sending power toggle feedback to server:", feedbackPayload);
-
         const res = await fetch(`${import.meta.env.VITE_REACT_APP_API_URL}/api/v1/command/control/save`, {
           method: "POST",
+          credentials: "include",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(feedbackPayload),
         });
+        await parseApiResponse(res);
 
-        const result = await parseApiResponse(res);
-        console.log("💾 Power state saved to DB:", result);
-
-        // Refetch to sync UI with backend
         await fetchDetails();
 
         Swal.fire("✅ Success", `Control turned ${newState}`, "success");
@@ -244,35 +245,25 @@ const AreaCards = () => {
     ];
 
     let lastError = null;
-
     for (const candidate of endpointCandidates) {
       try {
         const response = await fetch(candidate.url, {
           method: candidate.method,
+          credentials: "include",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ mode: newMode }),
         });
-
         const result = await parseApiResponse(response);
-
-        if (response.ok) {
-          return result;
-        }
-
+        if (response.ok) return result;
         const message = result?.message || result || `HTTP ${response.status}`;
         lastError = new Error(`${candidate.method} ${candidate.url} failed: ${message}`);
-
-        if (response.status !== 404) {
-          throw lastError;
-        }
+        if (response.status !== 404) throw lastError;
       } catch (error) {
         lastError = error;
       }
     }
-
     throw lastError || new Error("Failed to update backend global mode");
   };
-
 
   const handleModeToggle = async () => {
     if (!selectedProductUid || modeSwitchLoading || !productDetails?.controls?.length) return;
@@ -292,8 +283,8 @@ const AreaCards = () => {
         productDetails.controls.map(
           (control) =>
             new Promise((resolve, reject) => {
-              const threshold = Number(thresholds[control.controlId] ?? control.threshHold ?? 1);
-              const offset = Number(offsets[control.controlId] ?? control.offset ?? control.min ?? 1);
+              const threshold = control.threshHold ?? 1;
+              const offset = control.offset ?? control.min ?? 1;
               const supportsAuto = control.supportsAuto !== false;
               const shouldSendAuto = newMode === "automate" && supportsAuto;
 
@@ -312,14 +303,6 @@ const AreaCards = () => {
                     mode: "Manual",
                   };
 
-              console.log("📤 Sending mode payload:", {
-                controlId: control.controlId,
-                supportsAuto,
-                requestedMode: newMode,
-                sentMode: modePayload.mode,
-                payload: modePayload,
-              });
-
               publishCommandWithFeedback(
                 modePayload,
                 () => resolve(),
@@ -330,39 +313,21 @@ const AreaCards = () => {
       );
 
       const result = await updateGlobalModeInBackend(newMode);
-
-      console.log("✅ Global mode updated:", result);
-      console.log("📋 Updated controls:", result.updatedControls);
-      console.log("⏭️ Skipped controls (manual-only):", result.skippedControls);
-
-      // Refetch product details to sync UI
       await fetchDetails();
 
-      // Show success message with details
       const messageLines = [
         `Switched to ${newMode.toUpperCase()} mode`,
         `\n✅ Updated: ${result.updatedControls?.length || 0} controls`,
-        result.skippedControls?.length > 0 ? `⏭️ Manual-only: ${result.skippedControls.length} controls` : ""
+        result.skippedControls?.length > 0 ? `Manual-only: ${result.skippedControls.length} controls` : ""
       ].filter(Boolean);
 
       Swal.fire("✅ Mode Updated", messageLines.join(""), "success");
     } catch (error) {
-      console.error("❌ Mode toggle failed:", error);
       Swal.fire("❌ Failed", error.message || "Could not switch mode. Please try again.", "error");
-      // Refetch to ensure UI matches backend state
       await fetchDetails();
     } finally {
       setModeSwitchLoading(false);
     }
-  };
-
-
-
-  const handleAutoCollapse = () => {
-    clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => {
-      setExpanded(false);
-    }, 10000);
   };
 
   const controls = productDetails?.controls || [];
@@ -394,7 +359,7 @@ const AreaCards = () => {
       <div className="area-cards-row">
         <motion.div className="area-card" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
           <PrecisionManufacturingIcon className="card-icon" />
-          <div>
+          <div className="info-content">
             <p className="info-title">Product</p>
             <p className="info-value">{productDetails?.alias || "—"}</p>
           </div>
@@ -402,7 +367,7 @@ const AreaCards = () => {
 
         <motion.div className="area-card" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
           <ElectricBoltIcon className="card-icon" />
-          <div>
+          <div className="info-content">
             <p className="info-title">Mode</p>
             <div className="mode-toggle">
               <Tooltip title={!controls.length ? "Mode toggle disabled — no controls" : ""} arrow>
@@ -421,248 +386,283 @@ const AreaCards = () => {
 
         <motion.div className="area-card" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
           <SettingsRemoteIcon className="card-icon" />
-          <div>
+          <div className="info-content">
             <p className="info-title">Controls</p>
             <p className="info-value">{controls.length}</p>
           </div>
         </motion.div>
-
-        {/* <motion.div className="area-card" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Box sx={{ width: 12, height: 12, borderRadius: '50%', backgroundColor: '#4caf50', animation: 'pulse 2s infinite' }} />
-          </Box>
-          <div>
-            <p className="info-title">Device Status</p>
-            <p className="info-value" style={{ fontSize: '12px' }}>Connected</p>
-          </div>
-        </motion.div> */}
       </div>
 
-      <div className="control-panel">
-        <Accordion
-          expanded={expanded}
-          onChange={() => setExpanded(!expanded)}
-          onMouseEnter={() => clearTimeout(timerRef.current)}
-          onMouseLeave={handleAutoCollapse}
+      <div 
+        className={`control-panel-flat ${!expanded ? "collapsed" : ""}`}
+        onMouseEnter={clearCollapseTimer}
+        onMouseMove={clearCollapseTimer}
+        onMouseLeave={() => {
+          if (expanded) startCollapseTimer();
+        }}
+      >
+        <div 
+          className="control-panel-header"
+          onClick={() => setExpanded(!expanded)}
+          style={{ cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }}
         >
-          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            <Typography variant="h6" sx={{ fontWeight: "bold", color: "#03856d" }}>
-              🔧 Control Panel
-            </Typography>
-          </AccordionSummary>
-          <AccordionDetails>
+          <Typography variant="h6" className="panel-title">
+            ⚙️ Controller Configuration
+          </Typography>
+          <span 
+            className="toggle-icon-btn"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: "28px",
+              height: "28px",
+              borderRadius: "50%",
+              background: "rgba(255, 255, 255, 0.04)",
+              border: "1px solid var(--card-border)",
+              cursor: "pointer"
+            }}
+          >
+            <span style={{
+              display: "block",
+              transform: expanded ? "rotate(0deg)" : "rotate(-90deg)",
+              transition: "transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
+              fontSize: "0.85rem",
+              color: "var(--primary-emerald)",
+              lineHeight: 1
+            }}>
+              ▼
+            </span>
+          </span>
+        </div>
+        {expanded && (
+          <div className="control-panel-body">
             {controls.length === 0 ? (
-              <Typography className="no-controls-msg">
+              <div className="no-controls-msg">
                 ⚠️ No controls available for this product.
-              </Typography>
+              </div>
             ) : (
               <div className="controls-grid">
                 {controls.map((control) => (
                   <div className="control-card" key={control.controlId}>
-                    <Box sx={{ mb: 2, pb: 1.5, borderBottom: '2px solid #e0e0e0' }}>
-                      <Typography variant="h6" sx={{ fontWeight: 600, color: '#03856d' }}>
+                    <div className="control-header-box">
+                      <span className="control-title">
                         {control.name}
-                      </Typography>
-                      <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                        {/* Pin: {control.pin} • ID: {control.controlId} */}
-                      </Typography>
-                    </Box>
+                      </span>
+                    </div>
 
                     {/* Power Button - In Manual Mode OR for Manual-Only Controls */}
                     {(productDetails?.mode === "manual" || (productDetails?.mode === "automate" && !control.supportsAuto)) && (
-                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                        <Box sx={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          p: 1.5,
-                          bgcolor: controlStates[control.controlId] === "ON" ? '#e8f5e9' : '#fafafa',
-                          borderRadius: 1,
-                          border: '1px solid',
-                          borderColor: controlStates[control.controlId] === "ON" ? '#4caf50' : '#e0e0e0'
-                        }}>
-                          <Box>
-                            <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                              Status
-                            </Typography>
-                            <Typography variant="h6" sx={{
-                              color: controlStates[control.controlId] === "ON" ? '#4caf50' : '#9e9e9e',
-                              fontWeight: 600
-                            }}>
-                              {controlStates[control.controlId] || 'N/A'}
-                            </Typography>
-                          </Box>
-                          <Tooltip title={!controlStates[control.controlId] ? "No state data" : ""}>
-                            <span>
-                              <Button
-                                variant={controlStates[control.controlId] === "ON" ? "contained" : "outlined"}
-                                color={controlStates[control.controlId] === "ON" ? "error" : "success"}
-                                onClick={() =>
-                                  handleTogglePower(control.controlId, control.pin, controlStates[control.controlId])
-                                }
-                                disabled={!controlStates[control.controlId]}
-                                sx={{ minWidth: 100 }}
-                              >
-                                TURN {controlStates[control.controlId] === "ON" ? "OFF" : "ON"}
-                              </Button>
-                            </span>
-                          </Tooltip>
-                        </Box>
-                      </Box>
+                      <div className={`control-power-box ${controlStates[control.controlId] === "ON" ? 'state-on' : 'state-off'}`}>
+                        <div className="state-info">
+                          <span className="state-label">Status</span>
+                          <span className="state-text">
+                            {controlStates[control.controlId] || 'N/A'}
+                          </span>
+                        </div>
+                        <Tooltip title={!controlStates[control.controlId] ? "No state data" : ""}>
+                          <span>
+                            <Button
+                              onClick={() =>
+                                handleTogglePower(control.controlId, control.pin, controlStates[control.controlId])
+                              }
+                              disabled={!controlStates[control.controlId]}
+                              sx={{
+                                minWidth: 110,
+                                fontWeight: 800,
+                                borderRadius: "10px",
+                                fontFamily: "var(--font-family-jakarta)",
+                                textTransform: "none",
+                                fontSize: "0.82rem",
+                                py: 0.7,
+                                ...(controlStates[control.controlId] === "ON" ? {
+                                  background: "var(--color-success) !important",
+                                  backgroundColor: "var(--color-success) !important",
+                                  color: "#050a15 !important",
+                                  boxShadow: "0 4px 12px rgba(16, 185, 129, 0.25) !important"
+                                } : {
+                                  border: "1px solid var(--card-border) !important",
+                                  color: "var(--text-secondary) !important",
+                                  background: "rgba(255, 255, 255, 0.02) !important",
+                                  backgroundColor: "rgba(255, 255, 255, 0.02) !important",
+                                  "&:hover": {
+                                    borderColor: "var(--primary-emerald) !important",
+                                    color: "var(--primary-emerald) !important",
+                                    background: "rgba(0, 242, 155, 0.08) !important"
+                                  }
+                                })
+                              }}
+                            >
+                              {controlStates[control.controlId] === "ON" ? "⚡ Turn OFF" : "🔌 Turn ON"}
+                            </Button>
+                          </span>
+                        </Tooltip>
+                      </div>
+                    )}
+
+                    {/* V2 Timer & Schedule — manual control context */}
+                    {(productDetails?.mode === "manual" || (productDetails?.mode === "automate" && !control.supportsAuto)) && (
+                      <ControlTimers
+                        productId={productDetails?._id || productDetails?.id}
+                        control={control}
+                        onChanged={fetchDetails}
+                        capabilities={productDetails?.capabilities}
+                      />
                     )}
 
                     {/* Manual-Only Indicator */}
                     {productDetails?.mode === "manual" && !control.supportsAuto && (
-                      <Box sx={{
-                        p: 1.5,
-                        bgcolor: '#fff3e0',
-                        borderRadius: 1,
-                        border: '1px solid #ffb74d',
-                        textAlign: 'center'
-                      }}>
-                        <Typography variant="caption" sx={{ color: '#e65100', fontWeight: 600 }}>
-                          🪜 Manual Control Only
-                        </Typography>
-                      </Box>
+                      <div className="manual-only-indicator">
+                        🪜 Manual Control Only
+                      </div>
                     )}
 
                     {/* Threshold Controls - Only in Automate Mode for Controls that Support Automation */}
                     {productDetails?.mode === "automate" && control.supportsAuto && (
-                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                         {/* Threshold Section */}
-                        <Box>
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                            <Typography variant="body2" sx={{ fontWeight: 600, color: '#03856d' }}>
-                              Threshold
-                            </Typography>
-                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                              Range: {control.min} - {control.max}
-                            </Typography>
-                          </Box>
-                          <Slider
-                            value={thresholds[control.controlId] || 0}
-                            min={control.min}
-                            max={control.max}
-                            step={1}
-                            valueLabelDisplay="auto"
-                            onChange={(_, val) => handleThresholdChange(control.controlId, val)}
-                            sx={{ mb: 1 }}
-                          />
-                          <TextField
-                            type="number"
-                            value={thresholds[control.controlId] ?? 0}
-                            onChange={(e) => {
-                              const rawValue = e.target.value.trim();
-                              if (rawValue === '') {
-                                handleThresholdChange(control.controlId, '');
-                              } else {
-                                const parsed = parseInt(rawValue, 10);
-                                if (!isNaN(parsed)) {
-                                  handleThresholdChange(control.controlId, parsed);
+                        <div className="threshold-slider-group">
+                          <div className="slider-header">
+                            <span className="slider-label">Threshold</span>
+                            <span className="slider-range-text">Range: {control.min} - {control.max}</span>
+                          </div>
+                          <div className="slider-row">
+                            <Slider
+                              value={thresholds[control.controlId] || 0}
+                              min={control.min}
+                              max={control.max}
+                              step={1}
+                              valueLabelDisplay="auto"
+                              onChange={(_, val) => handleThresholdChange(control.controlId, val)}
+                            />
+                            <TextField
+                              type="number"
+                              value={thresholds[control.controlId] ?? 0}
+                              onChange={(e) => {
+                                const rawValue = e.target.value.trim();
+                                if (rawValue === '') {
+                                  handleThresholdChange(control.controlId, '');
+                                } else {
+                                  const parsed = parseInt(rawValue, 10);
+                                  if (!isNaN(parsed)) {
+                                    handleThresholdChange(control.controlId, parsed);
+                                  }
                                 }
-                              }
-                            }}
-                            onBlur={(e) => {
-                              const rawValue = e.target.value.trim();
-                              if (rawValue === '') {
-                                handleThresholdChange(control.controlId, 0);
-                              } else {
-                                const parsed = parseInt(rawValue, 10);
-                                if (!isNaN(parsed)) {
-                                  handleThresholdChange(control.controlId, parsed);
+                              }}
+                              onBlur={(e) => {
+                                const rawValue = e.target.value.trim();
+                                if (rawValue === '') {
+                                  handleThresholdChange(control.controlId, 0);
+                                } else {
+                                  const parsed = parseInt(rawValue, 10);
+                                  if (!isNaN(parsed)) {
+                                    handleThresholdChange(control.controlId, parsed);
+                                  }
                                 }
-                              }
-                            }}
-                            size="small"
-                            fullWidth
-                            inputProps={{ min: control.min, max: control.max, step: 1 }}
-                          />
-                        </Box>
+                              }}
+                              size="small"
+                              inputProps={{ min: control.min, max: control.max, step: 1 }}
+                            />
+                          </div>
+                        </div>
 
                         {/* Offset Section */}
-                        <Box>
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                            <Typography variant="body2" sx={{ fontWeight: 600, color: '#03856d' }}>
-                              Offset
-                            </Typography>
-                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                              Range: {control.min} - {control.max}
-                            </Typography>
-                          </Box>
-                          <Slider
-                            value={offsets[control.controlId] || control.min}
-                            min={control.min}
-                            max={control.max}
-                            step={1}
-                            valueLabelDisplay="auto"
-                            onChange={(_, val) => handleOffsetChange(control.controlId, val)}
-                            sx={{ mb: 1 }}
-                          />
-                          <TextField
-                            type="number"
-                            value={offsets[control.controlId] ?? control.min}
-                            onChange={(e) => {
-                              const rawValue = e.target.value.trim();
-                              if (rawValue === '') {
-                                handleOffsetChange(control.controlId, '');
-                              } else {
-                                const parsed = parseInt(rawValue, 10);
-                                if (!isNaN(parsed)) {
-                                  handleOffsetChange(control.controlId, parsed);
+                        <div className="threshold-slider-group">
+                          <div className="slider-header">
+                            <span className="slider-label">Offset</span>
+                            <span className="slider-range-text">Range: {control.min} - {control.max}</span>
+                          </div>
+                          <div className="slider-row">
+                            <Slider
+                              value={offsets[control.controlId] || control.min}
+                              min={control.min}
+                              max={control.max}
+                              step={1}
+                              valueLabelDisplay="auto"
+                              onChange={(_, val) => handleOffsetChange(control.controlId, val)}
+                            />
+                            <TextField
+                              type="number"
+                              value={offsets[control.controlId] ?? control.min}
+                              onChange={(e) => {
+                                const rawValue = e.target.value.trim();
+                                if (rawValue === '') {
+                                  handleOffsetChange(control.controlId, '');
+                                } else {
+                                  const parsed = parseInt(rawValue, 10);
+                                  if (!isNaN(parsed)) {
+                                    handleOffsetChange(control.controlId, parsed);
+                                  }
                                 }
-                              }
-                            }}
-                            onBlur={(e) => {
-                              const rawValue = e.target.value.trim();
-                              if (rawValue === '') {
-                                handleOffsetChange(control.controlId, control.min);
-                              } else {
-                                const parsed = parseInt(rawValue, 10);
-                                if (!isNaN(parsed)) {
-                                  handleOffsetChange(control.controlId, parsed);
+                              }}
+                              onBlur={(e) => {
+                                const rawValue = e.target.value.trim();
+                                if (rawValue === '') {
+                                  handleOffsetChange(control.controlId, control.min);
+                                } else {
+                                  const parsed = parseInt(rawValue, 10);
+                                  if (!isNaN(parsed)) {
+                                    handleOffsetChange(control.controlId, parsed);
+                                  }
                                 }
-                              }
-                            }}
-                            size="small"
-                            fullWidth
-                            inputProps={{ min: control.min, max: control.max, step: 1 }}
-                          />
-                        </Box>
+                              }}
+                              size="small"
+                              inputProps={{ min: control.min, max: control.max, step: 1 }}
+                            />
+                          </div>
+                        </div>
 
                         <Divider />
 
                         <Button
                           variant="contained"
+                          color="primary"
                           fullWidth
                           size="large"
                           onClick={() => handleSaveThreshold(control.controlId, control.pin)}
                           sx={{
-                            bgcolor: '#03856d',
-                            '&:hover': { bgcolor: '#026d55' },
                             py: 1.2,
-                            fontWeight: 600
+                            fontWeight: 800,
+                            borderRadius: "12px",
+                            fontFamily: "var(--font-family-jakarta)",
+                            textTransform: "none",
+                            background: "linear-gradient(135deg, var(--primary-emerald) 0%, #00b880 100%) !important",
+                            color: "#060b13 !important",
+                            boxShadow: "0 4px 12px rgba(0, 242, 155, 0.15) !important",
+                            "&:hover": {
+                              background: "linear-gradient(135deg, var(--secondary-teal) 0%, var(--primary-emerald) 100%) !important",
+                              boxShadow: "0 6px 16px rgba(0, 242, 155, 0.25) !important"
+                            },
+                            "body.light-mode &": {
+                              color: "white !important"
+                            }
                           }}
                         >
                           Save Configuration
                         </Button>
-                      </Box>
+                      </div>
                     )}
 
                     {/* Manual-Only Notice in Automate Mode */}
                     {productDetails?.mode === "automate" && !control.supportsAuto && (
-                      <Typography variant="caption" sx={{ color: '#d84315' }}>
-                        This controller does not support automatic mode. Manual controls are shown above.
+                      <Typography variant="caption" sx={{ color: 'var(--color-error)', fontWeight: 800, fontFamily: "var(--font-family-jakarta)" }}>
+                        ⚠️ Manual controls only (automatic mode not supported).
                       </Typography>
                     )}
                   </div>
                 ))}
               </div>
             )}
-          </AccordionDetails>
-        </Accordion>
+          </div>
+        )}
       </div>
     </section>
   );
+};
+
+AreaCards.propTypes = {
+  expanded: PropTypes.bool.isRequired,
+  setExpanded: PropTypes.func.isRequired,
 };
 
 export default AreaCards;

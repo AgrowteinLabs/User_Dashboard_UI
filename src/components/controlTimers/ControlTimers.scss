@@ -1,0 +1,627 @@
+/* ═══════════════════════════════════════════════════════
+   Control Timers & Schedules — Premium Modal Design
+   Uses: --primary-color, --secondary-teal, --card-bg,
+         --card-border, --glass-blur, --shadow-premium,
+         --shadow-glow, --font-family-*
+═══════════════════════════════════════════════════════ */
+
+/* ─── Trigger Buttons in Card ────────────────────────── */
+.control-timers {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+
+  .ct-action-btn {
+    text-transform: none !important;
+    font-weight: 700 !important;
+    font-family: var(--font-family-jakarta) !important;
+    font-size: 0.78rem !important;
+    border: 1px solid rgba(0, 242, 155, 0.3) !important;
+    color: var(--primary-color) !important;
+    background: rgba(0, 242, 155, 0.04) !important;
+    border-radius: 10px !important;
+    padding: 5px 13px !important;
+    letter-spacing: 0.01em !important;
+    transition: var(--transition-smooth) !important;
+
+    &:hover {
+      background: rgba(0, 242, 155, 0.10) !important;
+      border-color: var(--primary-color) !important;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0, 242, 155, 0.15) !important;
+    }
+
+    .MuiButton-startIcon svg {
+      font-size: 1rem !important;
+    }
+  }
+}
+
+/* ─── Active Timer Chip ───────────────────────────────── */
+.ct-timer-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 6px 5px 12px;
+  border-radius: 14px;
+  border: 1px solid;
+  font-size: 0.78rem;
+  backdrop-filter: var(--glass-blur);
+  transition: var(--transition-smooth);
+
+  &.ct-on {
+    background: rgba(0, 242, 155, 0.08);
+    border-color: rgba(0, 242, 155, 0.3);
+    color: var(--primary-color);
+    box-shadow: 0 2px 10px rgba(0, 242, 155, 0.12);
+  }
+
+  &.ct-off {
+    background: rgba(239, 68, 68, 0.08);
+    border-color: rgba(239, 68, 68, 0.3);
+    color: var(--color-error);
+    box-shadow: 0 2px 10px rgba(239, 68, 68, 0.1);
+  }
+
+  .ct-chip-text {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.15;
+  }
+
+  .ct-chip-label {
+    font-family: var(--font-family-jakarta) !important;
+    font-size: 0.68rem !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.06em !important;
+    text-transform: uppercase !important;
+    opacity: 0.75;
+  }
+
+  .ct-chip-count {
+    font-family: var(--font-family-outfit) !important;
+    font-size: 0.88rem !important;
+    font-weight: 900 !important;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+  }
+
+  .ct-chip-cancel {
+    width: 26px;
+    height: 26px;
+    color: inherit !important;
+
+    svg { font-size: 17px !important; }
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.1) !important;
+      border-radius: 50%;
+    }
+  }
+}
+
+/* ═══════════════════════════════════════════════════════
+   DIALOG OVERRIDES — Both Timer + Schedule popups
+═══════════════════════════════════════════════════════ */
+
+/* MUI Dialog paper — glassmorphic shell */
+.MuiDialog-paper {
+  background: var(--card-bg) !important;
+  backdrop-filter: var(--glass-blur) !important;
+  border: 1px solid var(--card-border) !important;
+  border-radius: 22px !important;
+  box-shadow: var(--shadow-premium), 0 0 60px rgba(0, 0, 0, 0.4) !important;
+  color: var(--text-color) !important;
+  overflow: hidden;
+
+  // Emerald accent top stripe
+  &::before {
+    content: "";
+    display: block;
+    height: 3px;
+    background: linear-gradient(90deg, var(--primary-color), var(--secondary-teal));
+    width: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+  }
+}
+
+/* ─── Dialog Title ───────────────────────────────────── */
+.ct-dialog-title {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  font-family: var(--font-family-outfit) !important;
+  font-weight: 800 !important;
+  font-size: 1.05rem !important;
+  color: var(--text-color) !important;
+  padding: 20px 20px 14px !important;
+  border-bottom: 1px solid var(--card-border) !important;
+  background: transparent !important;
+
+  svg {
+    color: var(--primary-color);
+    font-size: 1.2rem;
+  }
+
+  .ct-dialog-close {
+    margin-left: auto !important;
+    color: var(--text-secondary) !important;
+    width: 32px;
+    height: 32px;
+    border-radius: 10px !important;
+    transition: var(--transition-smooth) !important;
+
+    &:hover {
+      background: rgba(0, 242, 155, 0.1) !important;
+      color: var(--primary-color) !important;
+    }
+
+    svg { font-size: 1.1rem !important; }
+  }
+}
+
+/* ─── Dialog Content ─────────────────────────────────── */
+.MuiDialogContent-root {
+  padding: 20px !important;
+  color: var(--text-color) !important;
+
+  // Section label overrides
+  .MuiTypography-subtitle2 {
+    font-family: var(--font-family-jakarta) !important;
+    font-size: 0.72rem !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.08em !important;
+    text-transform: uppercase !important;
+    color: var(--text-secondary) !important;
+    margin-bottom: 8px !important;
+  }
+
+  .MuiDivider-root {
+    border-color: var(--card-border) !important;
+  }
+
+  // MUI TextField
+  .MuiTextField-root,
+  .MuiFormControl-root {
+    .MuiInputLabel-root {
+      font-family: var(--font-family-jakarta) !important;
+      font-size: 0.85rem !important;
+      font-weight: 600 !important;
+      color: var(--text-secondary) !important;
+    }
+
+    .MuiOutlinedInput-root {
+      border-radius: 12px !important;
+      background: rgba(0, 242, 155, 0.03) !important;
+      color: var(--text-color) !important;
+      font-family: var(--font-family-jakarta) !important;
+      font-weight: 600 !important;
+      font-size: 0.9rem !important;
+      transition: var(--transition-fast) !important;
+
+      .MuiOutlinedInput-notchedOutline {
+        border-color: var(--card-border) !important;
+        transition: border-color 0.2s ease !important;
+      }
+
+      &:hover .MuiOutlinedInput-notchedOutline {
+        border-color: rgba(0, 242, 155, 0.3) !important;
+      }
+
+      &.Mui-focused .MuiOutlinedInput-notchedOutline {
+        border-color: var(--primary-color) !important;
+        border-width: 1.5px !important;
+      }
+
+      input {
+        color: var(--text-color) !important;
+        &::-webkit-calendar-picker-indicator { filter: invert(0.5); }
+      }
+    }
+
+    .MuiFormHelperText-root {
+      font-family: var(--font-family-jakarta) !important;
+      font-size: 0.72rem !important;
+      color: var(--text-secondary) !important;
+      margin-top: 4px !important;
+    }
+  }
+
+  // MUI Select
+  .MuiSelect-select {
+    color: var(--text-color) !important;
+    font-family: var(--font-family-jakarta) !important;
+    font-weight: 600 !important;
+  }
+
+  // MUI Checkbox + Switch
+  .MuiSwitch-switchBase.Mui-checked {
+    color: var(--primary-color) !important;
+    + .MuiSwitch-track {
+      background-color: var(--primary-color) !important;
+      opacity: 0.35 !important;
+    }
+  }
+
+  .MuiCheckbox-root.Mui-checked {
+    color: var(--primary-color) !important;
+  }
+
+  .MuiFormControlLabel-label {
+    font-family: var(--font-family-jakarta) !important;
+    font-weight: 600 !important;
+    font-size: 0.88rem !important;
+    color: var(--text-color) !important;
+  }
+}
+
+/* ─── Active Timer View ──────────────────────────────── */
+.ct-active {
+  text-align: center;
+  padding: 12px 0 8px;
+
+  .ct-active-label {
+    font-family: var(--font-family-jakarta) !important;
+    font-size: 0.88rem !important;
+    font-weight: 700 !important;
+    color: var(--text-secondary) !important;
+    margin-bottom: 8px !important;
+  }
+
+  .ct-active-count {
+    font-family: var(--font-family-outfit) !important;
+    font-size: 3.2rem !important;
+    font-weight: 900 !important;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.04em;
+    color: var(--primary-color) !important;
+    text-shadow: 0 0 30px rgba(0, 242, 155, 0.3);
+    line-height: 1;
+    margin: 0 !important;
+    display: block !important;
+    padding: 12px 0 8px;
+  }
+
+  .MuiTypography-caption {
+    color: var(--text-secondary) !important;
+    font-family: var(--font-family-jakarta) !important;
+    font-size: 0.78rem !important;
+    font-weight: 600 !important;
+  }
+}
+
+/* ─── Action Toggle (ON / OFF) ───────────────────────── */
+.ct-action-toggle {
+  display: flex;
+  gap: 10px;
+
+  .MuiButton-root {
+    flex: 1 !important;
+    text-transform: none !important;
+    font-family: var(--font-family-jakarta) !important;
+    font-weight: 700 !important;
+    border-radius: 12px !important;
+    padding: 8px 0 !important;
+    transition: var(--transition-smooth) !important;
+
+    // ON button — themed emerald
+    &.MuiButton-outlinedSuccess {
+      border-color: rgba(0, 242, 155, 0.4) !important;
+      color: var(--primary-color) !important;
+      background: rgba(0, 242, 155, 0.04) !important;
+
+      &:hover {
+        background: rgba(0, 242, 155, 0.1) !important;
+        border-color: var(--primary-color) !important;
+      }
+    }
+
+    &.MuiButton-containedSuccess {
+      background: linear-gradient(135deg, var(--primary-color), var(--secondary-teal)) !important;
+      color: #060b13 !important;
+      border: none !important;
+      box-shadow: 0 4px 14px rgba(0, 242, 155, 0.25) !important;
+    }
+
+    // OFF button — themed error
+    &.MuiButton-outlinedError {
+      border-color: rgba(239, 68, 68, 0.3) !important;
+      color: var(--color-error) !important;
+      background: rgba(239, 68, 68, 0.03) !important;
+
+      &:hover {
+        background: rgba(239, 68, 68, 0.08) !important;
+        border-color: var(--color-error) !important;
+      }
+    }
+
+    &.MuiButton-containedError {
+      background: linear-gradient(135deg, #ef4444, #dc2626) !important;
+      color: #fff !important;
+      border: none !important;
+      box-shadow: 0 4px 14px rgba(239, 68, 68, 0.25) !important;
+    }
+  }
+}
+
+/* ─── Duration Preset Chips ──────────────────────────── */
+.ct-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-bottom: 4px;
+
+  .MuiChip-root {
+    font-family: var(--font-family-jakarta) !important;
+    font-weight: 700 !important;
+    font-size: 0.78rem !important;
+    border-radius: 9px !important;
+    cursor: pointer !important;
+    transition: var(--transition-fast) !important;
+    height: 30px !important;
+
+    &.MuiChip-colorDefault {
+      background: rgba(0, 242, 155, 0.06) !important;
+      border: 1px solid var(--card-border) !important;
+      color: var(--text-color) !important;
+
+      &:hover {
+        background: rgba(0, 242, 155, 0.12) !important;
+        border-color: rgba(0, 242, 155, 0.3) !important;
+        color: var(--primary-color) !important;
+      }
+    }
+
+    &.MuiChip-colorPrimary {
+      background: linear-gradient(135deg, var(--primary-color), var(--secondary-teal)) !important;
+      color: #060b13 !important;
+      border: none !important;
+      box-shadow: 0 3px 10px rgba(0, 242, 155, 0.25) !important;
+    }
+  }
+}
+
+/* ─── Primary Action Button ──────────────────────────── */
+.MuiDialog-paper .MuiButton-containedPrimary {
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-teal) 100%) !important;
+  color: #060b13 !important;
+  border: none !important;
+  border-radius: 14px !important;
+  font-family: var(--font-family-jakarta) !important;
+  font-weight: 800 !important;
+  font-size: 0.9rem !important;
+  text-transform: none !important;
+  box-shadow: 0 6px 20px rgba(0, 242, 155, 0.2) !important;
+  padding: 11px 0 !important;
+  letter-spacing: 0.01em !important;
+  transition: var(--transition-smooth) !important;
+
+  &:hover:not(:disabled) {
+    box-shadow: 0 8px 28px rgba(0, 242, 155, 0.35) !important;
+    transform: translateY(-1px);
+  }
+
+  &:disabled {
+    background: rgba(0, 242, 155, 0.2) !important;
+    color: rgba(6, 11, 19, 0.5) !important;
+  }
+}
+
+/* Cancel Timer button */
+.MuiDialog-paper .MuiButton-containedError {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important;
+  color: #fff !important;
+  border: none !important;
+  border-radius: 14px !important;
+  font-family: var(--font-family-jakarta) !important;
+  font-weight: 800 !important;
+  font-size: 0.9rem !important;
+  text-transform: none !important;
+  box-shadow: 0 6px 20px rgba(239, 68, 68, 0.2) !important;
+  padding: 11px 0 !important;
+  transition: var(--transition-smooth) !important;
+
+  &:hover:not(:disabled) {
+    box-shadow: 0 8px 28px rgba(239, 68, 68, 0.35) !important;
+    transform: translateY(-1px);
+  }
+}
+
+/* ─── Schedule List ───────────────────────────────────── */
+.ct-sched-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.ct-sched-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 14px;
+  background: rgba(0, 242, 155, 0.03);
+  border: 1px solid var(--card-border);
+  border-radius: 14px;
+  transition: var(--transition-smooth);
+
+  &:hover {
+    background: rgba(0, 242, 155, 0.06);
+    border-color: rgba(0, 242, 155, 0.2);
+  }
+
+  .ct-sched-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+    background: rgba(0, 242, 155, 0.1);
+    color: var(--primary-color);
+    flex-shrink: 0;
+
+    svg { font-size: 1rem !important; }
+  }
+
+  .ct-sched-body {
+    flex: 1;
+    min-width: 0;
+
+    .MuiTypography-body2 {
+      font-family: var(--font-family-jakarta) !important;
+      font-weight: 700 !important;
+      font-size: 0.85rem !important;
+      color: var(--text-color) !important;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .MuiTypography-caption {
+      font-family: var(--font-family-jakarta) !important;
+      font-size: 0.72rem !important;
+      color: var(--text-secondary) !important;
+      font-weight: 600 !important;
+    }
+  }
+
+  .ct-disabled {
+    text-decoration: line-through !important;
+    opacity: 0.5 !important;
+  }
+
+  .ct-delete-btn {
+    color: rgba(239, 68, 68, 0.6) !important;
+    width: 30px !important;
+    height: 30px !important;
+    border-radius: 8px !important;
+    transition: var(--transition-fast) !important;
+
+    &:hover {
+      background: rgba(239, 68, 68, 0.1) !important;
+      color: var(--color-error) !important;
+    }
+
+    svg { font-size: 1rem !important; }
+  }
+
+  .MuiSwitch-switchBase.Mui-checked {
+    color: var(--primary-color) !important;
+    + .MuiSwitch-track {
+      background-color: var(--primary-color) !important;
+      opacity: 0.35 !important;
+    }
+  }
+
+  // "OFF at" chip
+  .MuiChip-colorWarning {
+    background: rgba(245, 158, 11, 0.1) !important;
+    border-color: rgba(245, 158, 11, 0.3) !important;
+    color: #f59e0b !important;
+    font-family: var(--font-family-jakarta) !important;
+    font-weight: 700 !important;
+  }
+}
+
+/* ─── Form Grid ──────────────────────────────────────── */
+.ct-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+
+  @media (max-width: 480px) { grid-template-columns: 1fr; }
+}
+
+/* ─── Day Toggles (Weekly) ───────────────────────────── */
+.ct-days {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 4px 0;
+
+  .ct-day-label {
+    margin: 0 !important;
+    padding: 5px 10px;
+    border: 1px solid var(--card-border);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: var(--transition-fast);
+    background: rgba(0, 242, 155, 0.02);
+
+    &:has(.Mui-checked) {
+      background: rgba(0, 242, 155, 0.1);
+      border-color: rgba(0, 242, 155, 0.35);
+    }
+
+    .MuiCheckbox-root {
+      padding: 0 4px 0 0 !important;
+      width: 16px !important;
+      height: 16px !important;
+    }
+
+    .MuiFormControlLabel-label {
+      font-size: 0.78rem !important;
+      font-weight: 700 !important;
+    }
+  }
+}
+
+/* ─── Centered loading ───────────────────────────────── */
+.ct-center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 16px 0;
+
+  .MuiCircularProgress-root {
+    color: var(--primary-color) !important;
+  }
+}
+
+/* ─── Empty state ────────────────────────────────────── */
+.MuiDialog-paper .MuiTypography-body2[color="text.secondary"] {
+  font-family: var(--font-family-jakarta) !important;
+  font-size: 0.85rem !important;
+  font-weight: 600 !important;
+  color: var(--text-secondary) !important;
+  background: rgba(0, 242, 155, 0.03);
+  border: 1px dashed var(--card-border);
+  border-radius: 12px;
+  padding: 16px;
+  text-align: center;
+}
+
+/* ─── Error text ─────────────────────────────────────── */
+.MuiDialog-paper .MuiTypography-root[color="error"] {
+  font-family: var(--font-family-jakarta) !important;
+  font-size: 0.82rem !important;
+  font-weight: 700 !important;
+  color: var(--color-error) !important;
+  background: rgba(239, 68, 68, 0.06);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin-top: 8px;
+}
+
+/* ─── Dark mode adjustments ──────────────────────────── */
+body.dark-mode {
+  .ct-timer-chip.ct-on {
+    background: rgba(0, 242, 155, 0.10);
+    border-color: rgba(0, 242, 155, 0.25);
+  }
+
+  .ct-timer-chip.ct-off {
+    background: rgba(239, 68, 68, 0.10);
+    border-color: rgba(239, 68, 68, 0.25);
+  }
+
+  .MuiDialog-paper {
+    background: rgba(8, 14, 28, 0.85) !important;
+  }
+}

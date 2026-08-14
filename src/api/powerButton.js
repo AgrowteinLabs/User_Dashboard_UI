@@ -8,6 +8,7 @@ export async function PowerButton(uid, power) {
             headers: {
                 'Content-Type': 'application/json',
             },
+            credentials: 'include',
             body: JSON.stringify({ command: power, uid: uid }),  // Construct the body with command and uid
         });
 

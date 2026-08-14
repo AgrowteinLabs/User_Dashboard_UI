@@ -20,6 +20,7 @@ export const fetchHistoryData = async (uid, startDate, endDate, intervalMinutes 
         endDate,
         interval: intervalMinutes,
       },
+      withCredentials: true,
     });
 
     if (response.data && response.data.length > 0) {
@@ -51,7 +52,7 @@ export const fetchIntervalData = async (productUid, startDate, endDate, interval
       interval: interval.toString(),
     }).toString();
 
-    const response = await axios.get(`${url}?${params}`);
+    const response = await axios.get(`${url}?${params}`, { withCredentials: true });
 
     if (response.data && response.data.length > 0) {
       return response.data;

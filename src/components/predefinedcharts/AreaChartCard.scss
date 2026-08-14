@@ -1,21 +1,70 @@
 .area-chart {
-  background-color: var(--secondary-color);
-  padding: 16px;
-  border-radius: 6px;
-  box-shadow: var(--light-shadow1);
-  transition: background 0.3s ease, transform 0.3s ease;
+  background: var(--card-bg);
+  backdrop-filter: var(--glass-blur);
+  padding: 20px 24px 16px;
+  border-radius: 20px;
+  border: 1px solid var(--card-border);
+  box-shadow: var(--shadow-premium);
+  transition: var(--transition-smooth);
+  position: relative;
+  overflow: hidden;
+
+  // Bottom-right teal glow for the history area
+  &::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 200px;
+    height: 200px;
+    background: radial-gradient(circle at 100% 100%, rgba(0, 229, 255, 0.05) 0%, transparent 70%);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+  }
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-premium), 0 0 24px rgba(0, 229, 255, 0.08);
+    border-color: rgba(0, 229, 255, 0.25);
+
+    &::after {
+      opacity: 1;
+    }
+  }
 
   .bar-chart-title {
-    font-weight: 600;
-    color: var(--text-color);
-    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    gap: 10px;
+
+    h4 {
+      font-family: var(--font-family-jakarta);
+      font-size: 0.9rem;
+      font-weight: 800;
+      color: var(--text-color);
+      letter-spacing: -0.01em;
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  }
+
+  .chart-wrapper-center {
+    position: relative;
   }
 
   .timestamp-label {
-      font-size: 13px;
-      text-align: right;
-      margin-top: 8px;
-      color: var(--text-color);
-    }
-
+    font-size: 0.75rem;
+    text-align: center;
+    margin-top: 8px;
+    color: var(--text-muted);
+    font-weight: 600;
+    font-family: var(--font-family-jakarta);
+    letter-spacing: 0.02em;
+  }
 }

@@ -8,7 +8,7 @@ const fetchUser = async () => {
 
     try {
         // Use the environment variable for the API URL
-        const API_URL = `${import.meta.env.VITE_REACT_APP_API_URL}/api/v1/users/${userid}`;
+        const API_URL = `${import.meta.env.VITE_REACT_APP_API_URL}/api/v1/user/profile`;
 
         const response = await fetch(API_URL, {
             method: 'GET',
@@ -19,8 +19,11 @@ const fetchUser = async () => {
             throw new Error('Network response was not ok');
         }
 
-        const data = await response.json();
-        return data;
+        const result = await response.json();
+        if (result && result.success && result.data) {
+            return result.data;
+        }
+        return result;
 
     } catch (error) {
         console.error('Error fetching user:', error);

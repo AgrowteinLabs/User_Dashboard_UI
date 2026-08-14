@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { TextField, Typography, Grid, CircularProgress, Box } from "@mui/material";
+import { CircularProgress } from "@mui/material";
 import fetchProducts from "../../api/fetchProducts";
 import ProductCard from "./ProductCard";
 import "./ProductsPage.scss";
@@ -21,7 +21,7 @@ const ProductsPage = () => {
           setProducts(data);
           setFilteredProducts(data);
         }
-      } catch (err) {
+      } catch {
         setError("Failed to fetch products.");
       } finally {
         setLoading(false);
@@ -32,54 +32,67 @@ const ProductsPage = () => {
 
   useEffect(() => {
     const term = searchTerm.toLowerCase();
-    const filtered = products.filter(
-      (p) => p.alias.toLowerCase().includes(term) || p.uid.toLowerCase().includes(term)
+    setFilteredProducts(
+      products.filter(
+        (p) =>
+          p.alias.toLowerCase().includes(term) ||
+          p.uid.toLowerCase().includes(term)
+      )
     );
-    setFilteredProducts(filtered);
   }, [searchTerm, products]);
 
-  const handleSearchChange = (e) => {
-    setSearchTerm(e.target.value);
-  };
-
-  if (loading) {
-    return <Box display="flex" justifyContent="center" mt={4}><CircularProgress /></Box>;
-  }
-
-  if (error) {
-    return <Typography color="error" align="center" mt={2}>{error}</Typography>;
-  }
-
   return (
-    <Box p={2}>
-      <Typography variant="h4" align="center" color="primary" gutterBottom sx={{ fontWeight: 700 }}>
-        Available Products
-      </Typography>
+    <div className="products-page">
+      {/* Header */}
+      <div className="products-header">
+        <div className="products-header-left">
+          <h1 className="products-title">My Products</h1>
+          <p className="products-subtitle">
+            {products.length} device{products.length !== 1 ? "s" : ""} registered
+          </p>
+        </div>
+        <div className="products-search-wrap">
+          <span className="search-icon">🔍</span>
+          <input
+            className="products-search"
+            type="text"
+            placeholder="Search by name or UID…"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+      </div>
 
-      <Box display="flex" justifyContent="center" mb={2}>
-        <TextField
-          label="Search by Alias or UID"
-          variant="outlined"
-          value={searchTerm}
-          onChange={handleSearchChange}
-          sx={{ width: "100%", maxWidth: 400 }}
-        />
-      </Box>
+      {/* States */}
+      {loading && (
+        <div className="products-spinner">
+          <CircularProgress sx={{ color: "var(--primary-color)" }} />
+          <span>Loading devices…</span>
+        </div>
+      )}
 
-      <Grid container spacing={2} justifyContent="center">
-        {filteredProducts.length > 0 ? (
-          filteredProducts.map((product) => (
-            <Grid item xs={12} sm={6} md={4} lg={3} key={product.uid}>
-              <ProductCard product={product} />
-            </Grid>
-          ))
+      {error && !loading && (
+        <div className="products-error">
+          <span>⚠ {error}</span>
+        </div>
+      )}
+
+      {/* Grid */}
+      {!loading && !error && (
+        filteredProducts.length > 0 ? (
+          <div className="products-grid">
+            {filteredProducts.map((product) => (
+              <ProductCard key={product.uid} product={product} />
+            ))}
+          </div>
         ) : (
-          <Typography align="center" color="text.secondary" mt={4}>
-            No products found.
-          </Typography>
-        )}
-      </Grid>
-    </Box>
+          <div className="products-empty">
+            <span className="empty-icon">📡</span>
+            <p>No products found matching &quot;{searchTerm}&quot;</p>
+          </div>
+        )
+      )}
+    </div>
   );
 };
 

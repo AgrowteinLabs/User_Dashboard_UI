@@ -1,41 +1,45 @@
 import PropTypes from "prop-types";
-import { Button, Box, Typography } from "@mui/material";
 import { useNavigate } from "react-router-dom";
+import "./ProductsPage.scss";
 
 const ProductCard = ({ product }) => {
   const navigate = useNavigate();
 
-  const handleViewDataClick = () => {
+  const handleOpen = () => {
     navigate(`/products/${product.uid}/data`, { state: { alias: product.alias } });
   };
 
+  const initial = (product.alias || product.uid)[0].toUpperCase();
+
   return (
-    <Box
-      sx={{
-        border: "1px solid",
-        borderColor: "divider",
-        borderRadius: "8px",
-        p: 2,
-        height: "180px",
-        display: "flex",
-        flexDirection: "column",
-        justifyContent: "space-between",
-        boxShadow: 1,
-      }}
+    <div
+      className="product-card"
+      onClick={handleOpen}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => e.key === "Enter" && handleOpen()}
     >
-      <Typography variant="h6" fontWeight={600} color="primary" noWrap>
-        {product.alias}
-      </Typography>
-      <Typography variant="body2" color="text.secondary" gutterBottom>
-        UID: {product.uid}
-      </Typography>
-      <Typography variant="caption" color="text.secondary">
-        Status: Unknown
-      </Typography>
-      <Button variant="contained" color="primary" fullWidth onClick={handleViewDataClick} sx={{ mt: 1 }}>
-        View Data
-      </Button>
-    </Box>
+      <div className="product-card-glow" />
+
+      <div className="product-card-header">
+        <div className="product-avatar">{initial}</div>
+        <div className="product-status-dot" title="Active" />
+      </div>
+
+      <div className="product-card-body">
+        <h3 className="product-alias">{product.alias}</h3>
+        <p className="product-uid">
+          <span className="uid-label">UID</span>
+          <span className="uid-value">{product.uid}</span>
+        </p>
+      </div>
+
+      <div className="product-card-footer">
+        <button className="product-open-btn" onClick={handleOpen} tabIndex={-1}>
+          View Analytics →
+        </button>
+      </div>
+    </div>
   );
 };
 

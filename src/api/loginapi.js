@@ -25,7 +25,7 @@ export const loginUser = async (email, password) => {
   } catch (error) {
     return {
       success: false,
-      message: error.response?.data?.message || "Login failed. Please check your email and password.",
+      message: error.response?.data?.error?.message || error.response?.data?.message || "Login failed. Please check your email and password.",
     };
   }
 };

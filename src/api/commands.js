@@ -34,7 +34,7 @@ export async function setControls(mode, bodyData) {
  */
 export async function setProductMode(uid, mode) {
   try {
-    const url = `${import.meta.env.VITE_REACT_APP_API_URL}/api/v1/product/${uid}/mode`;
+    const url = `${import.meta.env.VITE_REACT_APP_API_URL}/api/v1/user/product/mode/${uid}`;
 
     const response = await fetch(url, {
       method: "POST",

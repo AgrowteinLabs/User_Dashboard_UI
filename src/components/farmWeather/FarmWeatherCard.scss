@@ -1,0 +1,208 @@
+.farm-weather-card {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 16px 20px;
+  height: 120px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, rgba(0, 184, 144, 0.12) 0%, rgba(0, 229, 255, 0.04) 100%);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--card-border);
+  color: var(--text-color);
+  box-shadow: var(--shadow-premium);
+  transition: var(--transition-smooth);
+  position: relative;
+  overflow: hidden;
+
+  &::after {
+    content: "";
+    position: absolute;
+    top: -50%;
+    right: -20%;
+    width: 140px;
+    height: 140px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(0, 242, 155, 0.06) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-premium), var(--shadow-glow);
+    border-color: rgba(0, 242, 155, 0.2);
+  }
+
+  .fw-weather-icon {
+    font-size: 3rem;
+    line-height: 1;
+    filter: drop-shadow(0 4px 10px rgba(0, 242, 155, 0.15));
+    flex-shrink: 0;
+    transition: var(--transition-smooth);
+    
+    &:hover {
+      transform: scale(1.08) rotate(5deg);
+    }
+  }
+
+  .fw-main {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+
+    .fw-condition {
+      font-family: var(--font-family-jakarta);
+      font-size: 0.72rem;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      margin-bottom: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .fw-temp {
+      font-family: var(--font-family-outfit);
+      font-size: 2.2rem;
+      font-weight: 900;
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+      background: linear-gradient(135deg, var(--text-color) 40%, var(--primary-emerald) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+  }
+
+  .fw-side {
+    margin-left: auto;
+    text-align: right;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+    min-width: 0;
+
+    .fw-farm {
+      font-family: var(--font-family-jakarta);
+      font-weight: 800;
+      font-size: 0.95rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 140px;
+      color: var(--text-color);
+      letter-spacing: -0.01em;
+    }
+
+    .fw-humidity {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--text-secondary);
+    }
+
+    .fw-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 2px;
+    }
+  }
+
+  &.empty,
+  &.skeleton {
+    background: var(--card-bg);
+    color: var(--text-color);
+    box-shadow: var(--shadow-premium);
+    border: 1px dashed var(--card-border);
+    cursor: default;
+    justify-content: center;
+    font-size: 0.82rem;
+    font-weight: 700;
+
+    &::after {
+      display: none;
+    }
+
+    .fw-icon {
+      font-size: 1.8rem;
+      color: var(--primary-emerald);
+    }
+
+    .fw-empty-text {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+
+      strong {
+        font-size: 0.9rem;
+        color: var(--text-color);
+        font-family: var(--font-family-jakarta);
+      }
+    }
+  }
+
+  &.skeleton {
+    opacity: 0.7;
+    animation: fw-pulse 2s infinite;
+  }
+}
+
+body.dark-mode {
+  .farm-weather-card {
+    background: linear-gradient(135deg, rgba(0, 242, 155, 0.06) 0%, rgba(139, 92, 246, 0.02) 100%);
+  }
+}
+
+.fw-action-icon-btn,
+.fw-set-location-btn {
+  cursor: pointer;
+  border: none;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--card-border);
+  color: var(--text-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition-smooth);
+
+  &:hover {
+    background: var(--side-link-hover);
+    border-color: rgba(0, 242, 155, 0.2);
+    transform: scale(1.05);
+  }
+  
+  &:active {
+    transform: scale(0.95);
+  }
+}
+
+.fw-action-icon-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  font-size: 0.72rem;
+
+  &.spinning {
+    animation: fw-spin 0.8s linear infinite;
+  }
+}
+
+.fw-set-location-btn {
+  padding: 6px 12px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  border-radius: 10px;
+  margin-top: 4px;
+}
+
+@keyframes fw-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes fw-pulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 0.9; }
+}

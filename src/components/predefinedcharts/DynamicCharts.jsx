@@ -88,52 +88,56 @@ const ChartPair = memo(({ config, sensorInfo, historyData, historyOnly, historyL
     <div
       ref={ref}
       className={`chart-pair ${isFullHistory ? "full-history" : ""}`}
-    // key prop removed here as it should be on the component instance, not the root element
     >
-      {!historyOnly && currentStatus === "live" ? (
-        <div className="chart-current">
-          <BarChartCard
-            title={`${config.label} - Current`}
-            value={parseFloat(sensorInfo.value).toFixed(2)}
-            unit={config.unit}
-            status="active"
-            timestamp={sensorInfo.timestamp}
-          />
-        </div>
-      ) : (
-        !historyOnly && (
+      {/* Top accent stripe rendered via CSS ::before pseudo-element */}
+      <div className="chart-pair-inner">
+        {!historyOnly && currentStatus === "live" ? (
           <div className="chart-current">
-            <div className="sensor-error">
-              {currentStatus === "error"
-                ? "Sensor Error"
-                : currentStatus === "stale"
-                  ? "No Real-Time Data"
-                  : "No Data"}
-            </div>
+            <BarChartCard
+              title={config.label}
+              badgeType="live"
+              value={parseFloat(sensorInfo.value).toFixed(2)}
+              unit={config.unit}
+              status="active"
+              timestamp={sensorInfo.timestamp}
+            />
           </div>
-        )
-      )}
-
-      <div className="chart-history">
-        {historyLoading ? (
-          <div className="history-loading">
-            <CircularProgress size={24} />
-            <span style={{ marginLeft: "8px" }}>Loading history...</span>
-          </div>
-        ) : !inView ? (
-          <div className="history-loading">
-            <CircularProgress size={24} />
-          </div>
-        ) : historyData.length > 0 ? (
-          <AreaChartCard
-            title={`${config.label} History (Last 12 Hours)`}
-            data={values}
-            labels={labels}
-            unit={config.unit}
-          />
         ) : (
-          <div className="sensor-error">No history data available</div>
+          !historyOnly && (
+            <div className="chart-current">
+              <div className="sensor-error">
+                {currentStatus === "error"
+                  ? "⚠ Sensor Error"
+                  : currentStatus === "stale"
+                    ? "📡 No Real-Time Data"
+                    : "No Data"}
+              </div>
+            </div>
+          )
         )}
+
+        <div className="chart-history">
+          {historyLoading ? (
+            <div className="history-loading">
+              <CircularProgress size={24} />
+              <span style={{ marginLeft: "8px" }}>Loading history...</span>
+            </div>
+          ) : !inView ? (
+            <div className="history-loading">
+              <CircularProgress size={24} />
+            </div>
+          ) : historyData.length > 0 ? (
+            <AreaChartCard
+              title={`${config.label} · Last 12h`}
+              badgeType="history"
+              data={values}
+              labels={labels}
+              unit={config.unit}
+            />
+          ) : (
+            <div className="sensor-error">No history data available</div>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -1,0 +1,70 @@
+.fw-picker-map {
+  height: 300px;
+  width: 100%;
+  border-radius: 10px;
+  overflow: hidden;
+  z-index: 0;
+
+  .leaflet-control-attribution {
+    font-size: 9px;
+  }
+}
+
+.fw-pin {
+  font-size: 30px;
+  line-height: 1;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.35));
+  display: block;
+  transform-origin: bottom center;
+  animation: fw-pin-pop 0.25s ease;
+}
+
+@keyframes fw-pin-pop {
+  0% {
+    transform: scale(0.5) translateY(6px);
+    opacity: 0.4;
+  }
+  100% {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
+}
+
+.fw-picker-coords {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.9rem;
+  margin-top: 1rem;
+}
+
+.fw-picker-name {
+  margin-top: 0.9rem;
+}
+
+.fw-picker-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+
+  .fw-picker-error {
+    flex: 1;
+    margin: 0;
+    font-size: 0.8rem;
+  }
+}
+
+// Dark-mode map: invert the light OSM tiles so the dialog matches the theme.
+body.dark-mode {
+  .fw-picker-map {
+    filter: invert(0.92) hue-rotate(180deg);
+
+    .leaflet-tile-pane {
+      filter: brightness(0.9) contrast(0.95);
+    }
+    // keep the pin emoji readable (re-invert it)
+    .fw-pin {
+      filter: invert(1) hue-rotate(180deg) drop-shadow(0 2px 3px rgba(0, 0, 0, 0.5));
+    }
+  }
+}

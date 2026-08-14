@@ -1,9 +1,14 @@
 import PropTypes from "prop-types";
 import ReactApexChart from "react-apexcharts";
-import { useMemo, useRef, useEffect, useState } from "react";
+import { useMemo, useRef, useEffect, useState, useContext } from "react";
+import { ThemeContext } from "../../context/ThemeContext";
+import { DARK_THEME } from "../../constants/themeConstants";
 import "./BarChartCard.scss";
 
-const BarChartCard = ({ title, value, unit, status = "active" }) => {
+const BarChartCard = ({ title, value, unit, status = "active", badgeType }) => {
+  const { theme } = useContext(ThemeContext);
+  const isDark = theme === DARK_THEME;
+
   // Keep last valid numeric to prevent disappearing labels
   const lastValidValueRef = useRef(null);
   const lastValueRef = useRef(value);
@@ -40,13 +45,18 @@ const BarChartCard = ({ title, value, unit, status = "active" }) => {
     () => ({
       chart: {
         type: "bar",
-        animations: { enabled: false },
+        animations: { 
+          enabled: true,
+          easing: "easeinout",
+          speed: 600,
+          animateGradually: { enabled: true, delay: 100 }
+        },
         toolbar: { show: false },
       },
       plotOptions: {
         bar: {
-          borderRadius: 5,
-          columnWidth: "30%",
+          borderRadius: 8,
+          columnWidth: "40%",
           dataLabels: {
             position: "center",
           },
@@ -56,30 +66,55 @@ const BarChartCard = ({ title, value, unit, status = "active" }) => {
         enabled: true,
         formatter: (val) => `${val}${unit ? " " + unit : ""}`,
         style: {
-          fontSize: "12px", // smaller font size
-          fontWeight: "600",
-          colors: ["#fff"],
+          fontSize: "12px",
+          fontWeight: "800",
+          colors: [isDark ? "#060b13" : "#ffffff"],
+          fontFamily: "Plus Jakarta Sans, sans-serif"
         },
       },
       xaxis: {
-        categories: ["Sensor"],
-        labels: { style: { colors: "var(--text-color)" } },
+        categories: ["Current State"],
+        labels: { 
+          style: { 
+            colors: isDark ? "#64748b" : "#94a3b8",
+            fontSize: "11px",
+            fontWeight: 700,
+            fontFamily: "Plus Jakarta Sans, sans-serif"
+          } 
+        },
         axisBorder: { show: false },
         axisTicks: { show: false },
       },
       yaxis: {
         title: {
           text: unit,
-          style: { color: "var(--text-color)" },
+          style: { 
+            color: isDark ? "#94a3b8" : "#475569",
+            fontWeight: 700,
+            fontFamily: "Plus Jakarta Sans, sans-serif"
+          },
         },
-        labels: { style: { colors: "var(--text-color)" } },
+        labels: { 
+          style: { 
+            colors: isDark ? "#64748b" : "#94a3b8",
+            fontWeight: 600,
+            fontFamily: "Plus Jakarta Sans, sans-serif"
+          } 
+        },
       },
       tooltip: {
+        theme: isDark ? "dark" : "light",
         y: { formatter: (val) => `${val}${unit ? " " + unit : ""}` },
       },
-      fill: { colors: ["var(--primary-color)"] },
+      fill: { 
+        colors: [isDark ? "#00f29b" : "#00b880"] 
+      },
+      grid: {
+        borderColor: isDark ? "rgba(255, 255, 255, 0.05)" : "rgba(0, 0, 0, 0.06)",
+        strokeDashArray: 5,
+      }
     }),
-    [unit]
+    [unit, isDark]
   );
 
   const statusClass = `status-${status}`;
@@ -88,6 +123,12 @@ const BarChartCard = ({ title, value, unit, status = "active" }) => {
     <div className={`bar-chart ${statusClass}`}>
       <div className="bar-chart-title">
         <h4>{title}</h4>
+        {badgeType === "live" && (
+          <span className="chart-badge badge-live">
+            <span className="badge-dot" />
+            LIVE
+          </span>
+        )}
       </div>
       <div className="chart-wrapper-center">
         <ReactApexChart
@@ -96,16 +137,18 @@ const BarChartCard = ({ title, value, unit, status = "active" }) => {
           series={series}
           type="bar"
           height={312}
+          width="100%"
         />
         {/* Value label outside bar for overflow cases */}
         <div
           className="bar-chart-value-label"
           style={{
-            fontSize: "13px",
-            fontWeight: 600,
-            color: "var(--primary-color)",
-            marginTop: "8px",
+            fontSize: "14px",
+            fontWeight: 800,
+            color: isDark ? "#00f29b" : "#00b880",
+            marginTop: "10px",
             textAlign: "center",
+            fontFamily: "Outfit, sans-serif"
           }}
         >
           {formattedValue}
@@ -121,6 +164,7 @@ BarChartCard.propTypes = {
   value: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
   unit: PropTypes.string,
   timestamp: PropTypes.number,
+  badgeType: PropTypes.string,
   status: PropTypes.oneOf(["active", "stale", "error", "inactive"]),
 };
 

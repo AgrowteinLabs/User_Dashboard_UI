@@ -1,87 +1,111 @@
 .content-area-top {
   display: flex;
   justify-content: space-between;
-  align-items: center; /* Align items vertically */
-  padding: 1rem 2rem;
+  align-items: center;
+  padding: 16px 28px;
+  background-color: var(--card-bg);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--card-border);
+  border-radius: 24px;
+  box-shadow: var(--shadow-premium);
+  margin-bottom: 28px;
   flex-wrap: wrap;
-  gap: 1rem;
+  gap: 16px;
+  z-index: 900;
+  position: relative;
 
   .area-top-left {
     display: flex;
-    align-items: center; /* Center the logo vertically */
+    align-items: center;
+    
     .area-top-logo {
       height: 42px;
       object-fit: contain;
+      filter: drop-shadow(0 2px 10px rgba(0, 242, 155, 0.2));
+      transition: var(--transition-smooth);
+      
+      &:hover {
+        transform: translateY(-1px) scale(1.02);
+      }
     }
   }
 
   .area-top-right {
     display: flex;
-    align-items: center; /* Center the clock and home icon vertically */
-    gap: 1rem; /* Space between the clock and the home icon */
+    align-items: center;
+    gap: 18px;
     flex-wrap: wrap;
-    justify-content: flex-end; /* Align items to the right */
+    justify-content: flex-end;
   }
 
-  /* For small screens */
+  /* Responsive breakpoints */
   @media (max-width: 768px) {
-    flex-direction: column; /* Stack items vertically */
-    align-items: center; /* Center everything horizontally */
+    flex-direction: row;
+    justify-content: space-between;
+    padding: 12px 18px;
+    margin-top: 54px; /* Offset the mobile menu button */
+    
     .area-top-left,
     .area-top-right {
-      width: 100%; /* Make the sections take full width */
-      justify-content: center; /* Center content horizontally */
+      width: auto;
     }
-    .area-top-right {
-      gap: 0.5rem; /* Reduce gap between clock and home icon */
-    }
-  }
-
-  .dark-mode & {
+    
     .clock-chip {
-      background-color: #063f37;
-      color: #d4f6ed;
+      font-size: 0.72rem !important;
+      padding: 4px 10px !important;
     }
   }
 }
 
 .home-icon {
-  transition: color 0.3s ease; /* Smooth transition for color change */
-  font-size: 2rem; /* Adjust icon size */
+  transition: var(--transition-smooth);
+  font-size: 1.9rem !important;
   cursor: pointer;
-}
+  
+  &:hover {
+    transform: scale(1.12);
+    filter: drop-shadow(0 0 10px var(--primary-emerald));
+  }
 
-.clock-chip {
-  font-size: 0.85rem;
-  background-color: #e6f5f1;
-  color: #034438;
-  font-weight: 600;
-  padding: 0.5rem 1rem;
-  border-radius: 20px;
-  max-width: 100%;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-
-  .MuiChip-icon {
-    color: inherit;
+  &:active {
+    transform: scale(0.95);
   }
 }
 
-.settings-button {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  padding: 12px;
-  background-color: #03856d;
-  color: white;
-  border-radius: 50%;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-  font-size: 16px;
-  cursor: pointer;
-  z-index: 1000;
-}
+.clock-chip {
+  font-size: 0.82rem !important;
+  font-family: var(--font-family-jakarta) !important;
+  background-color: rgba(0, 242, 155, 0.08) !important;
+  color: var(--primary-color) !important;
+  font-weight: 700 !important;
+  padding: 6px 14px !important;
+  border-radius: 30px !important;
+  border: 1px solid rgba(0, 242, 155, 0.15) !important;
+  box-shadow: 0 4px 12px rgba(0, 242, 155, 0.03) !important;
+  max-width: 100%;
+  transition: var(--transition-smooth) !important;
+  letter-spacing: 0.02em;
+  
+  &:hover {
+    background-color: rgba(0, 242, 155, 0.14) !important;
+    box-shadow: 0 6px 16px rgba(0, 242, 155, 0.08) !important;
+    border-color: rgba(0, 242, 155, 0.25) !important;
+  }
 
-.settings-button:hover {
-  background-color: #02684e;
+  .MuiChip-icon {
+    color: var(--primary-color) !important;
+    font-size: 1.15rem !important;
+    margin-left: 2px !important;
+  }
+
+  body.light-mode & {
+    background-color: rgba(0, 184, 144, 0.08) !important;
+    border-color: rgba(0, 184, 144, 0.15) !important;
+    box-shadow: 0 4px 12px rgba(0, 184, 144, 0.03) !important;
+
+    &:hover {
+      background-color: rgba(0, 184, 144, 0.14) !important;
+      border-color: rgba(0, 184, 144, 0.25) !important;
+    }
+  }
 }

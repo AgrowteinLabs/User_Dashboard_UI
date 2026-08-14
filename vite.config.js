@@ -52,7 +52,7 @@ export default defineConfig({
   server: {
     proxy: {
       "/api/": {
-        target: "https://apiv2.agrowtein.com",
+        target: "http://localhost:4500",
         changeOrigin: true,
         secure: false,
         cookieDomainRewrite: "localhost",

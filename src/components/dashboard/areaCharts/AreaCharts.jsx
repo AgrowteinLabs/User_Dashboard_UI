@@ -34,7 +34,7 @@ const AreaCharts = () => {
       if (!selectedProductUid) return;
       try {
         const url = import.meta.env.VITE_REACT_APP_API_URL;
-        const res = await fetch(`${url}/api/v1/user/product/${localStorage.getItem("userId")}`);
+        const res = await fetch(`${url}/api/v1/user/product/${localStorage.getItem("userId")}`, { credentials: "include" });
         const data = await res.json();
         const selected = data.find((p) => p.uid === selectedProductUid);
         if (selected) setProductDetails(selected);
@@ -60,7 +60,9 @@ const AreaCharts = () => {
 
       try {
         const sensors = await fetchSensorList(selectedProductUid);
-        const lowerSensors = sensors.map((s) => s.name.toLowerCase());
+        const lowerSensors = sensors
+          .filter((s) => s.visible !== false)
+          .map((s) => s.name.toLowerCase());
         setAvailableSensors(lowerSensors);
       } catch (err) {
         Swal.fire("Error", "Failed to fetch sensor list.", "error");
