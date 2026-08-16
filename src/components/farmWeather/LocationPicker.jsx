@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import PropTypes from "prop-types";
 import {
   Dialog,
@@ -10,8 +10,11 @@ import {
   Alert,
   IconButton,
   Tooltip,
+  Autocomplete,
+  CircularProgress,
 } from "@mui/material";
 import MyLocationIcon from "@mui/icons-material/MyLocation";
+import SearchIcon from "@mui/icons-material/Search";
 import {
   MapContainer,
   TileLayer,
@@ -22,6 +25,7 @@ import {
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import saveFarmLocation from "../../api/farmLocation";
+import { searchPlaces } from "../../api/geocode";
 import "./LocationPicker.scss";
 
 // Default view for a fresh picker (India — the app's primary market).
@@ -46,10 +50,33 @@ const ClickCatcher = ({ onPick }) => {
 const FlyTo = ({ center }) => {
   const map = useMap();
   useEffect(() => {
-    if (center) map.flyTo(center, Math.max(map.getZoom(), 13), { duration: 0.6 });
+    if (center) map.flyTo(center, Math.max(map.getZoom(), 14), { duration: 0.6 });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [center && center[0], center && center[1]]);
   return null;
+};
+
+ClickCatcher.propTypes = {
+  onPick: PropTypes.func.isRequired,
+};
+
+FlyTo.propTypes = {
+  center: PropTypes.array,
+};
+
+// Geocode a saved place name. If the name is a generic farm label (e.g.
+// "Kozhikode Farm"), retry without the suffix for a better match.
+const geocodeSavedName = async (name) => {
+  let res = await searchPlaces(name);
+  if (res.results.length === 0) {
+    const stripped = name
+      .replace(/\s*(farm|plantation|field|house)\s*$/i, "")
+      .trim();
+    if (stripped && stripped !== name.trim()) {
+      res = await searchPlaces(stripped);
+    }
+  }
+  return res.results;
 };
 
 const LocationPicker = ({ open, product, onClose, onSaved }) => {
@@ -61,25 +88,67 @@ const LocationPicker = ({ open, product, onClose, onSaved }) => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
 
+  // Place search state
+  const [searchValue, setSearchValue] = useState("");
+  const [searchOptions, setSearchOptions] = useState([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchError, setSearchError] = useState(null);
+  const [autoZoomHint, setAutoZoomHint] = useState(null);
+  const searchTimerRef = useRef(null);
+
+  // Clear any pending debounced search on unmount
+  useEffect(() => () => clearTimeout(searchTimerRef.current), []);
+
   // Reset state each time the dialog opens, seeded from the saved location.
   useEffect(() => {
-    if (open) {
-      const loc = product?.location;
-      const lat = loc && loc.lat != null ? String(loc.lat) : "";
-      const lon = loc && loc.lon != null ? String(loc.lon) : "";
-      setLatInput(lat);
-      setLonInput(lon);
-      setName((loc && loc.name) || product?.customName || product?.alias || "");
-      const valid =
-        lat !== "" &&
-        lon !== "" &&
-        Number.isFinite(Number(lat)) &&
-        Number.isFinite(Number(lon));
-      setMarkerPos(valid ? [Number(lat), Number(lon)] : null);
-      setCenter(valid ? [Number(lat), Number(lon)] : null);
-      setError(null);
-      setSaving(false);
+    if (!open) return undefined;
+    const loc = product?.location;
+    const lat = loc && loc.lat != null ? String(loc.lat) : "";
+    const lon = loc && loc.lon != null ? String(loc.lon) : "";
+    const savedName = (loc && loc.name) || "";
+    setLatInput(lat);
+    setLonInput(lon);
+    setName(savedName || product?.customName || product?.alias || "");
+    const valid =
+      lat !== "" &&
+      lon !== "" &&
+      Number.isFinite(Number(lat)) &&
+      Number.isFinite(Number(lon));
+    setMarkerPos(valid ? [Number(lat), Number(lon)] : null);
+    setCenter(valid ? [Number(lat), Number(lon)] : null);
+    setError(null);
+    setSaving(false);
+    setSearchValue("");
+    setSearchOptions([]);
+    setSearchError(null);
+    setAutoZoomHint(null);
+
+    // The farm already has a place name but no exact coordinates — geocode
+    // the name and zoom the map there instead of showing the whole country.
+    // A draggable pin drops on the place so the user can refine the exact
+    // farm spot before saving.
+    if (!valid && savedName.trim()) {
+      let cancelled = false;
+      (async () => {
+        const results = await geocodeSavedName(savedName);
+        if (cancelled) return;
+        if (results.length > 0) {
+          const top = results[0];
+          applyCoords(top.lat, top.lon);
+          setAutoZoomHint(
+            `Zoomed to “${top.name}” — drag the pin for the exact farm spot.`
+          );
+        } else {
+          setAutoZoomHint(
+            `Couldn't auto-locate “${savedName.trim()}” — search or click the map instead.`
+          );
+        }
+      })();
+      return () => {
+        cancelled = true;
+      };
     }
+    return undefined;
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
@@ -109,6 +178,37 @@ const LocationPicker = ({ open, product, onClose, onSaved }) => {
       setMarkerPos([lat, lon]);
       setCenter([lat, lon]);
     }
+  };
+
+  const handleSearchInput = (_, value) => {
+    setSearchValue(value);
+    clearTimeout(searchTimerRef.current);
+    const q = (value || "").trim();
+    if (q.length < 3) {
+      setSearchOptions([]);
+      setSearchError(null);
+      return;
+    }
+    searchTimerRef.current = setTimeout(async () => {
+      setSearchLoading(true);
+      const res = await searchPlaces(q);
+      setSearchLoading(false);
+      if (res.error) {
+        setSearchOptions([]);
+        setSearchError(res.error);
+      } else {
+        setSearchOptions(res.results);
+        setSearchError(null);
+      }
+    }, 400);
+  };
+
+  const handleSelectPlace = (_, value) => {
+    if (!value || typeof value === "string") return;
+    setSearchValue("");
+    setSearchOptions([]);
+    applyCoords(value.lat, value.lon);
+    setName(value.name);
   };
 
   const handleUseMyLocation = () => {
@@ -158,14 +258,75 @@ const LocationPicker = ({ open, product, onClose, onSaved }) => {
       <DialogTitle>📍 Set farm location</DialogTitle>
       <DialogContent>
         <p className="fw-picker-hint">
-          Click on the map or drag the pin — or type coordinates below. Weather
-          for the farm uses this location.
+          <span className="fw-hint-icon">ℹ️</span>
+          Search for a place, click the map, drag the pin, or type coordinates
+          below. Weather for the farm uses this location.
         </p>
+
+        <Autocomplete
+          className="fw-picker-search"
+          freeSolo
+          options={searchOptions}
+          getOptionLabel={(opt) => (typeof opt === "string" ? opt : opt.name)}
+          filterOptions={(x) => x}
+          value={searchValue}
+          onInputChange={handleSearchInput}
+          onChange={handleSelectPlace}
+          loading={searchLoading}
+          noOptionsText={
+            searchValue.trim().length >= 3 && !searchLoading
+              ? "No places found"
+              : "Type at least 3 characters…"
+          }
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              label="Search place or address"
+              placeholder="e.g. Delhi, India"
+              size="small"
+              InputProps={{
+                ...params.InputProps,
+                startAdornment: (
+                  <>
+                    <SearchIcon className="fw-search-icon" />
+                    {params.InputProps.startAdornment}
+                  </>
+                ),
+                endAdornment: (
+                  <>
+                    {searchLoading ? (
+                      <CircularProgress color="inherit" size={18} />
+                    ) : null}
+                    {params.InputProps.endAdornment}
+                  </>
+                ),
+              }}
+            />
+          )}
+        />
+        {searchError && (
+          <Alert
+            severity="warning"
+            className="fw-picker-search-error"
+            sx={{ mt: 1 }}
+          >
+            {searchError} You can still click the map or type coordinates.
+          </Alert>
+        )}
+        {autoZoomHint && (
+          <Alert
+            severity="info"
+            className="fw-auto-zoom-hint"
+            sx={{ mt: 1 }}
+          >
+            {autoZoomHint}
+          </Alert>
+        )}
 
         <MapContainer
           className="fw-picker-map"
           center={center || DEFAULT_CENTER}
-          zoom={center ? 13 : 5}
+          zoom={center ? 14 : 5}
           scrollWheelZoom
         >
           <TileLayer
@@ -231,18 +392,23 @@ const LocationPicker = ({ open, product, onClose, onSaved }) => {
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 2 }}>
         <Tooltip title="Use your device location">
-          <IconButton onClick={handleUseMyLocation} size="small" aria-label="Use my location">
+          <IconButton
+            onClick={handleUseMyLocation}
+            size="small"
+            className="fw-locate-btn"
+            aria-label="Use my location"
+          >
             <MyLocationIcon />
           </IconButton>
         </Tooltip>
-        <Button onClick={onClose} disabled={saving}>
+        <Button onClick={onClose} disabled={saving} className="fw-cancel-btn">
           Cancel
         </Button>
         <Button
           variant="contained"
           onClick={handleSave}
           disabled={saving}
-          sx={{ bgcolor: "#0e9a85", "&:hover": { bgcolor: "#0b7d6d" } }}
+          className="fw-save-btn"
         >
           {saving ? "Saving…" : "Save location"}
         </Button>

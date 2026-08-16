@@ -1,7 +1,9 @@
 .fw-picker-map {
-  height: 300px;
+  height: 320px;
   width: 100%;
-  border-radius: 10px;
+  border-radius: 16px;
+  border: 1px solid var(--card-border);
+  box-shadow: var(--shadow-premium);
   overflow: hidden;
   z-index: 0;
 
@@ -30,6 +32,106 @@
   }
 }
 
+/* ─── Hint banner ─────────────────────────────────── */
+.fw-picker-hint {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  line-height: 1.55;
+  color: var(--text-secondary);
+  background: rgba(0, 242, 155, 0.05);
+  border: 1px dashed rgba(0, 242, 155, 0.25);
+  border-radius: 12px;
+  padding: 11px 14px;
+  margin: 0 0 16px;
+  font-family: var(--font-family-jakarta);
+
+  .fw-hint-icon {
+    font-size: 1rem;
+    flex-shrink: 0;
+  }
+}
+
+/* ─── Search + inputs (shared premium field styling) ─ */
+.fw-picker-search,
+.fw-picker-coords,
+.fw-picker-name {
+  .MuiOutlinedInput-root {
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 12px;
+    transition: var(--transition-smooth);
+
+    .MuiOutlinedInput-notchedOutline {
+      border-color: var(--card-border);
+    }
+
+    &:hover .MuiOutlinedInput-notchedOutline {
+      border-color: rgba(0, 242, 155, 0.3);
+    }
+
+    &.Mui-focused .MuiOutlinedInput-notchedOutline {
+      border-color: var(--primary-color);
+    }
+  }
+
+  .MuiInputLabel-root {
+    font-family: var(--font-family-jakarta);
+    font-weight: 600;
+    color: var(--text-secondary);
+
+    &.Mui-focused {
+      color: var(--primary-color);
+    }
+  }
+
+  .MuiInputBase-input {
+    color: var(--text-color);
+    font-weight: 600;
+    font-family: var(--font-family-jakarta);
+
+    &::placeholder {
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+  }
+
+  .MuiSvgIcon-root {
+    color: var(--text-secondary);
+  }
+}
+
+.fw-picker-search {
+  margin-bottom: 1rem;
+
+  .fw-search-icon {
+    color: var(--text-muted);
+    font-size: 1.1rem;
+    margin-right: 8px;
+    align-self: center;
+  }
+}
+
+.fw-picker-search-error {
+  margin-bottom: 0.9rem;
+}
+
+.fw-auto-zoom-hint {
+  margin-bottom: 0.9rem;
+  font-family: var(--font-family-jakarta) !important;
+  font-weight: 600 !important;
+  font-size: 0.82rem !important;
+  border-radius: 12px !important;
+  background: rgba(0, 242, 155, 0.06) !important;
+  border: 1px dashed rgba(0, 242, 155, 0.25) !important;
+  color: var(--text-color) !important;
+
+  .MuiAlert-icon {
+    color: var(--primary-emerald) !important;
+  }
+}
+
 .fw-picker-coords {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -41,16 +143,57 @@
   margin-top: 0.9rem;
 }
 
-.fw-picker-actions {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  width: 100%;
+/* ─── Actions ─────────────────────────────────────── */
+.fw-locate-btn {
+  color: var(--text-secondary) !important;
+  border: 1px solid var(--card-border) !important;
+  background: rgba(255, 255, 255, 0.02) !important;
+  transition: var(--transition-smooth) !important;
 
-  .fw-picker-error {
-    flex: 1;
-    margin: 0;
-    font-size: 0.8rem;
+  &:hover {
+    color: var(--primary-emerald) !important;
+    border-color: rgba(0, 242, 155, 0.3) !important;
+    background: rgba(0, 242, 155, 0.08) !important;
+  }
+}
+
+.fw-cancel-btn {
+  color: var(--text-secondary) !important;
+  font-weight: 700 !important;
+  font-family: var(--font-family-jakarta) !important;
+  text-transform: none !important;
+  border-radius: 12px !important;
+  padding: 8px 20px !important;
+  transition: var(--transition-smooth) !important;
+
+  &:hover:not(:disabled) {
+    color: var(--text-color) !important;
+    background: rgba(255, 255, 255, 0.04) !important;
+  }
+}
+
+.fw-save-btn {
+  background: linear-gradient(135deg, var(--primary-emerald) 0%, #00b880 100%) !important;
+  color: #060b13 !important;
+  font-weight: 800 !important;
+  font-family: var(--font-family-jakarta) !important;
+  text-transform: none !important;
+  border-radius: 12px !important;
+  padding: 8px 22px !important;
+  box-shadow: 0 4px 12px rgba(0, 242, 155, 0.2) !important;
+  transition: var(--transition-smooth) !important;
+
+  &:hover:not(:disabled) {
+    background: linear-gradient(135deg, var(--secondary-teal) 0%, var(--primary-emerald) 100%) !important;
+    box-shadow: 0 6px 18px rgba(0, 242, 155, 0.3) !important;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+  }
+
+  body.light-mode & {
+    color: white !important;
   }
 }
 
