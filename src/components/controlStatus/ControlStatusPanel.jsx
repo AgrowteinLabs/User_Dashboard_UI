@@ -69,9 +69,9 @@ const commandLabel = (h) => {
 };
 
 const ControlStatusPanel = ({ configExpanded }) => {
-  const { selectedProductUid } = useContext(ProductContext);
-  const [controls, setControls] = useState([]);
-  const [productId, setProductId] = useState(null);
+  const { selectedProductUid, selectedProduct } = useContext(ProductContext);
+  const controls = selectedProduct?.controls || [];
+  const productId = selectedProduct?.id || null;
   const [history, setHistory] = useState([]);
   const [historyTotal, setHistoryTotal] = useState(0);
   const [historyLoading, setHistoryLoading] = useState(false);
@@ -79,26 +79,6 @@ const ControlStatusPanel = ({ configExpanded }) => {
   const [refreshedAt, setRefreshedAt] = useState(null);
   const historySeq = useRef(0);
   const { statusMap, connected } = useMqttControllerStatus(selectedProductUid);
-
-  useEffect(() => {
-    const fetchControls = async () => {
-      if (!selectedProductUid) return;
-      try {
-        const userId = localStorage.getItem("userId");
-        const url = import.meta.env.VITE_REACT_APP_API_URL;
-        const res = await fetch(`${url}/api/v1/user/product/${userId}`, { credentials: "include" });
-        const data = await res.json();
-        const selected = data.find((p) => p.uid === selectedProductUid);
-        if (selected) {
-          setControls(selected.controls || []);
-          setProductId(selected.id || null);
-        }
-      } catch (err) {
-        console.error("Failed to fetch controls for status panel", err);
-      }
-    };
-    fetchControls();
-  }, [selectedProductUid]);
 
   const fetchHistory = useCallback(
     async ({ silent = false } = {}) => {

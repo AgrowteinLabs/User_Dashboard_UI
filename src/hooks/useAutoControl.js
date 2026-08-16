@@ -11,6 +11,7 @@ export const useAutoControl = ({
   currentData,
   controls,
   publishCommandWithFeedback,
+  enabled = false, // Must be explicitly true — off by default for safety
 }) => {
   const triggeredRef = useRef({});
 
@@ -39,6 +40,7 @@ export const useAutoControl = ({
 
   useEffect(() => {
     if (
+      !enabled ||
       !uid ||
       !currentData?.data ||
       !Object.keys(controlsByLinkedSensor).length ||
@@ -119,5 +121,5 @@ export const useAutoControl = ({
         },
       );
     });
-  }, [currentData, controlsByLinkedSensor, publishCommandWithFeedback, uid]);
+  }, [enabled, currentData, controlsByLinkedSensor, publishCommandWithFeedback, uid]);
 };

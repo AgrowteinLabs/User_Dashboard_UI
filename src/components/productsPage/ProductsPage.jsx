@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { CircularProgress } from "@mui/material";
 import fetchProducts from "../../api/fetchProducts";
 import ProductCard from "./ProductCard";
@@ -11,24 +11,38 @@ const ProductsPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    const loadProducts = async () => {
-      try {
-        const data = await fetchProducts();
-        if (data.error) {
-          setError(data.error);
-        } else {
-          setProducts(data);
-          setFilteredProducts(data);
-        }
-      } catch {
-        setError("Failed to fetch products.");
-      } finally {
-        setLoading(false);
+  const loadProducts = useCallback(async ({ silent = false } = {}) => {
+    try {
+      const data = await fetchProducts();
+      if (data.error) {
+        if (!silent) setError(data.error);
+      } else {
+        setProducts(data);
+        setFilteredProducts(data);
       }
-    };
-    loadProducts();
+    } catch {
+      if (!silent) setError("Failed to fetch products.");
+    } finally {
+      if (!silent) setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    loadProducts();
+  }, [loadProducts]);
+
+  // Silent refresh so the live status dots stay accurate while the page is open
+  useEffect(() => {
+    const refresh = () => {
+      if (document.visibilityState === "visible") loadProducts({ silent: true });
+    };
+    const id = setInterval(refresh, 60000);
+    document.addEventListener("visibilitychange", refresh);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener("visibilitychange", refresh);
+    };
+  }, [loadProducts]);
 
   useEffect(() => {
     const term = searchTerm.toLowerCase();
@@ -48,7 +62,8 @@ const ProductsPage = () => {
         <div className="products-header-left">
           <h1 className="products-title">My Products</h1>
           <p className="products-subtitle">
-            {products.length} device{products.length !== 1 ? "s" : ""} registered
+            <span className="count-chip">{products.length}</span>
+            device{products.length !== 1 ? "s" : ""} registered
           </p>
         </div>
         <div className="products-search-wrap">

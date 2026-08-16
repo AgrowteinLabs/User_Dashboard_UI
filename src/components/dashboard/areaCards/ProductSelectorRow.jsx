@@ -19,9 +19,8 @@ import { useMqttControl } from "../../../hooks/useMqttControl";
 import "./AreaCards.scss";
 
 const ProductSelectorRow = () => {
-  const { selectedProductUid, setSelectedProductUid } = useContext(ProductContext);
-  const [products, setProducts] = useState([]);
-  const [productDetails, setProductDetails] = useState(null);
+  const { products, selectedProductUid, setSelectedProductUid, selectedProduct, refetchProducts } = useContext(ProductContext);
+  const productDetails = selectedProduct;
   const [modeSwitchLoading, setModeSwitchLoading] = useState(false);
   const userId = localStorage.getItem("userId");
 
@@ -45,45 +44,16 @@ const ProductSelectorRow = () => {
     }
   };
 
-  const fetchDetails = useCallback(async () => {
-    if (!userId || !selectedProductUid) return;
-    try {
-      const url = import.meta.env.VITE_REACT_APP_API_URL;
-      const res = await fetch(`${url}/api/v1/user/product/${userId}`, { credentials: "include" });
-      const data = await parseApiResponse(res);
-      const selected = data.find((p) => p.uid === selectedProductUid);
-      if (selected) {
-        setProductDetails(selected);
-      }
-    } catch (err) {
-      console.error("Error loading product details:", err);
-    }
-  }, [userId, selectedProductUid]);
-
   useEffect(() => {
-    const fetchInitial = async () => {
-      const data = await fetchProducts();
-      if (Array.isArray(data)) {
-        setProducts(data);
-        const saved = localStorage.getItem("selectedProductUid") || data[0]?.uid;
-        setSelectedProductUid(saved);
-        localStorage.setItem("selectedProductUid", saved);
-      }
-      await fetchUser();
-    };
-    fetchInitial();
-  }, [setSelectedProductUid]);
-
-  useEffect(() => {
-    fetchDetails();
-  }, [selectedProductUid, userId, fetchDetails]);
+    fetchUser().catch(console.error);
+  }, []);
 
   // Listen to external triggers to refresh mode state
   useEffect(() => {
-    const handleRefresh = () => fetchDetails();
+    const handleRefresh = () => refetchProducts();
     window.addEventListener("thresholds-updated", handleRefresh);
     return () => window.removeEventListener("thresholds-updated", handleRefresh);
-  }, [fetchDetails]);
+  }, [refetchProducts]);
 
   const updateGlobalModeInBackend = async (newMode) => {
     const baseUrl = import.meta.env.VITE_REACT_APP_API_URL;
@@ -163,7 +133,7 @@ const ProductSelectorRow = () => {
       );
 
       const result = await updateGlobalModeInBackend(newMode);
-      await fetchDetails();
+      await refetchProducts();
 
       // Dispatch global event so AreaCards config lists sync immediately
       window.dispatchEvent(new CustomEvent("mode-changed", { detail: { mode: newMode } }));
@@ -177,7 +147,7 @@ const ProductSelectorRow = () => {
       Swal.fire("✅ Mode Updated", messageLines.join(""), "success");
     } catch (error) {
       Swal.fire("❌ Failed", error.message || "Could not switch mode. Please try again.", "error");
-      await fetchDetails();
+      await refetchProducts();
     } finally {
       setModeSwitchLoading(false);
     }

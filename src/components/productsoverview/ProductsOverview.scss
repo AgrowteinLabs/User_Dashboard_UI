@@ -1,3 +1,4 @@
+/* Products Overview Page Premium Design System */
 .products-overview {
   padding: 32px;
   background-color: transparent;
@@ -5,190 +6,598 @@
   color: var(--text-color);
   position: relative;
   z-index: 1;
-}
+  
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+    gap: 16px;
+    padding: 26px 30px;
+    background: var(--card-bg);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--card-border);
+    border-radius: 22px;
+    box-shadow: var(--shadow-premium);
+    position: relative;
+    overflow: hidden;
 
-h2 {
-  font-family: var(--font-family-outfit);
-  font-size: 2.2rem;
-  font-weight: 800;
-  color: var(--primary-color);
-  text-align: center;
-  margin-bottom: 32px;
-  letter-spacing: -0.02em;
-}
+    &::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--primary-color), var(--secondary-teal));
+      opacity: 0.8;
+    }
+    
+    .header-left {
+      min-width: 0;
 
-/* Flexbox grid layout for products */
-.sensor-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 28px;
-  justify-content: center;
-}
+      h2 {
+        font-family: var(--font-family-outfit);
+        font-size: 2rem;
+        font-weight: 900;
+        color: var(--text-color);
+        margin: 0;
+        letter-spacing: -0.03em;
+        background: linear-gradient(135deg, var(--text-color) 0%, var(--primary-emerald) 100%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+        
+        body.light-mode & {
+          background: linear-gradient(135deg, var(--text-color) 0%, var(--primary-color) 100%);
+          -webkit-background-clip: text;
+          background-clip: text;
+          -webkit-text-fill-color: transparent;
+        }
+      }
 
-/* Product Card Styles */
-.sensor-card {
-  background-color: var(--card-bg);
-  backdrop-filter: var(--glass-blur);
-  border-radius: 20px;
-  box-shadow: var(--shadow-premium);
-  padding: 24px;
-  border: 1px solid var(--card-border);
-  border-left: 5px solid var(--primary-color);
-  cursor: pointer;
-  text-align: center;
-  overflow: hidden;
-  color: var(--text-color);
-  transition: var(--transition-smooth);
+      .header-subtitle {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--text-secondary);
+        letter-spacing: 0.02em;
+        margin: 6px 0 0;
+        font-family: var(--font-family-jakarta);
 
-  &:hover {
-    transform: translateY(-5px);
-    box-shadow: var(--shadow-premium), var(--shadow-glow);
-    border-color: rgba(0, 242, 155, 0.25);
-  }
+        .count-chip {
+          min-width: 30px;
+          height: 30px;
+          padding: 0 10px;
+          border-radius: 20px;
+          background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-teal) 100%);
+          color: #060b13;
+          font-family: var(--font-family-outfit);
+          font-size: 0.9rem;
+          font-weight: 900;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 4px 12px rgba(0, 242, 155, 0.25);
 
-  /* Product Name Styling */
-  h3 {
-    font-family: var(--font-family-jakarta);
-    font-size: 1.25rem;
-    font-weight: 800;
-    color: var(--primary-emerald);
-    margin-bottom: 18px;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-
-    body.light-mode & {
-      color: var(--primary-color);
+          body.light-mode & {
+            color: white;
+          }
+        }
+      }
+    }
+    
+    .header-actions {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      
+      .MuiButton-root {
+        border-radius: 12px;
+        text-transform: none;
+        font-family: var(--font-family-jakarta);
+        font-weight: 700;
+        border: 1px solid var(--card-border) !important;
+        color: var(--text-color);
+        background: rgba(255, 255, 255, 0.02) !important;
+        
+        &:hover {
+          border-color: var(--primary-emerald) !important;
+          background: rgba(0, 242, 155, 0.08) !important;
+          color: var(--primary-emerald) !important;
+        }
+      }
+      
+      .home-icon {
+        transition: var(--transition-smooth);
+        font-size: 2.2rem;
+        cursor: pointer;
+        
+        &:hover {
+          transform: scale(1.1);
+          filter: drop-shadow(0 0 8px var(--primary-emerald));
+        }
+      }
     }
   }
-}
-
-/* Sensor Information Styling */
-.sensor-info-item {
-  margin-top: 18px;
-  padding: 12px;
-  background-color: rgba(255, 255, 255, 0.02);
-  border-radius: 12px;
-  border: 1px solid var(--card-border);
-  transition: var(--transition-smooth);
-
-  &:hover {
-    background-color: rgba(255, 255, 255, 0.04);
+  
+  /* Room Filter Tabs */
+  .group-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 32px;
+    border-bottom: 1px solid var(--card-border);
+    padding-bottom: 18px;
+    
+    .MuiButton-root {
+      text-transform: none;
+      font-family: var(--font-family-jakarta);
+      font-weight: 700;
+      border-radius: 30px;
+      padding: 6px 20px;
+      font-size: 0.85rem;
+      border: 1px solid var(--card-border) !important;
+      color: var(--text-secondary);
+      background: rgba(255, 255, 255, 0.01) !important;
+      
+      &:hover {
+        border-color: rgba(0, 242, 155, 0.3) !important;
+        background: rgba(0, 242, 155, 0.05) !important;
+        color: var(--primary-emerald);
+      }
+      
+      &.MuiButton-contained {
+        background: linear-gradient(135deg, var(--primary-emerald) 0%, #00b880 100%) !important;
+        color: #060b13 !important;
+        border: none !important;
+        box-shadow: 0 4px 12px rgba(0, 242, 155, 0.2);
+        
+        body.light-mode & {
+          color: #ffffff !important;
+        }
+      }
+    }
   }
-
-  h4 {
-    font-family: var(--font-family-jakarta);
-    font-size: 0.85rem;
-    font-weight: 800;
-    color: var(--text-secondary);
-    margin-bottom: 10px;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-  }
-
-  p {
-    font-family: var(--font-family-outfit);
-    font-size: 1.25rem;
-    color: var(--color-error);
-    font-weight: 800;
-    margin: 0;
-    padding: 10px 14px;
-    border-radius: 10px;
-    background-color: rgba(239, 68, 68, 0.05);
-    border: 1px solid rgba(239, 68, 68, 0.15);
-    text-align: center;
-    transition: var(--transition-smooth);
-
-    &.normal {
+  
+  /* Flexbox grid layout for products */
+  .sensor-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 28px;
+    
+    .loading-spinner {
+      grid-column: 1 / -1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 64px 0;
       color: var(--primary-emerald);
-      background-color: rgba(0, 242, 155, 0.06);
-      border: 1px solid rgba(0, 242, 155, 0.15);
+    }
+    
+    p {
+      grid-column: 1 / -1;
+      text-align: center;
+      font-weight: 700;
+      color: var(--text-secondary);
+      padding: 48px;
+      background: rgba(255, 255, 255, 0.01);
+      border: 1px dashed var(--card-border);
+      border-radius: 20px;
+      font-family: var(--font-family-jakarta);
+    }
+  }
+  
+  /* Product Card Styles */
+  .sensor-card {
+    background-color: var(--card-bg);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border-radius: 24px;
+    box-shadow: var(--shadow-premium);
+    padding: 28px;
+    border: 1px solid var(--card-border);
+    position: relative;
+    overflow: hidden;
+    color: var(--text-color);
+    transition: var(--transition-smooth);
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    will-change: transform, opacity;
 
-      body.light-mode & {
-        color: var(--primary-color);
-        background-color: rgba(0, 184, 144, 0.06);
-        border-color: rgba(0, 184, 144, 0.15);
+    &::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--primary-color), var(--secondary-teal));
+      border-radius: 24px 24px 0 0;
+      opacity: 0.7;
+      transition: opacity 0.3s ease;
+    }
+    
+    &:hover {
+      transform: translateY(-6px);
+      box-shadow: var(--shadow-premium), var(--shadow-glow);
+      border-color: rgba(0, 242, 155, 0.25);
+
+      &::before {
+        opacity: 1;
+      }
+
+      .sensor-card-glow {
+        opacity: 1;
+      }
+    }
+    
+    .sensor-card-glow {
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      background: radial-gradient(ellipse at 50% 0%, rgba(0, 242, 155, 0.06) 0%, transparent 70%);
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.4s ease;
+    }
+
+    /* Card header: avatar + name/status + settings */
+    .sensor-card-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 22px;
+      padding-bottom: 18px;
+      border-bottom: 1px dashed var(--tbl-border-color);
+      position: relative;
+    }
+
+    .sensor-avatar {
+      width: 48px;
+      height: 48px;
+      flex-shrink: 0;
+      border-radius: 14px;
+      background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-teal) 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #060b13;
+      box-shadow: 0 4px 14px rgba(0, 242, 155, 0.2);
+
+      svg {
+        font-size: 1.45rem;
       }
     }
 
-    &.normal:hover {
-      background-color: rgba(0, 242, 155, 0.12);
-      transform: scale(1.03);
+    .sensor-title-block {
+      flex: 1;
+      min-width: 0;
+
+      h3 {
+        margin: 0 0 6px;
+        font-family: var(--font-family-outfit);
+        font-size: 1.1rem;
+        font-weight: 800;
+        color: var(--text-color);
+        letter-spacing: -0.01em;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .sensor-meta {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+
+        .sensor-status {
+          display: inline-flex;
+          align-items: center;
+          gap: 7px;
+          font-size: 0.68rem;
+          font-weight: 800;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          font-family: var(--font-family-jakarta);
+
+          .status-bullet {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            flex-shrink: 0;
+          }
+
+          &.online {
+            color: var(--color-success);
+
+            .status-bullet {
+              background: var(--color-success);
+              box-shadow: 0 0 6px rgba(16, 185, 129, 0.6);
+            }
+          }
+
+          &.offline {
+            color: var(--text-muted);
+
+            .status-bullet {
+              background: var(--color-error);
+              box-shadow: 0 0 6px rgba(239, 68, 68, 0.4);
+            }
+          }
+        }
+
+        .shared-badge {
+          font-size: 0.64rem;
+          font-weight: 800;
+          text-transform: uppercase;
+          letter-spacing: 0.06em;
+          color: var(--text-secondary);
+          background: rgba(255, 255, 255, 0.03);
+          border: 1px solid var(--card-border);
+          border-radius: 20px;
+          padding: 3px 10px;
+          font-family: var(--font-family-jakarta);
+        }
+      }
+    }
+
+    .sensor-settings {
+      flex-shrink: 0;
+      color: var(--text-secondary) !important;
+      border: 1px solid var(--card-border) !important;
+      background: rgba(255, 255, 255, 0.02) !important;
+      transition: var(--transition-smooth);
+
+      &:hover {
+        color: var(--primary-emerald) !important;
+        border-color: rgba(0, 242, 155, 0.3) !important;
+        background: rgba(0, 242, 155, 0.08) !important;
+      }
+    }
+    
+    /* Sensor Information Grid */
+    .sensor-info {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+
+      .sensor-info-empty {
+        margin: 0;
+        text-align: center;
+        font-weight: 700;
+        color: var(--text-secondary);
+        padding: 28px;
+        background: rgba(255, 255, 255, 0.01);
+        border: 1px dashed var(--card-border);
+        border-radius: 14px;
+        font-family: var(--font-family-jakarta);
+        font-size: 0.9rem;
+      }
+    }
+
+    .sensor-retry {
+      margin-top: 14px;
+      padding: 8px 22px;
+      border-radius: 12px;
+      border: 1px solid var(--card-border);
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--text-secondary);
+      font-family: var(--font-family-jakarta);
+      font-weight: 700;
+      cursor: pointer;
+      transition: var(--transition-smooth);
+
+      &:hover {
+        border-color: rgba(0, 242, 155, 0.3);
+        color: var(--primary-emerald);
+        background: rgba(0, 242, 155, 0.06);
+      }
+    }
+    
+    .sensor-info-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 18px;
+      background-color: rgba(255, 255, 255, 0.01);
+      border-radius: 14px;
+      border: 1px solid var(--card-border);
+      transition: var(--transition-smooth);
+      
+      &:hover {
+        background-color: rgba(255, 255, 255, 0.03);
+        border-color: rgba(0, 242, 155, 0.15);
+      }
+      
+      h4 {
+        font-family: var(--font-family-jakarta);
+        font-size: 0.82rem;
+        font-weight: 800;
+        color: var(--text-secondary);
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        
+        svg {
+          color: var(--primary-color);
+          font-size: 1.15rem;
+        }
+      }
+      
+      p {
+        font-family: var(--font-family-outfit);
+        font-size: 1.15rem;
+        font-weight: 900;
+        margin: 0;
+        letter-spacing: -0.01em;
+        
+        &.normal {
+          color: var(--primary-emerald);
+          text-shadow: 0 0 10px rgba(0, 242, 155, 0.15);
+          
+          body.light-mode & {
+            color: var(--primary-color);
+            text-shadow: none;
+          }
+        }
+        
+        &.error-text {
+          color: var(--color-error);
+          text-shadow: 0 0 10px rgba(239, 68, 68, 0.15);
+        }
+      }
     }
   }
 }
 
-/* Highlight error text in red */
-.error-text {
-  color: var(--color-error);
-  font-weight: 800;
-  font-size: 0.95rem;
-  text-transform: uppercase;
-  background-color: rgba(239, 68, 68, 0.08);
-  border: 1px solid rgba(239, 68, 68, 0.25);
-  padding: 12px;
-  border-radius: 10px;
-  text-align: center;
-  margin-top: 10px;
-  font-family: var(--font-family-jakarta);
-}
-
-/* Loading Spinner Styles */
-.loading-spinner {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 200px;
-  width: 100%;
-}
-
-/* Button Styling */
-button {
-  background: linear-gradient(135deg, var(--primary-emerald) 0%, #00b880 100%);
-  color: #060b13;
-  border: none;
-  padding: 12px 26px;
-  border-radius: 12px;
-  cursor: pointer;
-  font-weight: 700;
-  font-size: 0.95rem;
-  font-family: var(--font-family-jakarta);
-  box-shadow: 0 4px 12px rgba(0, 242, 155, 0.15);
-  transition: var(--transition-smooth);
-
-  &:hover {
-    background: linear-gradient(135deg, var(--secondary-teal) 0%, var(--primary-emerald) 100%);
-    transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(0, 242, 155, 0.25);
-  }
-
-  &:active {
-    transform: translateY(0);
-  }
-
-  body.light-mode & {
-    color: white;
-    box-shadow: 0 4px 12px rgba(0, 184, 144, 0.15);
-    &:hover {
-      box-shadow: 0 6px 16px rgba(0, 184, 144, 0.25);
+/* Modal paper overrides for ProductsOverview Dialogs */
+.MuiDialog-root {
+  .MuiPaper-root.MuiDialog-paper {
+    background-color: var(--popover-bg) !important;
+    background-image: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    border: 1px solid var(--card-border) !important;
+    box-shadow: var(--shadow-premium), 0 0 60px rgba(0, 0, 0, 0.5) !important;
+    border-radius: 22px !important;
+    color: var(--text-color) !important;
+    overflow: hidden;
+    position: relative;
+    
+    &::before {
+      content: "";
+      display: block;
+      height: 3px;
+      background: linear-gradient(90deg, var(--primary-color), var(--secondary-teal));
+      width: 100%;
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
     }
-  }
-}
-
-.header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 32px;
-}
-
-.home-icon {
-  transition: var(--transition-smooth);
-  font-size: 2.2rem;
-  cursor: pointer;
-  color: var(--text-color);
-
-  &:hover {
-    transform: scale(1.1);
-    color: var(--primary-emerald);
+    
+    .MuiDialogTitle-root {
+      font-family: var(--font-family-outfit) !important;
+      font-weight: 800 !important;
+      font-size: 1.15rem !important;
+      color: var(--text-color) !important;
+      padding: 24px 24px 16px !important;
+      border-bottom: 1px solid var(--card-border) !important;
+    }
+    
+    .MuiDialogContent-root {
+      padding: 24px !important;
+      color: var(--text-color) !important;
+      
+      .MuiTabs-root {
+        border-bottom: 1px solid var(--card-border);
+        .MuiTab-root {
+          font-family: var(--font-family-jakarta);
+          font-weight: 700;
+          text-transform: none;
+          font-size: 0.88rem;
+          color: var(--text-secondary);
+          
+          &.Mui-selected {
+            color: var(--primary-color);
+            font-weight: 800;
+          }
+        }
+        .MuiTabs-indicator {
+          background-color: var(--primary-color);
+        }
+      }
+      
+      // TextFields
+      .MuiTextField-root {
+        .MuiInputLabel-root {
+          font-family: var(--font-family-jakarta);
+          font-weight: 600;
+          color: var(--text-secondary);
+          &.Mui-focused {
+            color: var(--primary-color);
+          }
+        }
+        .MuiOutlinedInput-root {
+          border-radius: 12px;
+          background: rgba(0, 242, 155, 0.02);
+          color: var(--text-color);
+          
+          .MuiOutlinedInput-notchedOutline {
+            border-color: var(--card-border);
+          }
+          &:hover .MuiOutlinedInput-notchedOutline {
+            border-color: rgba(0, 242, 155, 0.3);
+          }
+          &.Mui-focused .MuiOutlinedInput-notchedOutline {
+            border-color: var(--primary-color);
+          }
+        }
+      }
+      
+      // Switches
+      .MuiSwitch-switchBase.Mui-checked {
+        color: var(--primary-color) !important;
+        + .MuiSwitch-track {
+          background-color: var(--primary-color) !important;
+          opacity: 0.35 !important;
+        }
+      }
+      
+      // Buttons inside content
+      .MuiButton-contained {
+        font-family: var(--font-family-jakarta);
+        font-weight: 800;
+        text-transform: none;
+        border-radius: 12px;
+        background: linear-gradient(135deg, var(--primary-emerald) 0%, #00b880 100%) !important;
+        color: #060b13 !important;
+        box-shadow: 0 4px 12px rgba(0, 242, 155, 0.15);
+        
+        body.light-mode & {
+          color: #ffffff !important;
+        }
+        
+        &.MuiButton-colorError {
+          background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important;
+          color: #ffffff !important;
+          box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
+        }
+      }
+    }
+    
+    .MuiDialogActions-root {
+      padding: 16px 24px 24px !important;
+      border-top: 1px solid var(--card-border) !important;
+      
+      .MuiButton-root {
+        font-family: var(--font-family-jakarta);
+        font-weight: 700;
+        text-transform: none;
+        border-radius: 10px;
+        color: var(--text-secondary);
+        padding: 8px 20px;
+        
+        &.MuiButton-contained {
+          background: linear-gradient(135deg, var(--primary-emerald) 0%, #00b880 100%) !important;
+          color: #060b13 !important;
+          font-weight: 800;
+          box-shadow: 0 4px 12px rgba(0, 242, 155, 0.15);
+          
+          body.light-mode & {
+            color: #ffffff !important;
+          }
+        }
+      }
+    }
   }
 }

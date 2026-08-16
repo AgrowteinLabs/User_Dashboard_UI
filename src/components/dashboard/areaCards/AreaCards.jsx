@@ -26,14 +26,26 @@ import ControlTimers from "../../controlTimers/ControlTimers";
 import "./AreaCards.scss";
 
 const AreaCards = ({ expanded, setExpanded }) => {
-  const { selectedProductUid, setSelectedProductUid } = useContext(ProductContext);
-  const [products, setProducts] = useState([]);
-  const [productDetails, setProductDetails] = useState(null);
+  const { products, selectedProductUid, setSelectedProductUid, selectedProduct, refetchProducts } = useContext(ProductContext);
+  const productDetails = selectedProduct;
   const [thresholds, setThresholds] = useState({});
   const [offsets, setOffsets] = useState({});
   const [controlStates, setControlStates] = useState({});
   const [modeSwitchLoading, setModeSwitchLoading] = useState(false);
   const userId = localStorage.getItem("userId");
+
+  // Tracks the last-saved threshold + offset per controlId so we can detect dirty state
+  const originalConfigRef = useRef({});
+
+  // Returns true if the user has changed threshold or offset for this control
+  const isDirty = (controlId) => {
+    const orig = originalConfigRef.current[controlId];
+    if (!orig) return false;
+    return (
+      Number(thresholds[controlId]) !== Number(orig.threshold) ||
+      Number(offsets[controlId]) !== Number(orig.offset)
+    );
+  };
 
   const { publishCommandWithFeedback } = useMqttControl(selectedProductUid);
 
@@ -80,55 +92,38 @@ const AreaCards = ({ expanded, setExpanded }) => {
     }
   };
 
-  const fetchDetails = useCallback(async () => {
-    if (!userId || !selectedProductUid) return;
-    try {
-      const url = import.meta.env.VITE_REACT_APP_API_URL;
-      const res = await fetch(`${url}/api/v1/user/product/${userId}`, { credentials: "include" });
-      const data = await parseApiResponse(res);
-      const selected = data.find((p) => p.uid === selectedProductUid);
-      if (selected) {
-        setProductDetails(selected);
-        const initThresh = {};
-        const initOffsets = {};
-        const initStates = {};
-        selected.controls.forEach((c) => {
-          initThresh[c.controlId] = c.threshHold || 0;
-          initOffsets[c.controlId] = c.offset || c.min || 0;
-          initStates[c.controlId] = c.state || "OFF";
-        });
-        setThresholds(initThresh);
-        setOffsets(initOffsets);
-        setControlStates(initStates);
-      }
-    } catch (err) {
-      console.error("Error loading product details:", err);
+  // Populate control states when the selected product changes
+  useEffect(() => {
+    if (selectedProduct) {
+      const initThresh = {};
+      const initOffsets = {};
+      const initStates = {};
+      const initOriginals = {};
+      selectedProduct.controls.forEach((c) => {
+        const thresh = c.threshHold || 0;
+        const offset = c.offset || c.min || 0;
+        initThresh[c.controlId] = thresh;
+        initOffsets[c.controlId] = offset;
+        initStates[c.controlId] = c.state || "OFF";
+        initOriginals[c.controlId] = { threshold: thresh, offset };
+      });
+      setThresholds(initThresh);
+      setOffsets(initOffsets);
+      setControlStates(initStates);
+      originalConfigRef.current = initOriginals;
     }
-  }, [userId, selectedProductUid]);
+  }, [selectedProduct]);
 
   useEffect(() => {
-    const fetchInitial = async () => {
-      const data = await fetchProducts();
-      if (Array.isArray(data)) {
-        setProducts(data);
-        const saved = localStorage.getItem("selectedProductUid") || data[0]?.uid;
-        setSelectedProductUid(saved);
-      }
-      await fetchUser();
-    };
-    fetchInitial();
-  }, [setSelectedProductUid]);
-
-  useEffect(() => {
-    fetchDetails();
-  }, [selectedProductUid, userId, fetchDetails]);
+    fetchUser().catch(console.error);
+  }, []);
 
   // Sync mode changes internally
   useEffect(() => {
-    const handleRefresh = () => fetchDetails();
+    const handleRefresh = () => refetchProducts();
     window.addEventListener("thresholds-updated", handleRefresh);
     return () => window.removeEventListener("thresholds-updated", handleRefresh);
-  }, [fetchDetails]);
+  }, [refetchProducts]);
 
   const handleThresholdChange = (controlId, value) => {
     setThresholds((prev) => ({ ...prev, [controlId]: value }));
@@ -182,7 +177,10 @@ const AreaCards = ({ expanded, setExpanded }) => {
         });
         await parseApiResponse(offsetRes);
 
-        await fetchDetails();
+        await refetchProducts();
+
+        // Update the saved baseline so the button goes back to disabled
+        originalConfigRef.current[controlId] = { threshold, offset };
 
         window.dispatchEvent(
           new CustomEvent("thresholds-updated", { detail: { uid: selectedProductUid } })
@@ -224,7 +222,7 @@ const AreaCards = ({ expanded, setExpanded }) => {
         });
         await parseApiResponse(res);
 
-        await fetchDetails();
+        await refetchProducts();
 
         Swal.fire("✅ Success", `Control turned ${newState}`, "success");
       },
@@ -313,7 +311,7 @@ const AreaCards = ({ expanded, setExpanded }) => {
       );
 
       const result = await updateGlobalModeInBackend(newMode);
-      await fetchDetails();
+      await refetchProducts();
 
       const messageLines = [
         `Switched to ${newMode.toUpperCase()} mode`,
@@ -324,7 +322,7 @@ const AreaCards = ({ expanded, setExpanded }) => {
       Swal.fire("✅ Mode Updated", messageLines.join(""), "success");
     } catch (error) {
       Swal.fire("❌ Failed", error.message || "Could not switch mode. Please try again.", "error");
-      await fetchDetails();
+      await refetchProducts();
     } finally {
       setModeSwitchLoading(false);
     }
@@ -505,7 +503,7 @@ const AreaCards = ({ expanded, setExpanded }) => {
                       <ControlTimers
                         productId={productDetails?._id || productDetails?.id}
                         control={control}
-                        onChanged={fetchDetails}
+                        onChanged={refetchProducts}
                         capabilities={productDetails?.capabilities}
                       />
                     )}
@@ -619,6 +617,7 @@ const AreaCards = ({ expanded, setExpanded }) => {
                           color="primary"
                           fullWidth
                           size="large"
+                          disabled={!isDirty(control.controlId)}
                           onClick={() => handleSaveThreshold(control.controlId, control.pin)}
                           sx={{
                             py: 1.2,
@@ -626,19 +625,29 @@ const AreaCards = ({ expanded, setExpanded }) => {
                             borderRadius: "12px",
                             fontFamily: "var(--font-family-jakarta)",
                             textTransform: "none",
-                            background: "linear-gradient(135deg, var(--primary-emerald) 0%, #00b880 100%) !important",
-                            color: "#060b13 !important",
-                            boxShadow: "0 4px 12px rgba(0, 242, 155, 0.15) !important",
-                            "&:hover": {
+                            transition: "all 0.25s ease",
+                            background: isDirty(control.controlId)
+                              ? "linear-gradient(135deg, var(--primary-emerald) 0%, #00b880 100%) !important"
+                              : "rgba(255,255,255,0.04) !important",
+                            color: isDirty(control.controlId)
+                              ? "#060b13 !important"
+                              : "var(--text-muted) !important",
+                            boxShadow: isDirty(control.controlId)
+                              ? "0 4px 12px rgba(0, 242, 155, 0.15) !important"
+                              : "none !important",
+                            border: isDirty(control.controlId)
+                              ? "none"
+                              : "1px solid var(--card-border) !important",
+                            "&:hover": isDirty(control.controlId) ? {
                               background: "linear-gradient(135deg, var(--secondary-teal) 0%, var(--primary-emerald) 100%) !important",
                               boxShadow: "0 6px 16px rgba(0, 242, 155, 0.25) !important"
-                            },
+                            } : {},
                             "body.light-mode &": {
-                              color: "white !important"
+                              color: isDirty(control.controlId) ? "white !important" : "var(--text-muted) !important"
                             }
                           }}
                         >
-                          Save Configuration
+                          {isDirty(control.controlId) ? "Save Configuration" : "No Changes"}
                         </Button>
                       </div>
                     )}

@@ -32,6 +32,7 @@
   --primary-hover: #009c6d;
   --background-color: #f3f6f9;
   --card-bg: rgba(255, 255, 255, 0.8);
+  --popover-bg: #ffffff;
   --card-border: rgba(0, 184, 144, 0.08);
   --text-color: #0f172a;
   --text-secondary: #475569;
@@ -54,7 +55,7 @@
   
   --shadow-premium: 0 12px 30px -10px rgba(15, 23, 42, 0.05), 0 4px 12px -5px rgba(15, 23, 42, 0.02), inset 0 1px 0 rgba(255, 255, 255, 0.6);
   --shadow-glow: 0 0 25px rgba(0, 184, 144, 0.08);
-  --glass-blur: blur(16px);
+  --glass-blur: blur(8px);
 }
 
 @mixin darkMode {
@@ -62,6 +63,7 @@
   --primary-hover: var(--primary-emerald-hover);
   --background-color: #050a15; // Deeper, premium slate black
   --card-bg: rgba(11, 20, 38, 0.6); // Layered glassmorphism
+  --popover-bg: #0c1427;
   --card-border: rgba(255, 255, 255, 0.06);
   --text-color: #f8fafc;
   --text-secondary: #94a3b8;
@@ -84,7 +86,7 @@
   
   --shadow-premium: 0 25px 50px -12px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.07);
   --shadow-glow: 0 0 30px rgba(0, 242, 155, 0.12), 0 0 10px rgba(0, 229, 255, 0.08);
-  --glass-blur: blur(24px);
+  --glass-blur: blur(12px);
 }
 
 * {
@@ -238,10 +240,14 @@ ul {
 .premium-card {
   background-color: var(--card-bg) !important;
   backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
   border: 1px solid var(--card-border) !important;
   border-radius: 20px !important;
   box-shadow: var(--shadow-premium) !important;
   transition: var(--transition-smooth) !important;
+  transform: translateZ(0); /* Hardware Acceleration */
+  backface-visibility: hidden;
+  will-change: transform, opacity;
   position: relative;
   overflow: hidden;
   
@@ -357,6 +363,50 @@ ul {
   
   &:active {
     transform: translateY(-1px);
+  }
+}
+
+/* Material UI Popovers & Dropdowns Premium Styling */
+.MuiPopover-root {
+  z-index: 2000 !important;
+  
+  .MuiPaper-root.MuiPopover-paper {
+    background-color: var(--popover-bg) !important;
+    background-image: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    border: 1px solid var(--card-border) !important;
+    box-shadow: var(--shadow-premium) !important;
+    border-radius: 14px !important;
+    margin-top: 4px !important;
+    
+    .MuiMenuItem-root {
+      font-family: var(--font-family-jakarta) !important;
+      font-weight: 700 !important;
+      color: var(--text-color) !important;
+      font-size: 0.88rem !important;
+      padding: 12px 18px !important;
+      transition: background-color 0.15s ease, color 0.15s ease !important;
+      
+      &:hover {
+        background-color: rgba(0, 242, 155, 0.08) !important;
+        color: var(--primary-color) !important;
+      }
+      
+      &.Mui-selected {
+        background-color: rgba(0, 242, 155, 0.15) !important;
+        color: var(--primary-emerald) !important;
+        font-weight: 800 !important;
+        
+        body.light-mode & {
+          color: var(--primary-hover) !important;
+        }
+        
+        &:hover {
+          background-color: rgba(0, 242, 155, 0.22) !important;
+        }
+      }
+    }
   }
 }
 

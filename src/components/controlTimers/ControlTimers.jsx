@@ -359,12 +359,37 @@ const ControlTimers = ({ productId, control, onChanged, capabilities }) => {
       {/* ---------- Timer modal ---------- */}
       <Dialog open={timerOpen} onClose={() => setTimerOpen(false)} maxWidth="xs" fullWidth>
         <DialogTitle className="ct-dialog-title">
-          <TimerOutlined /> {timer ? "Active Timer" : "Set Timer"}
+          <Box style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+            <Box style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <TimerOutlined style={{ color: "var(--primary-color)", fontSize: "1.25rem" }} />
+              <span style={{ fontWeight: 800 }}>{timer ? "Active Timer" : "Set Timer"}</span>
+            </Box>
+            <Typography variant="caption" style={{ color: "var(--text-secondary)", fontWeight: 700, marginLeft: "28px" }}>
+              Controller: {control.name || control.pin}
+            </Typography>
+          </Box>
           <IconButton className="ct-dialog-close" onClick={() => setTimerOpen(false)} aria-label="Close">
             <Close />
           </IconButton>
         </DialogTitle>
         <DialogContent dividers>
+          {!timer && (
+            <Box className="ct-info-banner" style={{
+              background: "rgba(0, 242, 155, 0.04)",
+              border: "1px dashed rgba(0, 242, 155, 0.2)",
+              borderRadius: "10px",
+              padding: "10px 14px",
+              marginBottom: "16px",
+              fontSize: "0.82rem",
+              color: "var(--text-color)",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              fontFamily: "var(--font-family-jakarta)"
+            }}>
+              ℹ️ Timer mode triggers the action immediately and reverts it automatically when the countdown reaches 0.
+            </Box>
+          )}
           {timer ? (
             <Box className="ct-active">
               <Typography variant="body1" className="ct-active-label">
@@ -390,8 +415,8 @@ const ControlTimers = ({ productId, control, onChanged, capabilities }) => {
             </Box>
           ) : (
             <Box>
-              <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                Action
+              <Typography variant="subtitle2" sx={{ mb: 1, display: "flex", alignItems: "center", gap: "6px" }}>
+                ⚡ Select Action
               </Typography>
               <Box className="ct-action-toggle">
                 <Button
@@ -412,8 +437,8 @@ const ControlTimers = ({ productId, control, onChanged, capabilities }) => {
                 </Button>
               </Box>
 
-              <Typography variant="subtitle2" sx={{ mt: 2, mb: 1 }}>
-                Duration
+              <Typography variant="subtitle2" sx={{ mt: 2.5, mb: 1, display: "flex", alignItems: "center", gap: "6px" }}>
+                ⏱️ Duration Presets
               </Typography>
               <Box className="ct-presets">
                 {PRESETS_MIN.map((m) => (
@@ -460,15 +485,39 @@ const ControlTimers = ({ productId, control, onChanged, capabilities }) => {
       {/* ---------- Schedule modal ---------- */}
       <Dialog open={schedOpen} onClose={() => setSchedOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle className="ct-dialog-title">
-          <ScheduleIcon /> Schedules
+          <Box style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+            <Box style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <ScheduleIcon style={{ color: "var(--primary-color)", fontSize: "1.25rem" }} />
+              <span style={{ fontWeight: 800 }}>Schedules</span>
+            </Box>
+            <Typography variant="caption" style={{ color: "var(--text-secondary)", fontWeight: 700, marginLeft: "28px" }}>
+              Controller: {control.name || control.pin}
+            </Typography>
+          </Box>
           <IconButton className="ct-dialog-close" onClick={() => setSchedOpen(false)} aria-label="Close">
             <Close />
           </IconButton>
         </DialogTitle>
         <DialogContent dividers>
+          <Box className="ct-info-banner" style={{
+            background: "rgba(0, 242, 155, 0.04)",
+            border: "1px dashed rgba(0, 242, 155, 0.2)",
+            borderRadius: "10px",
+            padding: "10px 14px",
+            marginBottom: "16px",
+            fontSize: "0.82rem",
+            color: "var(--text-color)",
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            fontFamily: "var(--font-family-jakarta)"
+          }}>
+            ℹ️ Schedules execute recurring triggers at specific times, running entirely on the device even when offline.
+          </Box>
+
           {/* Existing schedules */}
-          <Typography variant="subtitle2" sx={{ mb: 1 }}>
-            Configured schedules
+          <Typography variant="subtitle2" sx={{ mb: 1.5, display: "flex", alignItems: "center", gap: "6px" }}>
+            📋 Configured Schedules
           </Typography>
           {schedLoading ? (
             <Box className="ct-center"><CircularProgress size={22} /></Box>
@@ -520,26 +569,32 @@ const ControlTimers = ({ productId, control, onChanged, capabilities }) => {
             </Box>
           )}
 
-          <Divider sx={{ my: 2 }} />
+          <Divider sx={{ my: 2.5 }} />
 
           {/* Add schedule */}
-          <Typography variant="subtitle2" sx={{ mb: 1.5 }}>
-            Add schedule
+          <Typography variant="subtitle2" sx={{ mb: 1.5, display: "flex", alignItems: "center", gap: "6px" }}>
+            ➕ Create New Schedule
           </Typography>
-          <Box className="ct-form-grid">
+          <Box className="ct-form-grid" style={{
+            background: "rgba(255, 255, 255, 0.01)",
+            border: "1px solid var(--card-border)",
+            borderRadius: "16px",
+            padding: "16px",
+            marginBottom: "8px"
+          }}>
             <FormControl size="small" fullWidth>
               <InputLabel>Action</InputLabel>
               <Select label="Action" value={schedAction} onChange={(e) => setSchedAction(e.target.value)}>
-                <MenuItem value="ON">Turn ON</MenuItem>
-                <MenuItem value="OFF">Turn OFF</MenuItem>
+                <MenuItem value="ON" style={{ color: "var(--color-success)", fontWeight: 800 }}>⚡ Turn ON</MenuItem>
+                <MenuItem value="OFF" style={{ color: "var(--color-error)", fontWeight: 800 }}>🔌 Turn OFF</MenuItem>
               </Select>
             </FormControl>
             <FormControl size="small" fullWidth>
               <InputLabel>Repeat</InputLabel>
               <Select label="Repeat" value={schedType} onChange={(e) => setSchedType(e.target.value)}>
-                <MenuItem value="once">Once</MenuItem>
-                <MenuItem value="daily">Daily</MenuItem>
-                <MenuItem value="weekly">Weekly</MenuItem>
+                <MenuItem value="once">📅 Once (Single Run)</MenuItem>
+                <MenuItem value="daily">🔁 Daily (Every Day)</MenuItem>
+                <MenuItem value="weekly">🗓️ Weekly (Custom Days)</MenuItem>
               </Select>
             </FormControl>
             <TextField
@@ -568,7 +623,7 @@ const ControlTimers = ({ productId, control, onChanged, capabilities }) => {
                   </Tooltip>
                 ) : null,
               }}
-              helperText={schedEndTime ? `Device reverses at ${schedEndTime}` : "Leave blank for trigger-only"}
+              helperText={schedEndTime ? `Device automatically turns OFF at ${schedEndTime}` : "Optional: Auto-turns off to create window"}
             />
             <TextField
               type="date"

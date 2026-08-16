@@ -1,6 +1,7 @@
-import { useParams, useLocation } from "react-router-dom";
+import { useParams, useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useState, useCallback } from "react";
 import { useSensorData } from "../../hooks/useSensorData";
+import { useMqttSensorData } from "../../hooks/useMqttSensorData";
 import { fetchSensorList } from "../../api/fetchsensorlist";
 import { fetchIntervalData } from "../../api/fetchHistoryData";
 import AreaChartCard from "../predefinedcharts/AreaChartCard";
@@ -17,11 +18,22 @@ import {
   MenuItem,
   CircularProgress,
   Snackbar,
-  Box,
 } from "@mui/material";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import { useTheme } from "@mui/material/styles";
+import {
+  ArrowBack as ArrowBackIcon,
+  History as HistoryIcon,
+  ListAlt as ActivityIcon,
+  ExpandMore as ExpandMoreIcon,
+  Refresh as RefreshIcon,
+  Bolt as BoltIcon,
+  PowerSettingsNew as PowerOnIcon,
+  PowerOff as PowerOffIcon,
+  WarningAmber as WarningIcon,
+  Schedule as ScheduleIcon,
+  CalendarToday as CalendarIcon,
+} from "@mui/icons-material";
 import { exportToExcel } from "../../utils/exportUtils";
+import { getProductIcon } from "../../utils/productIcons";
 import dayjs from "dayjs";
 import "./ProductDataPage.scss";
 
@@ -50,14 +62,50 @@ const sensorChartMap = {
   CO2: { type: "bar", unit: "ppm", label: "CO₂ Level" },
 };
 
+// Maps activity log types to a visual tone + icon
+const getActivityMeta = (type = "") => {
+  const t = String(type).toLowerCase();
+  if (
+    /(turn\s*on|switch\s*on|power\s*on|\bon\b|enable|start|connected|online|resume)/.test(t)
+  ) {
+    return { cls: "success", icon: <PowerOnIcon /> };
+  }
+  if (
+    /(turn\s*off|switch\s*off|power\s*off|\boff\b|disable|stop|disconnect|offline|error|fail|alarm)/.test(t)
+  ) {
+    return { cls: "error", icon: <PowerOffIcon /> };
+  }
+  if (/(threshold|alert|warn|exceed|high|low|critical)/.test(t)) {
+    return { cls: "warning", icon: <WarningIcon /> };
+  }
+  if (/(sched|timer|time|recur)/.test(t)) {
+    return { cls: "info", icon: <ScheduleIcon /> };
+  }
+  return { cls: "info", icon: <BoltIcon /> };
+};
 
 const ProductDataPage = () => {
-  const theme = useTheme();
   const { uid } = useParams();
   const location = useLocation();
+  const navigate = useNavigate();
   const alias = location.state?.alias || uid;
 
   const { history } = useSensorData(uid);
+  const { lastReceivedTime, connected } = useMqttSensorData(uid);
+  const ProductIcon = getProductIcon(uid);
+
+  // Live device status — online while fresh MQTT readings keep arriving
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    const tick = setInterval(() => setNow(Date.now()), 30000);
+    return () => clearInterval(tick);
+  }, []);
+
+  const DEVICE_TIMEOUT_MS = 90_000;
+  const isOnline = Boolean(lastReceivedTime) && now - lastReceivedTime < DEVICE_TIMEOUT_MS;
+  const isConnecting = !isOnline && connected && !lastReceivedTime;
+  const statusClass = isOnline ? "online" : isConnecting ? "connecting" : "offline";
+  const statusLabel = isOnline ? "Live" : isConnecting ? "Connecting…" : "Offline";
 
   const [availableSensors, setAvailableSensors] = useState([]);
   const [viewMode, setViewMode] = useState("history");
@@ -135,7 +183,6 @@ const ProductDataPage = () => {
     fetchSensors();
   }, [uid]);
 
-
   const handleFilterData = async () => {
     const start = dayjs(startDate);
     const end = dayjs(endDate);
@@ -162,6 +209,8 @@ const ProductDataPage = () => {
     setLoading(false);
   };
 
+  const formatDay = (dateStr) => dayjs(dateStr).format("MMM D, YYYY");
+
   const structureDataBySensor = (data) => {
     const result = {};
     data.forEach((entry) => {
@@ -171,6 +220,12 @@ const ProductDataPage = () => {
       });
     });
     return result;
+  };
+
+  const resetFilters = () => {
+    setStartDate(dayjs().subtract(1, "day").format("YYYY-MM-DD"));
+    setEndDate(dayjs().format("YYYY-MM-DD"));
+    setFilteredHistory({});
   };
 
   const renderCharts = () =>
@@ -185,31 +240,37 @@ const ProductDataPage = () => {
           <Accordion
             key={sensorKey}
             defaultExpanded
-            sx={{
-              backgroundColor: theme.palette.background.paper,
-              border: `1px solid ${theme.palette.divider}`,
-              boxShadow: theme.shadows[1],
-              borderRadius: 1,
-              mb: 2,
-            }}
+            disableGutters
+            className="sensor-container"
           >
-            <AccordionSummary expandIcon={<ExpandMoreIcon />} sx={{ px: 2 }}>
-              <Typography fontWeight="700" sx={{ width: "100%", textAlign: "center", fontSize: "1.3rem", color: theme.palette.primary.main }}>
-                {config.label}
-              </Typography>
+            <AccordionSummary expandIcon={<ExpandMoreIcon />} className="sensor-summary">
+              <Typography className="sensor-title">{config.label}</Typography>
             </AccordionSummary>
-            <AccordionDetails>
+            <AccordionDetails className="sensor-details">
               {historyData.length > 0 ? (
                 <>
-                  <Typography variant="subtitle2" align="center" sx={{ color: theme.palette.text.secondary, mb: 1 }}>
-                    Data from {startDate} to {endDate}
-                  </Typography>
-                  <AreaChartCard title={`${config.label} History`} data={values} labels={labels} unit={config.unit} />
+                  <div className="chart-date-range">
+                    <span className="range-item">
+                      <CalendarIcon className="range-icon" />
+                      {formatDay(startDate)}
+                      {startDate !== endDate ? ` – ${formatDay(endDate)}` : ""}
+                    </span>
+                    <span className="range-dot">•</span>
+                    <span className="range-item">
+                      <ScheduleIcon className="range-icon" />
+                      Every {interval} min
+                    </span>
+                  </div>
+                  <AreaChartCard
+                    title={`${config.label} History`}
+                    data={values}
+                    labels={labels}
+                    unit={config.unit}
+                    badgeType="history"
+                  />
                 </>
               ) : (
-                <Typography color="error" align="center">
-                  No history data for {sensorKey}
-                </Typography>
+                <div className="chart-empty">No history data for {sensorKey}</div>
               )}
             </AccordionDetails>
           </Accordion>
@@ -217,69 +278,139 @@ const ProductDataPage = () => {
       });
 
   return (
-    <div className="product-data-page" style={{ color: theme.palette.text.primary }}>
-      <h2 style={{ color: theme.palette.text.primary }}>Sensor Data - {alias}</h2>
+    <div className="product-data-page">
+      {/* ─── Page Header ─────────────────────────────────── */}
+      <div className="pdp-header">
+        <button
+          className="pdp-back"
+          onClick={() => navigate("/products")}
+          aria-label="Back to products"
+        >
+          <ArrowBackIcon />
+        </button>
+        <div className="pdp-avatar"><ProductIcon /></div>
+        <div className="pdp-title-block">
+          <h2>{alias}</h2>
+          <div className="pdp-meta">
+            <span className="pdp-uid">UID · {uid}</span>
+            <span className={`pdp-status ${statusClass}`}>
+              <span className="pdp-status-dot" />
+              {statusLabel}
+            </span>
+          </div>
+        </div>
+      </div>
 
+      {/* ─── View Toggle ─────────────────────────────────── */}
       <ToggleButtonGroup
+        className="view-toggle"
         value={viewMode}
         exclusive
         onChange={(_, newMode) => newMode && setViewMode(newMode)}
-        color="primary"
-        sx={{ display: "flex", justifyContent: "center", mb: 2 }}
       >
-        <ToggleButton value="history">History</ToggleButton>
-        <ToggleButton value="activity">Activity Log</ToggleButton>
+        <ToggleButton value="history">
+          <HistoryIcon /> History
+        </ToggleButton>
+        <ToggleButton value="activity">
+          <ActivityIcon /> Activity Log
+        </ToggleButton>
       </ToggleButtonGroup>
 
+      {/* ─── History: Filter Bar ─────────────────────────── */}
       {viewMode === "history" && (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "16px", backgroundColor: theme.palette.background.paper, padding: "12px 16px", borderRadius: "8px", marginBottom: "20px" }}>
-          <TextField label="Start Date" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} InputLabelProps={{ shrink: true }} sx={{ minWidth: 180 }} />
-          <TextField label="End Date" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} InputLabelProps={{ shrink: true }} sx={{ minWidth: 180 }} />
-          <Select value={interval} onChange={(e) => setInterval(e.target.value)} sx={{ minWidth: 180 }}>
+        <div className="filter-controls">
+          <TextField
+            label="Start Date"
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            InputLabelProps={{ shrink: true }}
+          />
+          <TextField
+            label="End Date"
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            InputLabelProps={{ shrink: true }}
+          />
+          <Select value={interval} onChange={(e) => setInterval(e.target.value)}>
             <MenuItem value={30}>30 Minutes</MenuItem>
             <MenuItem value={60}>1 Hour</MenuItem>
           </Select>
-          <Button variant="contained" onClick={handleFilterData}>Apply Filter</Button>
-          <Button variant="outlined" onClick={() => { setStartDate(dayjs().subtract(1, "day").format("YYYY-MM-DD")); setEndDate(dayjs().format("YYYY-MM-DD")); setFilteredHistory({}); }}>Reset</Button>
+          <Button variant="contained" className="filter-apply" onClick={handleFilterData}>
+            Apply Filter
+          </Button>
+          <Button variant="outlined" className="filter-reset" onClick={resetFilters}>
+            Reset
+          </Button>
         </div>
       )}
 
+      {/* ─── Activity Log ────────────────────────────────── */}
       {viewMode === "activity" && (
-        <div style={{ backgroundColor: theme.palette.background.paper, padding: "20px", borderRadius: "8px", marginBottom: "20px" }}>
-          <Typography variant="h6" color="primary" sx={{ mb: 2 }}>Device Activity Timeline</Typography>
+        <div className="activity-panel">
+          <div className="activity-panel-header">
+            <div>
+              <h3>Device Activity Timeline</h3>
+              <p>Latest events recorded for this device</p>
+            </div>
+            <Button
+              className="activity-refresh"
+              startIcon={<RefreshIcon />}
+              onClick={fetchActivityLogs}
+              disabled={activitiesLoading}
+            >
+              Refresh
+            </Button>
+          </div>
+
           {activitiesLoading ? (
-            <Box display="flex" justifyContent="center" p={4}><CircularProgress /></Box>
+            <div className="loading-spinner">
+              <CircularProgress sx={{ color: "var(--primary-color)" }} />
+            </div>
           ) : activities.length === 0 ? (
-            <Typography align="center" color="text.secondary">No activities logged for this device.</Typography>
+            <div className="activity-empty">
+              <span className="empty-icon">🕘</span>
+              <p>No activities logged for this device.</p>
+            </div>
           ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-              {activities.map((act) => (
-                <div key={act.id || act._id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px", borderBottom: `1px solid ${theme.palette.divider}` }}>
-                  <div>
-                    <Typography variant="body1" fontWeight={600}>{act.description}</Typography>
-                    <Typography variant="caption" color="text.secondary">Type: {act.type}</Typography>
+            <div className="activity-list">
+              {activities.map((act) => {
+                const meta = getActivityMeta(act.type);
+                return (
+                  <div className="activity-item" key={act.id || act._id}>
+                    <div className={`activity-icon ${meta.cls}`}>{meta.icon}</div>
+                    <div className="activity-body">
+                      <p className="activity-desc">{act.description}</p>
+                      <span className="activity-type">{act.type}</span>
+                    </div>
+                    <span className="activity-time">
+                      {new Date(act.timestamp).toLocaleString()}
+                    </span>
                   </div>
-                  <Typography variant="body2" color="text.secondary">
-                    {new Date(act.timestamp).toLocaleString()}
-                  </Typography>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
       )}
 
-      {viewMode !== "activity" && (
-        loading ? (
-          <div style={{ display: "flex", justifyContent: "center", margin: "40px 0" }}>
-            <CircularProgress />
+      {/* ─── History: Charts ─────────────────────────────── */}
+      {viewMode !== "activity" &&
+        (loading ? (
+          <div className="loading-spinner">
+            <CircularProgress sx={{ color: "var(--primary-color)" }} />
           </div>
         ) : (
           <div className="charts-container">{renderCharts()}</div>
-        )
-      )}
+        ))}
 
-      <Snackbar open={snackbarOpen} autoHideDuration={4000} onClose={() => setSnackbarOpen(false)} message={snackbarMessage} />
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={4000}
+        onClose={() => setSnackbarOpen(false)}
+        message={snackbarMessage}
+      />
     </div>
   );
 };

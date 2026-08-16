@@ -8,8 +8,6 @@ import { useSensorData } from "../../../hooks/useSensorData";
 import { useMqttSensorData } from "../../../hooks/useMqttSensorData";
 import { useNotificationManager } from "../../../hooks/useNotificationManager";
 import { useThresholdAlerts } from "../../../hooks/useThresholdAlerts";
-import { useAutoControl } from "../../../hooks/useAutoControl";
-import { useMqttControl } from "../../../hooks/useMqttControl";
 import DynamicCharts from "../../predefinedcharts/DynamicCharts";
 import NoDataPlaceholder from "../../predefinedcharts/NoDataPlaceholder";
 import DeviceStatusBanner from "../../predefinedcharts/DeviceStatusBanner";
@@ -21,29 +19,11 @@ const AreaCharts = () => {
   const [loading, setLoading] = useState(true);
   const [showHistoryOnly, setShowHistoryOnly] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(null);
-  const [productDetails, setProductDetails] = useState(null);
 
   const { current, history, loading: historyLoading } = useSensorData(selectedProductUid);
   const { message: mqttMessage, lastReceivedTime } =
     useMqttSensorData(selectedProductUid);
 
-  const { publishCommandWithFeedback } = useMqttControl(selectedProductUid);
-
-  useEffect(() => {
-    const fetchProductDetails = async () => {
-      if (!selectedProductUid) return;
-      try {
-        const url = import.meta.env.VITE_REACT_APP_API_URL;
-        const res = await fetch(`${url}/api/v1/user/product/${localStorage.getItem("userId")}`, { credentials: "include" });
-        const data = await res.json();
-        const selected = data.find((p) => p.uid === selectedProductUid);
-        if (selected) setProductDetails(selected);
-      } catch (err) {
-        console.error("Failed to fetch product details for auto-control", err);
-      }
-    };
-    fetchProductDetails();
-  }, [selectedProductUid]);
 
   // Intersection Observer for lazy loading charts
   const { ref, inView } = useInView({ triggerOnce: true, threshold: 0.1 });
@@ -104,12 +84,6 @@ const AreaCharts = () => {
     notify: addNotification,
   });
 
-  useAutoControl({
-    uid: selectedProductUid,
-    currentData: finalCurrent,
-    controls: productDetails?.controls || [],
-    publishCommandWithFeedback,
-  });
 
   // Check if all real-time sensors are stale or error
   const isStale = useMemo(() => {

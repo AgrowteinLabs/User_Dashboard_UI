@@ -4,6 +4,7 @@ import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
 import fetchProducts from "../../api/fetchProducts";
 import { PropTypes } from 'prop-types';
+import { getProductIcon } from "../../utils/productIcons";
 import "./ProductsOverview.scss";
 import Swal from "sweetalert2";
 
@@ -36,6 +37,7 @@ import {
   Tab,
   Box,
   Typography,
+  IconButton,
 } from "@mui/material";
 
 const sensorIconMap = {
@@ -71,12 +73,10 @@ const ProductsOverview = () => {
   const [customName, setCustomName] = useState("");
   const [productGroup, setProductGroup] = useState("");
   const [notifEnabled, setNotifEnabled] = useState(true);
-  const [autoControlEnabled, setAutoControlEnabled] = useState(false);
   const [shareEmail, setShareEmail] = useState("");
   const [sharePerm, setSharePerm] = useState("read");
   const [shareError, setShareError] = useState("");
   const [shareBusy, setShareBusy] = useState(false);
-
   const getProducts = async () => {
     try {
       setLoading(true);
@@ -173,7 +173,6 @@ const ProductsOverview = () => {
     setCustomName(product.customName || product.alias || "");
     setProductGroup(product.group || "");
     setNotifEnabled(product.config?.notificationsEnabled !== false);
-    setAutoControlEnabled(!!product.config?.autoControlEnabled);
     setShareEmail("");
     setSharePerm("read");
     setShareError("");
@@ -202,7 +201,6 @@ const ProductsOverview = () => {
         credentials: "include",
         body: JSON.stringify({
           notificationsEnabled: notifEnabled,
-          autoControlEnabled: autoControlEnabled,
           group: productGroup,
         }),
       });
@@ -315,9 +313,15 @@ const ProductsOverview = () => {
   return (
     <div className="products-overview">
       <div className="header">
-        <h2>Products Overview - Sensor Readings</h2>
+        <div className="header-left">
+          <h2>Products Overview</h2>
+          <p className="header-subtitle">
+            <span className="count-chip">{products.length}</span>
+            device{products.length !== 1 ? "s" : ""} · Live sensor readings
+          </p>
+        </div>
 
-        <div className="header-actions" style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+        <div className="header-actions">
           <Button variant="outlined" startIcon={<GroupIcon />} onClick={() => setOpenGroupsModal(true)}>
             Rooms
           </Button>
@@ -328,7 +332,7 @@ const ProductsOverview = () => {
               onClick={() => handleSetHomepage(isHomepage === "productsOverview" ? "dashboard" : "productsOverview")}
               style={{
                 cursor: "pointer",
-                color: isHomepage === "productsOverview" ? "#03856d" : "lightgray",
+                color: isHomepage === "productsOverview" ? "var(--primary-emerald)" : "var(--text-muted)",
                 fontSize: "2rem",
                 transition: "color 0.3s ease",
               }}
@@ -338,11 +342,10 @@ const ProductsOverview = () => {
       </div>
 
       {/* Room Filters */}
-      <div className="group-filters" style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginBottom: "20px" }}>
+      <div className="group-filters">
         <Button
           variant={selectedGroup === "all" ? "contained" : "outlined"}
           onClick={() => setSelectedGroup("all")}
-          sx={selectedGroup === "all" ? { backgroundColor: "#03856d" } : {}}
         >
           All Rooms
         </Button>
@@ -351,7 +354,6 @@ const ProductsOverview = () => {
             key={g.id || g._id}
             variant={selectedGroup === (g.id || g._id) ? "contained" : "outlined"}
             onClick={() => setSelectedGroup(g.id || g._id)}
-            sx={selectedGroup === (g.id || g._id) ? { backgroundColor: "#03856d" } : {}}
           >
             {g.name}
           </Button>
@@ -425,11 +427,6 @@ const ProductsOverview = () => {
                 <FormControlLabel
                   control={<Switch checked={notifEnabled} onChange={(e) => setNotifEnabled(e.target.checked)} />}
                   label="Enable Device Notifications"
-                  sx={{ mt: 1, display: "block" }}
-                />
-                <FormControlLabel
-                  control={<Switch checked={autoControlEnabled} onChange={(e) => setAutoControlEnabled(e.target.checked)} />}
-                  label="Enable Automation Modes"
                   sx={{ mt: 1, display: "block" }}
                 />
               </Box>
@@ -509,10 +506,35 @@ const ProductsOverview = () => {
             )}
 
             {settingsTab === 3 && (
-              <Box sx={{ p: 2, border: "1px solid red", borderRadius: "4px" }}>
-                <Typography variant="h6" color="error" sx={{ mb: 1 }}>Danger Zone</Typography>
-                <Typography variant="body2" sx={{ mb: 2 }}>This will unlink the device from your profile. Sensor history and configurations will be detached.</Typography>
-                <Button variant="contained" color="error" onClick={handleUnlinkProduct}>
+              <Box sx={{
+                p: 2.5,
+                border: "1px solid rgba(239,68,68,0.4)",
+                borderRadius: "14px",
+                background: "rgba(239,68,68,0.04)",
+                display: "flex",
+                flexDirection: "column",
+                gap: 2,
+              }}>
+                <Typography variant="subtitle1" color="error" sx={{ fontWeight: 800, fontFamily: "var(--font-family-jakarta)" }}>
+                  ⚠️ Danger Zone
+                </Typography>
+                <Typography variant="body2" sx={{ color: "var(--text-secondary)", lineHeight: 1.7 }}>
+                  This will permanently unlink the device from your account. All sensor history, threshold configurations, and automation rules for this device will be detached.
+                </Typography>
+                <Button
+                  variant="contained"
+                  color="error"
+                  onClick={handleUnlinkProduct}
+                  sx={{
+                    alignSelf: "flex-start",
+                    textTransform: "none",
+                    fontFamily: "var(--font-family-jakarta)",
+                    fontWeight: 800,
+                    borderRadius: "10px",
+                    whiteSpace: "nowrap",
+                    px: 3,
+                  }}
+                >
                   Unlink Device
                 </Button>
               </Box>
@@ -521,8 +543,17 @@ const ProductsOverview = () => {
           <DialogActions>
             <Button onClick={() => setSelectedProduct(null)}>Cancel</Button>
             {settingsTab !== 2 && settingsTab !== 3 && (
-              <Button variant="contained" onClick={handleSaveProductSettings} sx={{ backgroundColor: "#03856d" }}>
-                Save
+              <Button
+                variant="contained"
+                onClick={handleSaveProductSettings}
+                sx={{
+                  textTransform: "none",
+                  fontFamily: "var(--font-family-jakarta)",
+                  fontWeight: 800,
+                  borderRadius: "10px",
+                }}
+              >
+                Save Changes
               </Button>
             )}
           </DialogActions>
@@ -536,6 +567,16 @@ const ProductsOverview = () => {
 const ProductSensors = ({ product, onSettingsClick }) => {
   const { uid, customName, alias, status, isShared } = product;
   const displayName = customName || alias;
+  const ProductIcon = getProductIcon(uid);
+
+  // The API `status` field is derived from device state, not liveness;
+  // prefer the lastSeen heartbeat freshness when present (same as ProductCard).
+  const LAST_SEEN_STALE_MS = 5 * 60 * 1000;
+  const lastSeenMs = product.lastSeen ? new Date(product.lastSeen).getTime() : null;
+  const hasLastSeen = lastSeenMs != null && !Number.isNaN(lastSeenMs);
+  const isOnline = hasLastSeen
+    ? Date.now() - lastSeenMs < LAST_SEEN_STALE_MS
+    : status === "online";
 
   const { message, loading: mqttLoading, error: mqttError, handleRetry } = useMqttSensorData(uid);
 
@@ -551,34 +592,36 @@ const ProductSensors = ({ product, onSettingsClick }) => {
     return (
       <div className="sensor-card">
         <p>{mqttError}</p>
-        <button onClick={handleRetry}>Retry</button>
+        <button className="sensor-retry" onClick={handleRetry}>Retry</button>
       </div>
     );
   }
 
   return (
     <div className="sensor-card">
-      <h3 style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          <DeviceThermostat />
-          <span>{displayName}</span>
-          <span className={`status-dot ${status === "online" ? "online" : "offline"}`} style={{
-            width: "10px",
-            height: "10px",
-            borderRadius: "50%",
-            backgroundColor: status === "online" ? "#4caf50" : "#f44336",
-            display: "inline-block"
-          }} />
-          {isShared && (
-            <span style={{ fontSize: "0.8rem", color: "#666", backgroundColor: "#eee", padding: "2px 6px", borderRadius: "4px" }}>
-              Shared
+      <div className="sensor-card-glow" />
+
+      <div className="sensor-card-header">
+        <div className="sensor-avatar"><ProductIcon /></div>
+        <div className="sensor-title-block">
+          <h3>{displayName}</h3>
+          <div className="sensor-meta">
+            <span className={`sensor-status ${isOnline ? "online" : "offline"}`}>
+              <span className="status-bullet" />
+              {isOnline ? "Online" : "Offline"}
             </span>
-          )}
+            {isShared && <span className="shared-badge">Shared</span>}
+          </div>
         </div>
-        <Button size="small" onClick={() => onSettingsClick(product)} startIcon={<SettingsIcon />}>
-          Manage
-        </Button>
-      </h3>
+        <IconButton
+          size="small"
+          className="sensor-settings"
+          onClick={() => onSettingsClick(product)}
+          aria-label="Device settings"
+        >
+          <SettingsIcon fontSize="small" />
+        </IconButton>
+      </div>
 
       <div className="sensor-info">
         {message ? (
@@ -600,7 +643,7 @@ const ProductSensors = ({ product, onSettingsClick }) => {
             </div>
           ))
         ) : (
-          <p>No sensor data available for {displayName}.</p>
+          <p className="sensor-info-empty">No sensor data available for {displayName}.</p>
         )}
       </div>
     </div>
@@ -615,6 +658,7 @@ ProductSensors.propTypes = {
     alias: PropTypes.string.isRequired,
     customName: PropTypes.string,
     status: PropTypes.string,
+    lastSeen: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     isShared: PropTypes.bool,
     group: PropTypes.string,
     config: PropTypes.shape({
