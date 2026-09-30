@@ -49,6 +49,11 @@ const sensorChartMap = {
   "CO2 Sensor 4": { type: "bar", unit: "ppm", label: "CO2 Sensor 4" },
   "CO2 Sensor": { type: "bar", unit: "ppm", label: "CO₂ Level" },
   CO2: { type: "bar", unit: "ppm", label: "CO₂ Level" },
+  O3: { type: "bar", unit: "ppb", label: "O₃" },
+  NO2: { type: "bar", unit: "ppb", label: "NO₂" },
+  SO2: { type: "bar", unit: "ppb", label: "SO₂" },
+  CH2O: { type: "bar", unit: "ug/m3", label: "CH₂O" },
+  CO: { type: "bar", unit: "ppm", label: "CO" },
 
 };
 
