@@ -78,8 +78,10 @@ const AreaCards = () => {
         const initOffsets = {};
         const initStates = {};
         selected.controls.forEach((c) => {
-          initThresh[c.controlId] = c.threshHold || 0;
-          initOffsets[c.controlId] = c.offset || c.min || 0;
+          const thresh = c.threshHold !== undefined && c.threshHold !== null ? Number(c.threshHold) : 0;
+          initThresh[c.controlId] = isNaN(thresh) ? 0 : thresh;
+          const off = c.offset !== undefined && c.offset !== null ? Number(c.offset) : (c.min ?? 0);
+          initOffsets[c.controlId] = isNaN(off) ? (c.min ?? 0) : off;
           initStates[c.controlId] = c.state || "OFF";
         });
         setThresholds(initThresh);
@@ -113,16 +115,18 @@ const AreaCards = () => {
   }, [selectedProductUid, userId, fetchDetails]);
 
   const handleThresholdChange = (controlId, value) => {
-    setThresholds((prev) => ({ ...prev, [controlId]: value }));
+    const formatted = typeof value === "number" ? Math.round(value * 100) / 100 : value;
+    setThresholds((prev) => ({ ...prev, [controlId]: formatted }));
   };
 
   const handleOffsetChange = (controlId, value) => {
-    setOffsets((prev) => ({ ...prev, [controlId]: value }));
+    const formatted = typeof value === "number" ? Math.round(value * 100) / 100 : value;
+    setOffsets((prev) => ({ ...prev, [controlId]: formatted }));
   };
 
   const handleSaveThreshold = (controlId, pin) => {
-    const threshold = thresholds[controlId];
-    const offset = offsets[controlId];
+    const threshold = Number(thresholds[controlId]) || 0;
+    const offset = Number(offsets[controlId]) || 0;
     const payload = { command: "SetThreshold", pin, threshold, offset };
 
     Swal.fire({ title: "Sending...", text: "Waiting for Device feedback", allowOutsideClick: false, didOpen: () => Swal.showLoading() });
@@ -304,7 +308,7 @@ const AreaCards = () => {
                     pin: control.pin,
                     mode: "Auto",
                     threshold,
-                    offset: Math.max(1, offset),
+                    offset: Math.max(0, offset),
                   }
                   : {
                     command: "SetMode",
@@ -540,10 +544,14 @@ const AreaCards = () => {
                             </Typography>
                           </Box>
                           <Slider
-                            value={thresholds[control.controlId] || 0}
-                            min={control.min}
-                            max={control.max}
-                            step={1}
+                            value={
+                              thresholds[control.controlId] !== undefined && thresholds[control.controlId] !== ""
+                                ? Number(thresholds[control.controlId]) || 0
+                                : Number(control.min ?? 0)
+                            }
+                            min={Number(control.min ?? 0)}
+                            max={Number(control.max ?? 100)}
+                            step={0.1}
                             valueLabelDisplay="auto"
                             onChange={(_, val) => handleThresholdChange(control.controlId, val)}
                             sx={{ mb: 1 }}
@@ -552,30 +560,28 @@ const AreaCards = () => {
                             type="number"
                             value={thresholds[control.controlId] ?? 0}
                             onChange={(e) => {
-                              const rawValue = e.target.value.trim();
+                              const rawValue = e.target.value;
                               if (rawValue === '') {
                                 handleThresholdChange(control.controlId, '');
                               } else {
-                                const parsed = parseInt(rawValue, 10);
+                                const parsed = parseFloat(rawValue);
                                 if (!isNaN(parsed)) {
-                                  handleThresholdChange(control.controlId, parsed);
+                                  handleThresholdChange(control.controlId, rawValue);
                                 }
                               }
                             }}
                             onBlur={(e) => {
-                              const rawValue = e.target.value.trim();
-                              if (rawValue === '') {
-                                handleThresholdChange(control.controlId, 0);
+                              const rawValue = String(e.target.value).trim();
+                              if (rawValue === '' || isNaN(Number(rawValue))) {
+                                handleThresholdChange(control.controlId, Number(control.min ?? 0));
                               } else {
-                                const parsed = parseInt(rawValue, 10);
-                                if (!isNaN(parsed)) {
-                                  handleThresholdChange(control.controlId, parsed);
-                                }
+                                const parsed = parseFloat(rawValue);
+                                handleThresholdChange(control.controlId, parsed);
                               }
                             }}
                             size="small"
                             fullWidth
-                            inputProps={{ min: control.min, max: control.max, step: 1 }}
+                            inputProps={{ min: control.min, max: control.max, step: 0.1 }}
                           />
                         </Box>
 
@@ -590,42 +596,44 @@ const AreaCards = () => {
                             </Typography>
                           </Box>
                           <Slider
-                            value={offsets[control.controlId] || control.min}
-                            min={control.min}
-                            max={control.max}
-                            step={1}
+                            value={
+                              offsets[control.controlId] !== undefined && offsets[control.controlId] !== ""
+                                ? Number(offsets[control.controlId]) || 0
+                                : Number(control.min ?? 0)
+                            }
+                            min={Number(control.min ?? 0)}
+                            max={Number(control.max ?? 100)}
+                            step={0.1}
                             valueLabelDisplay="auto"
                             onChange={(_, val) => handleOffsetChange(control.controlId, val)}
                             sx={{ mb: 1 }}
                           />
                           <TextField
                             type="number"
-                            value={offsets[control.controlId] ?? control.min}
+                            value={offsets[control.controlId] ?? (control.min ?? 0)}
                             onChange={(e) => {
-                              const rawValue = e.target.value.trim();
+                              const rawValue = e.target.value;
                               if (rawValue === '') {
                                 handleOffsetChange(control.controlId, '');
                               } else {
-                                const parsed = parseInt(rawValue, 10);
+                                const parsed = parseFloat(rawValue);
                                 if (!isNaN(parsed)) {
-                                  handleOffsetChange(control.controlId, parsed);
+                                  handleOffsetChange(control.controlId, rawValue);
                                 }
                               }
                             }}
                             onBlur={(e) => {
-                              const rawValue = e.target.value.trim();
-                              if (rawValue === '') {
-                                handleOffsetChange(control.controlId, control.min);
+                              const rawValue = String(e.target.value).trim();
+                              if (rawValue === '' || isNaN(Number(rawValue))) {
+                                handleOffsetChange(control.controlId, Number(control.min ?? 0));
                               } else {
-                                const parsed = parseInt(rawValue, 10);
-                                if (!isNaN(parsed)) {
-                                  handleOffsetChange(control.controlId, parsed);
-                                }
+                                const parsed = parseFloat(rawValue);
+                                handleOffsetChange(control.controlId, parsed);
                               }
                             }}
                             size="small"
                             fullWidth
-                            inputProps={{ min: control.min, max: control.max, step: 1 }}
+                            inputProps={{ min: control.min, max: control.max, step: 0.1 }}
                           />
                         </Box>
 
