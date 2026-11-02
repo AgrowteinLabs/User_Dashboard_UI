@@ -66,10 +66,12 @@ const ProductDataPage = () => {
   const location = useLocation();
   const alias = location.state?.alias || uid;
 
-  const { message: mqttMessage, isSuspended: isMqttSuspended, suspensionReason } =
+  const { message: mqttMessage, isSuspended: isMqttSuspended, suspensionReason: mqttReason, holdType: mqttHoldType } =
     useMqttSensorData(uid);
-  const { current, history, isSuspended: isHistorySuspended } = useSensorData(uid);
+  const { current, history, isSuspended: isHistorySuspended, suspensionReason: historyReason, holdType: historyHoldType } = useSensorData(uid);
   const isSuspended = isMqttSuspended || isHistorySuspended;
+  const suspensionReason = mqttReason || historyReason;
+  const holdType = mqttHoldType || historyHoldType || "PAYMENT";
 
 
   const [availableSensors, setAvailableSensors] = useState([]);
@@ -213,6 +215,7 @@ const ProductDataPage = () => {
         <PaymentHoldBanner
           reason={suspensionReason}
           billingStatus={isMqttSuspended ? "PAYMENT_HOLD_RECORDING" : "SUSPENDED_BLOCKED"}
+          holdType={holdType}
           uid={uid}
         />
       )}

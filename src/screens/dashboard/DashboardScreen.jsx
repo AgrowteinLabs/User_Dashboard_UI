@@ -22,8 +22,9 @@ const Dashboard = () => {
       <br />
       {isSuspended && (
         <PaymentHoldBanner
-          reason={selectedProductDetails.statusReason}
-          billingStatus={selectedProductDetails.billingStatus}
+          reason={selectedProductDetails?.statusReason}
+          billingStatus={selectedProductDetails?.billingStatus}
+          holdType={selectedProductDetails?.holdType}
           uid={selectedProductUid}
         />
       )}

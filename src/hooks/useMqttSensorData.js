@@ -11,6 +11,7 @@ export const useMqttSensorData = (uid, isBlocked = false) => {
   const [lastReceivedTime, setLastReceivedTime] = useState(null);
   const [isSuspended, setIsSuspended] = useState(false);
   const [suspensionReason, setSuspensionReason] = useState(null);
+  const [holdType, setHoldType] = useState("PAYMENT");
 
   useEffect(() => {
     if (!uid || isBlocked) {
@@ -38,7 +39,8 @@ export const useMqttSensorData = (uid, isBlocked = false) => {
           const errData = await res.json().catch(() => ({}));
           console.warn(`[MQTT] Real-time sensor access suspended for ${uid}:`, errData);
           setIsSuspended(true);
-          setSuspensionReason(errData?.error?.message || "Data display suspended due to pending payment.");
+          setSuspensionReason(errData?.error?.message || errData?.message || "Data display suspended.");
+          setHoldType(errData?.error?.holdType || errData?.data?.holdType || "PAYMENT");
           setConnected(false);
           setMessage(null);
           return;
@@ -91,5 +93,5 @@ export const useMqttSensorData = (uid, isBlocked = false) => {
     return () => client?.end();
   }, [uid, isBlocked]);
 
-  return { message, connected, lastReceivedTime, isSuspended, suspensionReason };
+  return { message, connected, lastReceivedTime, isSuspended, suspensionReason, holdType };
 };

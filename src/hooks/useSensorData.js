@@ -7,6 +7,8 @@ export const useSensorData = (uid) => {
   const [history, setHistory] = useState({});
   const [loading, setLoading] = useState(true);
   const [isSuspended, setIsSuspended] = useState(false);
+  const [suspensionReason, setSuspensionReason] = useState(null);
+  const [holdType, setHoldType] = useState("PAYMENT");
 
   useEffect(() => {
     if (!uid) return;
@@ -48,6 +50,13 @@ export const useSensorData = (uid) => {
         if (err.response?.status === 402) {
           console.warn(`[SensorData] Data display suspended for ${uid} (402)`);
           setIsSuspended(true);
+          const respData = err.response?.data?.data || err.response?.data?.error || err.response?.data || {};
+          if (respData.reason || respData.message) {
+            setSuspensionReason(respData.reason || respData.message);
+          }
+          if (respData.holdType) {
+            setHoldType(respData.holdType);
+          }
         } else {
           console.error("❌ Failed to fetch history data:", err);
         }
@@ -63,5 +72,5 @@ export const useSensorData = (uid) => {
     return () => clearInterval(interval);
   }, [uid]);
 
-  return { history, loading, isSuspended };
+  return { history, loading, isSuspended, suspensionReason, holdType };
 };
