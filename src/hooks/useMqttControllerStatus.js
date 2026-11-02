@@ -2,27 +2,53 @@ import { useEffect, useState } from "react";
 import mqtt from "mqtt";
 import { v4 as uuidv4 } from "uuid";
 
-const SIGN_URL_API = "https://apiv2.agrowtein.com/api/sign-mqtt-url";
+const baseUrl = import.meta.env.VITE_REACT_APP_API_URL || "https://apiv2.agrowtein.com";
+const SIGN_URL_API = `${baseUrl}/api/sign-mqtt-url`;
 
 const normalizeKey = (key) => key?.toString().trim().toLowerCase() || "";
 
 // Subscribe to control status messages on `esp32/{uid}/msg`
 // Returns a map keyed by controlId or pin with { state, value, lastUpdated, raw }
-export const useMqttControllerStatus = (uid) => {
+export const useMqttControllerStatus = (uid, isBlocked = false) => {
   const [statusMap, setStatusMap] = useState({});
   const [connected, setConnected] = useState(false);
+  const [isSuspended, setIsSuspended] = useState(false);
 
   useEffect(() => {
-    if (!uid) return;
+    if (!uid || isBlocked) {
+      if (isBlocked) setIsSuspended(true);
+      setStatusMap({});
+      setConnected(false);
+      return;
+    }
 
     let client;
 
     const setupMqtt = async () => {
       try {
-        const res = await fetch(`${SIGN_URL_API}?uid=${uid}`);
-        const { url } = await res.json();
+        const token = localStorage.getItem("accessToken") || localStorage.getItem("token");
+        const headers = {};
+        if (token) headers["Authorization"] = `Bearer ${token}`;
 
-        client = mqtt.connect(url, {
+        const res = await fetch(`${SIGN_URL_API}?uid=${uid}`, {
+          headers,
+          credentials: "include",
+        });
+
+        if (res.status === 402) {
+          console.warn(`[MQTT] Control status stream suspended for ${uid} (402)`);
+          setIsSuspended(true);
+          setConnected(false);
+          setStatusMap({});
+          return;
+        }
+
+        const data = await res.json().catch(() => ({}));
+        if (!data || !data.url) return;
+
+        setIsSuspended(false);
+
+        client = mqtt.connect(data.url, {
           clientId: `frontend-ctrl-${uuidv4()}`,
           protocol: "wss",
           clean: true,
@@ -72,7 +98,7 @@ export const useMqttControllerStatus = (uid) => {
 
     setupMqtt();
     return () => client?.end();
-  }, [uid]);
+  }, [uid, isBlocked]);
 
-  return { statusMap, connected };
+  return { statusMap, connected, isSuspended };
 };

@@ -23,6 +23,7 @@ import {
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { useTheme } from "@mui/material/styles";
 import { exportToExcel } from "../../utils/exportUtils";
+import PaymentHoldBanner from "../PaymentHoldBanner";
 import dayjs from "dayjs";
 import "./ProductDataPage.scss";
 
@@ -65,8 +66,11 @@ const ProductDataPage = () => {
   const location = useLocation();
   const alias = location.state?.alias || uid;
 
-  const { message: mqttMessage } = useMqttSensorData(uid);
-  const { current, history } = useSensorData(uid);
+  const { message: mqttMessage, isSuspended: isMqttSuspended, suspensionReason } =
+    useMqttSensorData(uid);
+  const { current, history, isSuspended: isHistorySuspended } = useSensorData(uid);
+  const isSuspended = isMqttSuspended || isHistorySuspended;
+
 
   const [availableSensors, setAvailableSensors] = useState([]);
   const [viewMode, setViewMode] = useState("current");
@@ -205,6 +209,15 @@ const ProductDataPage = () => {
   return (
     <div className="product-data-page" style={{ color: theme.palette.text.primary }}>
       <h2 style={{ color: theme.palette.text.primary }}>Sensor Data - {alias}</h2>
+      {isSuspended && (
+        <PaymentHoldBanner
+          reason={suspensionReason}
+          billingStatus={isMqttSuspended ? "PAYMENT_HOLD_RECORDING" : "SUSPENDED_BLOCKED"}
+          uid={uid}
+        />
+      )}
+      {!isSuspended && (
+        <>
 
       <ToggleButtonGroup
         value={viewMode}
@@ -236,6 +249,8 @@ const ProductDataPage = () => {
         </div>
       ) : (
         <div className="charts-container">{renderCharts(finalCurrent)}</div>
+      )}
+      </>
       )}
 
       <Snackbar open={snackbarOpen} autoHideDuration={4000} onClose={() => setSnackbarOpen(false)} message={snackbarMessage} />

@@ -1,17 +1,22 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 
-const baseUrl = import.meta.env.VITE_REACT_APP_API_URL;
+const baseUrl = import.meta.env.VITE_REACT_APP_API_URL || "https://apiv2.agrowtein.com";
 
 export const useSensorData = (uid) => {
   const [history, setHistory] = useState({});
   const [loading, setLoading] = useState(true);
+  const [isSuspended, setIsSuspended] = useState(false);
 
   useEffect(() => {
     if (!uid) return;
 
     const fetchHistoryData = async () => {
       try {
+        const token = localStorage.getItem("accessToken") || localStorage.getItem("token");
+        const headers = {};
+        if (token) headers["Authorization"] = `Bearer ${token}`;
+
         const endDate = new Date().toISOString();
         const startDate = new Date(
           Date.now() - 12 * 60 * 60 * 1000
@@ -21,9 +26,12 @@ export const useSensorData = (uid) => {
           `${baseUrl}/api/v1/data/${uid}/date-interval`,
           {
             params: { startDate, endDate, interval: 60 },
+            headers,
+            withCredentials: true,
           }
         );
 
+        setIsSuspended(false);
         const raw = Array.isArray(res.data) ? res.data : [];
 
         const grouped = {};
@@ -37,7 +45,12 @@ export const useSensorData = (uid) => {
 
         setHistory(grouped);
       } catch (err) {
-        console.error("❌ Failed to fetch history data:", err);
+        if (err.response?.status === 402) {
+          console.warn(`[SensorData] Data display suspended for ${uid} (402)`);
+          setIsSuspended(true);
+        } else {
+          console.error("❌ Failed to fetch history data:", err);
+        }
         setHistory({});
       } finally {
         setLoading(false);
@@ -50,5 +63,5 @@ export const useSensorData = (uid) => {
     return () => clearInterval(interval);
   }, [uid]);
 
-  return { history, loading };
+  return { history, loading, isSuspended };
 };

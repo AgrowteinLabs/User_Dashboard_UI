@@ -29,7 +29,8 @@ import { useMqttControl } from "../../../hooks/useMqttControl";
 import "./AreaCards.scss";
 
 const AreaCards = () => {
-  const { selectedProductUid, setSelectedProductUid } = useContext(ProductContext);
+  const { selectedProductUid, setSelectedProductUid, setSelectedProductDetails } =
+    useContext(ProductContext);
   const [products, setProducts] = useState([]);
   const [productDetails, setProductDetails] = useState(null);
   const [thresholds, setThresholds] = useState({});
@@ -74,6 +75,7 @@ const AreaCards = () => {
       const selected = data.find((p) => p.uid === selectedProductUid);
       if (selected) {
         setProductDetails(selected);
+        setSelectedProductDetails?.(selected);
         const initThresh = {};
         const initOffsets = {};
         const initStates = {};

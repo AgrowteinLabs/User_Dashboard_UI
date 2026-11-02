@@ -2,24 +2,55 @@ import { useEffect, useState } from "react";
 import mqtt from "mqtt";
 import { v4 as uuidv4 } from "uuid";
 
-const SIGN_URL_API = "https://apiv2.agrowtein.com/api/sign-mqtt-url";
+const baseUrl = import.meta.env.VITE_REACT_APP_API_URL || "https://apiv2.agrowtein.com";
+const SIGN_URL_API = `${baseUrl}/api/sign-mqtt-url`;
 
-export const useMqttSensorData = (uid) => {
+export const useMqttSensorData = (uid, isBlocked = false) => {
   const [message, setMessage] = useState(null);
   const [connected, setConnected] = useState(false);
   const [lastReceivedTime, setLastReceivedTime] = useState(null);
+  const [isSuspended, setIsSuspended] = useState(false);
+  const [suspensionReason, setSuspensionReason] = useState(null);
 
   useEffect(() => {
-    if (!uid) return;
+    if (!uid || isBlocked) {
+      if (isBlocked) setIsSuspended(true);
+      setMessage(null);
+      setConnected(false);
+      return;
+    }
 
     let client;
 
     const setupSensorMqtt = async () => {
       try {
-        const res = await fetch(`${SIGN_URL_API}?uid=${uid}`);
-        const { url } = await res.json();
+        const token = localStorage.getItem("accessToken") || localStorage.getItem("token");
+        const headers = {};
+        if (token) headers["Authorization"] = `Bearer ${token}`;
 
-        client = mqtt.connect(url, {
+        const res = await fetch(`${SIGN_URL_API}?uid=${uid}`, {
+          headers,
+          credentials: "include",
+        });
+
+        // 402: Device is suspended / billing hold
+        if (res.status === 402) {
+          const errData = await res.json().catch(() => ({}));
+          console.warn(`[MQTT] Real-time sensor access suspended for ${uid}:`, errData);
+          setIsSuspended(true);
+          setSuspensionReason(errData?.error?.message || "Data display suspended due to pending payment.");
+          setConnected(false);
+          setMessage(null);
+          return;
+        }
+
+        const data = await res.json().catch(() => ({}));
+        if (!data || !data.url) return;
+
+        setIsSuspended(false);
+        setSuspensionReason(null);
+
+        client = mqtt.connect(data.url, {
           clientId: `frontend-${uuidv4()}`,
           protocol: "wss",
           clean: true,
@@ -58,7 +89,7 @@ export const useMqttSensorData = (uid) => {
 
     setupSensorMqtt();
     return () => client?.end();
-  }, [uid]);
+  }, [uid, isBlocked]);
 
-  return { message, connected, lastReceivedTime };
+  return { message, connected, lastReceivedTime, isSuspended, suspensionReason };
 };
