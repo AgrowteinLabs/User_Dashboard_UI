@@ -49,19 +49,17 @@ const Dashboard = () => {
           </div>
         )}
 
-        {/* Row 2: Product Controls Center (Full Width) */}
-        <div className="col-12">
+        {/* Row 2: Product Controls & Controller Status Panels (Synchronized Equal Heights) */}
+        <div className={isSuspended ? "col-12" : "col-8"}>
           <AreaCards expanded={configExpanded} setExpanded={setConfigExpanded} />
         </div>
-
-        {/* Row 3: Controller Status & Live Activity Panel (Full Width below AreaCards) */}
         {!isSuspended && (
-          <div className="col-12">
+          <div className="col-4">
             <ControlStatusPanel configExpanded={configExpanded} />
           </div>
         )}
 
-        {/* Row 4: Interactive Analytics Charts (hidden if suspended) */}
+        {/* Row 3: Interactive Analytics Charts (hidden if suspended) */}
         {!isSuspended && (
           <div className="col-12">
             <AreaCharts />
