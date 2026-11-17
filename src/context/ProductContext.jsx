@@ -1,4 +1,5 @@
-import React, { createContext, useState, useEffect, useRef, useCallback } from 'react';
+import { createContext, useState, useEffect, useRef, useCallback } from 'react';
+import PropTypes from 'prop-types';
 import fetchProducts from '../api/fetchProducts';
 
 export const ProductContext = createContext();
@@ -6,6 +7,7 @@ export const ProductContext = createContext();
 export const ProductProvider = ({ children }) => {
   const [products, setProducts] = useState([]);
   const [selectedProductUid, setSelectedProductUid] = useState(null);
+  const [customProductDetails, setCustomProductDetails] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -65,6 +67,7 @@ export const ProductProvider = ({ children }) => {
   };
 
   const selectedProduct = products.find((p) => p.uid === selectedProductUid) || null;
+  const selectedProductDetails = customProductDetails || selectedProduct;
 
   return (
     <ProductContext.Provider
@@ -74,6 +77,8 @@ export const ProductProvider = ({ children }) => {
         selectedProductUid,
         setSelectedProductUid: selectProduct,
         selectedProduct,
+        selectedProductDetails,
+        setSelectedProductDetails: setCustomProductDetails,
         loading,
         error,
         refetchProducts: fetchProductsList,
@@ -82,4 +87,8 @@ export const ProductProvider = ({ children }) => {
       {children}
     </ProductContext.Provider>
   );
+};
+
+ProductProvider.propTypes = {
+  children: PropTypes.node,
 };

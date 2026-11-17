@@ -18,7 +18,6 @@ import PrecisionManufacturingIcon from "@mui/icons-material/PrecisionManufacturi
 import ElectricBoltIcon from "@mui/icons-material/ElectricBolt";
 import { motion } from "framer-motion";
 import { ProductContext } from "../../../context/ProductContext";
-import fetchProducts from "../../../api/fetchProducts";
 import fetchUser from "../../../api/fetchuser";
 import Swal from "sweetalert2";
 import { useMqttControl } from "../../../hooks/useMqttControl";
@@ -26,13 +25,19 @@ import ControlTimers from "../../controlTimers/ControlTimers";
 import "./AreaCards.scss";
 
 const AreaCards = ({ expanded, setExpanded }) => {
-  const { products, selectedProductUid, setSelectedProductUid, selectedProduct, refetchProducts } = useContext(ProductContext);
+  const {
+    products,
+    selectedProductUid,
+    setSelectedProductUid,
+    selectedProduct,
+    setSelectedProductDetails,
+    refetchProducts,
+  } = useContext(ProductContext);
   const productDetails = selectedProduct;
   const [thresholds, setThresholds] = useState({});
   const [offsets, setOffsets] = useState({});
   const [controlStates, setControlStates] = useState({});
   const [modeSwitchLoading, setModeSwitchLoading] = useState(false);
-  const userId = localStorage.getItem("userId");
 
   // Tracks the last-saved threshold + offset per controlId so we can detect dirty state
   const originalConfigRef = useRef({});
@@ -95,24 +100,25 @@ const AreaCards = ({ expanded, setExpanded }) => {
   // Populate control states when the selected product changes
   useEffect(() => {
     if (selectedProduct) {
+      setSelectedProductDetails?.(selectedProduct);
       const initThresh = {};
       const initOffsets = {};
       const initStates = {};
       const initOriginals = {};
       selectedProduct.controls.forEach((c) => {
-        const thresh = c.threshHold || 0;
-        const offset = c.offset || c.min || 0;
-        initThresh[c.controlId] = thresh;
-        initOffsets[c.controlId] = offset;
+        const thresh = c.threshHold !== undefined && c.threshHold !== null ? Number(c.threshHold) : 0;
+        const off = c.offset !== undefined && c.offset !== null ? Number(c.offset) : (c.min ?? 0);
+        initThresh[c.controlId] = isNaN(thresh) ? 0 : thresh;
+        initOffsets[c.controlId] = isNaN(off) ? (c.min ?? 0) : off;
         initStates[c.controlId] = c.state || "OFF";
-        initOriginals[c.controlId] = { threshold: thresh, offset };
+        initOriginals[c.controlId] = { threshold: initThresh[c.controlId], offset: initOffsets[c.controlId] };
       });
       setThresholds(initThresh);
       setOffsets(initOffsets);
       setControlStates(initStates);
       originalConfigRef.current = initOriginals;
     }
-  }, [selectedProduct]);
+  }, [selectedProduct, setSelectedProductDetails]);
 
   useEffect(() => {
     fetchUser().catch(console.error);
@@ -126,16 +132,18 @@ const AreaCards = ({ expanded, setExpanded }) => {
   }, [refetchProducts]);
 
   const handleThresholdChange = (controlId, value) => {
-    setThresholds((prev) => ({ ...prev, [controlId]: value }));
+    const formatted = typeof value === "number" ? Math.round(value * 100) / 100 : value;
+    setThresholds((prev) => ({ ...prev, [controlId]: formatted }));
   };
 
   const handleOffsetChange = (controlId, value) => {
-    setOffsets((prev) => ({ ...prev, [controlId]: value }));
+    const formatted = typeof value === "number" ? Math.round(value * 100) / 100 : value;
+    setOffsets((prev) => ({ ...prev, [controlId]: formatted }));
   };
 
   const handleSaveThreshold = (controlId, pin) => {
-    const threshold = thresholds[controlId];
-    const offset = offsets[controlId];
+    const threshold = Number(thresholds[controlId]) || 0;
+    const offset = Number(offsets[controlId]) || 0;
     const payload = { command: "SetThreshold", pin, threshold, offset };
 
     Swal.fire({ title: "Sending...", text: "Waiting for Device feedback", allowOutsideClick: false, didOpen: () => Swal.showLoading() });
@@ -224,26 +232,44 @@ const AreaCards = ({ expanded, setExpanded }) => {
 
         await refetchProducts();
 
+        setControlStates((prev) => ({ ...prev, [controlId]: newState }));
+
+        window.dispatchEvent(
+          new CustomEvent("thresholds-updated", { detail: { uid: selectedProductUid } })
+        );
+
         Swal.fire("✅ Success", `Control turned ${newState}`, "success");
       },
       () => {
         Swal.close();
-        Swal.fire("❌ Timeout", "Device did not confirm", "error");
+        Swal.fire("❌ Timeout", "Device did not respond", "error");
       }
     );
   };
 
   const updateGlobalModeInBackend = async (newMode) => {
     const baseUrl = import.meta.env.VITE_REACT_APP_API_URL;
-    const endpointCandidates = [
-      { url: `${baseUrl}/api/v1/user/product/mode/${selectedProductUid}`, method: "POST" },
-      { url: `${baseUrl}/api/v1/user/product/mode/${selectedProductUid}`, method: "PUT" },
-      { url: `${baseUrl}/api/v1/product/${selectedProductUid}/mode`, method: "POST" },
-      { url: `${baseUrl}/api/v1/product/${selectedProductUid}/mode`, method: "PUT" },
+    const candidates = [
+      {
+        url: `${baseUrl}/api/v1/products/${selectedProductUid}/mode`,
+        method: "PUT",
+      },
+      {
+        url: `${baseUrl}/api/v1/mode/${selectedProductUid}`,
+        method: "PUT",
+      },
+      {
+        url: `${baseUrl}/api/v1/products/${selectedProductUid}/mode`,
+        method: "POST",
+      },
+      {
+        url: `${baseUrl}/api/v1/mode/${selectedProductUid}`,
+        method: "POST",
+      },
     ];
 
     let lastError = null;
-    for (const candidate of endpointCandidates) {
+    for (const candidate of candidates) {
       try {
         const response = await fetch(candidate.url, {
           method: candidate.method,
@@ -293,7 +319,7 @@ const AreaCards = ({ expanded, setExpanded }) => {
                     pin: control.pin,
                     mode: "Auto",
                     threshold,
-                    offset: Math.max(1, offset),
+                    offset: Math.max(0, offset),
                   }
                   : {
                     command: "SetMode",
@@ -315,200 +341,181 @@ const AreaCards = ({ expanded, setExpanded }) => {
 
       const messageLines = [
         `Switched to ${newMode.toUpperCase()} mode`,
-        `\n✅ Updated: ${result.updatedControls?.length || 0} controls`,
-        result.skippedControls?.length > 0 ? `Manual-only: ${result.skippedControls.length} controls` : ""
+        result?.backendNotice ? `(${result.backendNotice})` : null,
       ].filter(Boolean);
 
-      Swal.fire("✅ Mode Updated", messageLines.join(""), "success");
-    } catch (error) {
-      Swal.fire("❌ Failed", error.message || "Could not switch mode. Please try again.", "error");
-      await refetchProducts();
+      Swal.fire({
+        icon: "success",
+        title: "Mode Updated",
+        html: messageLines.join("<br/>"),
+      });
+
+      window.dispatchEvent(
+        new CustomEvent("thresholds-updated", { detail: { uid: selectedProductUid } })
+      );
+    } catch (err) {
+      console.error("Global mode switch error:", err);
+      Swal.fire("⚠️ Partial Update", err.message || "Could not switch mode cleanly", "warning");
     } finally {
       setModeSwitchLoading(false);
     }
   };
 
-  const controls = productDetails?.controls || [];
-
   return (
-    <section className="content-area-cards">
-      <div className="dropdown-container">
-        <FormControl fullWidth variant="outlined" className="product-select-form">
-          <InputLabel shrink>Select Product</InputLabel>
-          <Select
-            label="Select Product"
-            value={selectedProductUid || ""}
-            onChange={(e) => {
-              const val = e.target.value;
-              setSelectedProductUid(val);
-              localStorage.setItem("selectedProductUid", val);
-            }}
-            displayEmpty
-          >
-            {products.map((p) => (
-              <MenuItem key={p._id} value={p.uid}>
-                {p.alias}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-      </div>
+    <section className={`area-cards ${expanded ? "expanded" : "collapsed"}`}>
+      {/* ── Outer Shell ────────────────────────────────────────────── */}
+      <div className="area-card-shell">
+        {/* Dynamic Multi-Farm Selector */}
+        <div className="product-selector-wrapper">
+          <FormControl fullWidth variant="outlined" className="product-dropdown-form">
+            <InputLabel id="farm-select-label" className="custom-dropdown-label">
+              Active Monitoring Farm
+            </InputLabel>
+            <Select
+              labelId="farm-select-label"
+              id="farm-select"
+              value={selectedProductUid || ""}
+              onChange={(e) => {
+                setSelectedProductUid(e.target.value);
+              }}
+              label="Active Monitoring Farm"
+              className="product-select-custom"
+            >
+              {products.map((p) => {
+                const displayName = p.customName || p.alias || p.name || p.uid;
+                return (
+                  <MenuItem key={p.uid} value={p.uid} className="product-menu-item">
+                    <span className="item-name">{displayName}</span>
+                    <span className="item-uid">{p.uid}</span>
+                  </MenuItem>
+                );
+              })}
+            </Select>
+          </FormControl>
+        </div>
 
-      <div className="area-cards-row">
-        <motion.div className="area-card" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-          <PrecisionManufacturingIcon className="card-icon" />
-          <div className="info-content">
-            <p className="info-title">Product</p>
-            <p className="info-value">{productDetails?.alias || "—"}</p>
+        {/* Header Ribbon & Expand Toggle */}
+        <div
+          className="section-header-ribbon"
+          onClick={() => {
+            const next = !expanded;
+            setExpanded(next);
+            if (next) startCollapseTimer();
+            else clearCollapseTimer();
+          }}
+        >
+          <div className="header-left">
+            <h3 className="section-title">
+              <span className="title-icon">⚡</span> Device Control Center
+            </h3>
+            {productDetails && (
+              <span className="farm-alias-badge">
+                {productDetails.customName || productDetails.alias || productDetails.name || "Main Unit"}
+              </span>
+            )}
           </div>
-        </motion.div>
 
-        <motion.div className="area-card" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-          <ElectricBoltIcon className="card-icon" />
-          <div className="info-content">
-            <p className="info-title">Mode</p>
-            <div className="mode-toggle">
-              <Tooltip title={!controls.length ? "Mode toggle disabled — no controls" : ""} arrow>
-                <span>
-                  <Switch
-                    checked={productDetails?.mode === "automate"}
-                    onChange={handleModeToggle}
-                    disabled={!controls.length || modeSwitchLoading}
-                  />
-                </span>
-              </Tooltip>
-              <span>{productDetails?.mode?.toUpperCase() || "MANUAL"}</span>
+          <div className="header-right">
+            {/* Global Operation Mode Pill */}
+            {productDetails && (
+              <motion.div
+                className={`global-mode-pill ${productDetails.mode === "automate" ? "automate" : "manual"}`}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleModeToggle();
+                }}
+              >
+                <div className="mode-icon-circle">
+                  {productDetails.mode === "automate" ? (
+                    <PrecisionManufacturingIcon className="mode-icon spinning" />
+                  ) : (
+                    <SettingsRemoteIcon className="mode-icon" />
+                  )}
+                </div>
+                <div className="mode-text-group">
+                  <span className="mode-caption">Global Mode</span>
+                  <span className="mode-value">
+                    {productDetails.mode === "automate" ? "Automated" : "Manual"}
+                  </span>
+                </div>
+                <div className="status-pulse-dot" />
+              </motion.div>
+            )}
+
+            {/* Expansion Arrow Pill */}
+            <div className={`accordion-trigger-pill ${expanded ? "open" : ""}`}>
+              <span className="trigger-text">{expanded ? "Hide Controls" : "Configure"}</span>
+              <span className="trigger-chevron">❯</span>
             </div>
           </div>
-        </motion.div>
-
-        <motion.div className="area-card" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-          <SettingsRemoteIcon className="card-icon" />
-          <div className="info-content">
-            <p className="info-title">Controls</p>
-            <p className="info-value">{controls.length}</p>
-          </div>
-        </motion.div>
-      </div>
-
-      <div 
-        className={`control-panel-flat ${!expanded ? "collapsed" : ""}`}
-        onMouseEnter={clearCollapseTimer}
-        onMouseMove={clearCollapseTimer}
-        onMouseLeave={() => {
-          if (expanded) startCollapseTimer();
-        }}
-      >
-        <div 
-          className="control-panel-header"
-          onClick={() => setExpanded(!expanded)}
-          style={{ cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }}
-        >
-          <Typography variant="h6" className="panel-title">
-            ⚙️ Controller Configuration
-          </Typography>
-          <span 
-            className="toggle-icon-btn"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              width: "28px",
-              height: "28px",
-              borderRadius: "50%",
-              background: "rgba(255, 255, 255, 0.04)",
-              border: "1px solid var(--card-border)",
-              cursor: "pointer"
-            }}
-          >
-            <span style={{
-              display: "block",
-              transform: expanded ? "rotate(0deg)" : "rotate(-90deg)",
-              transition: "transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
-              fontSize: "0.85rem",
-              color: "var(--primary-emerald)",
-              lineHeight: 1
-            }}>
-              ▼
-            </span>
-          </span>
         </div>
+
+        {/* Collapsible Accordion Drawer */}
         {expanded && (
-          <div className="control-panel-body">
-            {controls.length === 0 ? (
-              <div className="no-controls-msg">
-                ⚠️ No controls available for this product.
+          <div
+            className="controls-drawer"
+            onMouseEnter={clearCollapseTimer}
+            onMouseLeave={startCollapseTimer}
+          >
+            {/* Control Timers Module */}
+            <div className="control-timers-container">
+              <ControlTimers
+                product={productDetails}
+                onTimersUpdated={() => refetchProducts()}
+              />
+            </div>
+
+            <Divider className="drawer-divider" />
+
+            {!productDetails?.controls?.length ? (
+              <div className="empty-controls-banner">
+                <span className="empty-icon">🔌</span>
+                <p>No active relay controls configured for this unit.</p>
               </div>
             ) : (
               <div className="controls-grid">
-                {controls.map((control) => (
-                  <div className="control-card" key={control.controlId}>
-                    <div className="control-header-box">
-                      <span className="control-title">
-                        {control.name}
-                      </span>
+                {productDetails.controls.map((control) => (
+                  <div key={control.controlId} className="control-node-card">
+                    {/* Control Card Header */}
+                    <div className="control-node-header">
+                      <div className="node-title-group">
+                        <div className="node-icon-avatar">
+                          <ElectricBoltIcon className="node-icon" />
+                        </div>
+                        <div>
+                          <h4 className="node-name">{control.name || `Relay #${control.pin}`}</h4>
+                          <span className="node-pin-tag">PIN {control.pin}</span>
+                        </div>
+                      </div>
+
+                      {/* Power Switch Action */}
+                      <Tooltip
+                        title={
+                          productDetails?.mode === "automate" && control.supportsAuto
+                            ? "Power switches automatically based on thresholds"
+                            : `Turn ${controlStates[control.controlId] === "ON" ? "OFF" : "ON"}`
+                        }
+                      >
+                        <span>
+                          <Switch
+                            checked={controlStates[control.controlId] === "ON"}
+                            disabled={productDetails?.mode === "automate" && control.supportsAuto}
+                            onChange={() =>
+                              handleTogglePower(
+                                control.controlId,
+                                control.pin,
+                                controlStates[control.controlId]
+                              )
+                            }
+                            className="power-toggle-switch"
+                          />
+                        </span>
+                      </Tooltip>
                     </div>
 
-                    {/* Power Button - In Manual Mode OR for Manual-Only Controls */}
-                    {(productDetails?.mode === "manual" || (productDetails?.mode === "automate" && !control.supportsAuto)) && (
-                      <div className={`control-power-box ${controlStates[control.controlId] === "ON" ? 'state-on' : 'state-off'}`}>
-                        <div className="state-info">
-                          <span className="state-label">Status</span>
-                          <span className="state-text">
-                            {controlStates[control.controlId] || 'N/A'}
-                          </span>
-                        </div>
-                        <Tooltip title={!controlStates[control.controlId] ? "No state data" : ""}>
-                          <span>
-                            <Button
-                              onClick={() =>
-                                handleTogglePower(control.controlId, control.pin, controlStates[control.controlId])
-                              }
-                              disabled={!controlStates[control.controlId]}
-                              sx={{
-                                minWidth: 110,
-                                fontWeight: 800,
-                                borderRadius: "10px",
-                                fontFamily: "var(--font-family-jakarta)",
-                                textTransform: "none",
-                                fontSize: "0.82rem",
-                                py: 0.7,
-                                ...(controlStates[control.controlId] === "ON" ? {
-                                  background: "var(--color-success) !important",
-                                  backgroundColor: "var(--color-success) !important",
-                                  color: "#050a15 !important",
-                                  boxShadow: "0 4px 12px rgba(16, 185, 129, 0.25) !important"
-                                } : {
-                                  border: "1px solid var(--card-border) !important",
-                                  color: "var(--text-secondary) !important",
-                                  background: "rgba(255, 255, 255, 0.02) !important",
-                                  backgroundColor: "rgba(255, 255, 255, 0.02) !important",
-                                  "&:hover": {
-                                    borderColor: "var(--primary-emerald) !important",
-                                    color: "var(--primary-emerald) !important",
-                                    background: "rgba(0, 242, 155, 0.08) !important"
-                                  }
-                                })
-                              }}
-                            >
-                              {controlStates[control.controlId] === "ON" ? "⚡ Turn OFF" : "🔌 Turn ON"}
-                            </Button>
-                          </span>
-                        </Tooltip>
-                      </div>
-                    )}
-
-                    {/* V2 Timer & Schedule — manual control context */}
-                    {(productDetails?.mode === "manual" || (productDetails?.mode === "automate" && !control.supportsAuto)) && (
-                      <ControlTimers
-                        productId={productDetails?._id || productDetails?.id}
-                        control={control}
-                        onChanged={refetchProducts}
-                        capabilities={productDetails?.capabilities}
-                      />
-                    )}
-
-                    {/* Manual-Only Indicator */}
+                    {/* Manual Mode Status Notice */}
                     {productDetails?.mode === "manual" && !control.supportsAuto && (
                       <div className="manual-only-indicator">
                         🪜 Manual Control Only
@@ -526,10 +533,14 @@ const AreaCards = ({ expanded, setExpanded }) => {
                           </div>
                           <div className="slider-row">
                             <Slider
-                              value={thresholds[control.controlId] || 0}
-                              min={control.min}
-                              max={control.max}
-                              step={1}
+                              value={
+                                thresholds[control.controlId] !== undefined && thresholds[control.controlId] !== ""
+                                  ? Number(thresholds[control.controlId]) || 0
+                                  : Number(control.min ?? 0)
+                              }
+                              min={Number(control.min ?? 0)}
+                              max={Number(control.max ?? 100)}
+                              step={0.1}
                               valueLabelDisplay="auto"
                               onChange={(_, val) => handleThresholdChange(control.controlId, val)}
                             />
@@ -537,29 +548,27 @@ const AreaCards = ({ expanded, setExpanded }) => {
                               type="number"
                               value={thresholds[control.controlId] ?? 0}
                               onChange={(e) => {
-                                const rawValue = e.target.value.trim();
+                                const rawValue = e.target.value;
                                 if (rawValue === '') {
                                   handleThresholdChange(control.controlId, '');
                                 } else {
-                                  const parsed = parseInt(rawValue, 10);
+                                  const parsed = parseFloat(rawValue);
                                   if (!isNaN(parsed)) {
-                                    handleThresholdChange(control.controlId, parsed);
+                                    handleThresholdChange(control.controlId, rawValue);
                                   }
                                 }
                               }}
                               onBlur={(e) => {
-                                const rawValue = e.target.value.trim();
-                                if (rawValue === '') {
-                                  handleThresholdChange(control.controlId, 0);
+                                const rawValue = String(e.target.value).trim();
+                                if (rawValue === '' || isNaN(Number(rawValue))) {
+                                  handleThresholdChange(control.controlId, Number(control.min ?? 0));
                                 } else {
-                                  const parsed = parseInt(rawValue, 10);
-                                  if (!isNaN(parsed)) {
-                                    handleThresholdChange(control.controlId, parsed);
-                                  }
+                                  const parsed = parseFloat(rawValue);
+                                  handleThresholdChange(control.controlId, parsed);
                                 }
                               }}
                               size="small"
-                              inputProps={{ min: control.min, max: control.max, step: 1 }}
+                              inputProps={{ min: control.min, max: control.max, step: 0.1 }}
                             />
                           </div>
                         </div>
@@ -572,40 +581,42 @@ const AreaCards = ({ expanded, setExpanded }) => {
                           </div>
                           <div className="slider-row">
                             <Slider
-                              value={offsets[control.controlId] || control.min}
-                              min={control.min}
-                              max={control.max}
-                              step={1}
+                              value={
+                                offsets[control.controlId] !== undefined && offsets[control.controlId] !== ""
+                                  ? Number(offsets[control.controlId]) || 0
+                                  : Number(control.min ?? 0)
+                              }
+                              min={Number(control.min ?? 0)}
+                              max={Number(control.max ?? 100)}
+                              step={0.1}
                               valueLabelDisplay="auto"
                               onChange={(_, val) => handleOffsetChange(control.controlId, val)}
                             />
                             <TextField
                               type="number"
-                              value={offsets[control.controlId] ?? control.min}
+                              value={offsets[control.controlId] ?? (control.min ?? 0)}
                               onChange={(e) => {
-                                const rawValue = e.target.value.trim();
+                                const rawValue = e.target.value;
                                 if (rawValue === '') {
                                   handleOffsetChange(control.controlId, '');
                                 } else {
-                                  const parsed = parseInt(rawValue, 10);
+                                  const parsed = parseFloat(rawValue);
                                   if (!isNaN(parsed)) {
-                                    handleOffsetChange(control.controlId, parsed);
+                                    handleOffsetChange(control.controlId, rawValue);
                                   }
                                 }
                               }}
                               onBlur={(e) => {
-                                const rawValue = e.target.value.trim();
-                                if (rawValue === '') {
-                                  handleOffsetChange(control.controlId, control.min);
+                                const rawValue = String(e.target.value).trim();
+                                if (rawValue === '' || isNaN(Number(rawValue))) {
+                                  handleOffsetChange(control.controlId, Number(control.min ?? 0));
                                 } else {
-                                  const parsed = parseInt(rawValue, 10);
-                                  if (!isNaN(parsed)) {
-                                    handleOffsetChange(control.controlId, parsed);
-                                  }
+                                  const parsed = parseFloat(rawValue);
+                                  handleOffsetChange(control.controlId, parsed);
                                 }
                               }}
                               size="small"
-                              inputProps={{ min: control.min, max: control.max, step: 1 }}
+                              inputProps={{ min: control.min, max: control.max, step: 0.1 }}
                             />
                           </div>
                         </div>
