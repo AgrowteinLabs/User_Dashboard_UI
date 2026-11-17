@@ -98,11 +98,22 @@
         }
       }
     }
+
+    .toggle-icon-btn {
+      transition: all 0.3s ease;
+      
+      &:hover {
+        background: rgba(0, 242, 155, 0.08) !important;
+        border-color: var(--primary-emerald) !important;
+        box-shadow: 0 0 12px rgba(0, 242, 155, 0.2);
+      }
+    }
   }
 
   .content {
-    padding: 24px;
+    padding: 20px 24px;
     flex: 1;
+    min-height: 0;
     overflow-y: auto;
     padding-right: 12px;
 

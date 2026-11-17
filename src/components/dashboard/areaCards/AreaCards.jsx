@@ -22,6 +22,7 @@ import fetchUser from "../../../api/fetchuser";
 import Swal from "sweetalert2";
 import { useMqttControl } from "../../../hooks/useMqttControl";
 import ControlTimers from "../../controlTimers/ControlTimers";
+import FarmWeatherCard from "../../farmWeather/FarmWeatherCard";
 import "./AreaCards.scss";
 
 const AreaCards = ({ expanded, setExpanded }) => {
@@ -346,27 +347,32 @@ const AreaCards = ({ expanded, setExpanded }) => {
 
   return (
     <section className="content-area-cards">
-      {/* ── Product Dropdown Selector ─────────────────────────────── */}
-      <div className="dropdown-container">
-        <FormControl fullWidth variant="outlined" className="product-select-form">
-          <InputLabel shrink>Select Product</InputLabel>
-          <Select
-            label="Select Product"
-            value={selectedProductUid || ""}
-            onChange={(e) => {
-              const val = e.target.value;
-              setSelectedProductUid(val);
-              localStorage.setItem("selectedProductUid", val);
-            }}
-            displayEmpty
-          >
-            {products.map((p) => (
-              <MenuItem key={p._id || p.uid} value={p.uid}>
-                {p.alias || p.customName || p.name || p.uid}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+      {/* ── Product Dropdown Selector & Compact Weather Row ─────────── */}
+      <div className="product-weather-row">
+        <div className="dropdown-container">
+          <FormControl fullWidth variant="outlined" className="product-select-form">
+            <InputLabel shrink>Select Product</InputLabel>
+            <Select
+              label="Select Product"
+              value={selectedProductUid || ""}
+              onChange={(e) => {
+                const val = e.target.value;
+                setSelectedProductUid(val);
+                localStorage.setItem("selectedProductUid", val);
+              }}
+              displayEmpty
+            >
+              {products.map((p) => (
+                <MenuItem key={p._id || p.uid} value={p.uid}>
+                  {p.alias || p.customName || p.name || p.uid}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </div>
+        <div className="weather-inline-container">
+          <FarmWeatherCard compact={true} />
+        </div>
       </div>
 
       {/* ── Top Stat Cards Row ─────────────────────────────────────── */}

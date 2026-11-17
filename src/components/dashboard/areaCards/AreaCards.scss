@@ -6,64 +6,92 @@
   flex-direction: column;
   flex: 1;
 
-  .dropdown-container {
-    margin-bottom: 20px;
+  .product-weather-row {
     display: flex;
-    justify-content: flex-start;
-    padding: 0;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 20px;
 
-    .MuiFormControl-root {
-      width: 100%;
-      max-width: calc((100% - 40px) / 3);
-      min-width: 240px;
-      background: var(--card-bg);
-      backdrop-filter: var(--glass-blur);
-      border-radius: 16px;
-      box-shadow: var(--shadow-premium);
-      border: 1px solid var(--card-border);
-      transition: var(--transition-smooth);
-      
-      &:hover {
-        border-color: rgba(0, 242, 155, 0.25);
-        box-shadow: var(--shadow-premium), 0 0 20px rgba(0, 242, 155, 0.08);
+    @media (max-width: 768px) {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 12px;
+    }
+
+    .dropdown-container {
+      margin-bottom: 0;
+      flex: 0 0 260px;
+      padding: 0;
+
+      @media (max-width: 992px) {
+        flex: 0 0 220px;
       }
-      
-      .MuiInputLabel-root {
-        color: var(--text-secondary);
-        font-weight: 700;
-        font-family: var(--font-family-jakarta);
-        font-size: 0.95rem;
-        
-        &.Mui-focused {
-          color: var(--primary-color);
-        }
+
+      @media (max-width: 768px) {
+        flex: 1 1 auto;
+        width: 100%;
       }
-      
-      .MuiOutlinedInput-root {
+
+      .MuiFormControl-root {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        background: var(--card-bg);
+        backdrop-filter: var(--glass-blur);
         border-radius: 16px;
+        box-shadow: var(--shadow-premium);
+        border: 1px solid var(--card-border);
+        transition: var(--transition-smooth);
         
-        & fieldset {
-          border: none;
+        &:hover {
+          border-color: rgba(0, 242, 155, 0.25);
+          box-shadow: var(--shadow-premium), 0 0 20px rgba(0, 242, 155, 0.08);
         }
         
-        .MuiSelect-select {
-          font-weight: 800;
-          color: var(--text-color);
-          padding: 14px 18px;
+        .MuiInputLabel-root {
+          color: var(--text-secondary);
+          font-weight: 700;
           font-family: var(--font-family-jakarta);
+          font-size: 0.95rem;
+          
+          &.Mui-focused {
+            color: var(--primary-color);
+          }
+        }
+        
+        .MuiOutlinedInput-root {
+          border-radius: 16px;
+          
+          & fieldset {
+            border: none;
+          }
+          
+          .MuiSelect-select {
+            font-weight: 800;
+            color: var(--text-color);
+            padding: 14px 18px;
+            font-family: var(--font-family-jakarta);
+          }
         }
       }
+    }
+
+    .weather-inline-container {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      align-items: center;
     }
   }
 
   .area-cards-row {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 20px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
     margin-bottom: 20px;
 
-    @media (min-width: 992px) {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
+    @media (max-width: 680px) {
+      grid-template-columns: 1fr;
     }
 
     .area-card {

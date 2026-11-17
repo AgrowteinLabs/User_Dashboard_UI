@@ -7,15 +7,11 @@ import {
   AreaTable,
   AreaTop,
   ControlStatusPanel,
-  FarmWeatherCard,
-  FarmHealthCard,
 } from "../../components";
-import { isFarmHealthHidden } from "../../constants/featureFlags";
 
 const Dashboard = () => {
   const [configExpanded, setConfigExpanded] = useState(false);
   const { selectedProductDetails, selectedProductUid } = useContext(ProductContext);
-  const healthHidden = isFarmHealthHidden();
 
   const isSuspended = Boolean(
     selectedProductDetails?.billingStatus &&
@@ -37,36 +33,31 @@ const Dashboard = () => {
         />
       )}
 
-      {/* Fluid Dashboard Responsive Grid */}
+      {/* Main Two-Column Dashboard Layout */}
       <div className="dashboard-grid">
-        {/* Row 1: Quick Telemetry Widgets */}
-        <div className={healthHidden ? "col-12" : "col-6"}>
-          <FarmWeatherCard />
-        </div>
-        {!healthHidden && (
-          <div className="col-6">
-            <FarmHealthCard />
-          </div>
-        )}
-
-        {/* Row 2: Product Controls & Controller Status Panels (Synchronized Equal Heights) */}
+        {/* Left Column: ~67% width (col-8) */}
         <div className={isSuspended ? "col-12" : "col-8"}>
           <AreaCards expanded={configExpanded} setExpanded={setConfigExpanded} />
         </div>
+
+        {/* Right Column: ~33% width (col-4) */}
         {!isSuspended && (
           <div className="col-4">
-            <ControlStatusPanel configExpanded={configExpanded} />
+            <ControlStatusPanel
+              configExpanded={configExpanded}
+              setConfigExpanded={setConfigExpanded}
+            />
           </div>
         )}
 
-        {/* Row 3: Interactive Analytics Charts (hidden if suspended) */}
+        {/* Interactive Analytics Charts (hidden if suspended) */}
         {!isSuspended && (
           <div className="col-12">
             <AreaCharts />
           </div>
         )}
 
-        {/* Row 5: Live Telemetry Data Grid */}
+        {/* Live Telemetry Data Grid */}
         <div className="col-12">
           <AreaTable />
         </div>
