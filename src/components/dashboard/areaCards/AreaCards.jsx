@@ -242,34 +242,22 @@ const AreaCards = ({ expanded, setExpanded }) => {
       },
       () => {
         Swal.close();
-        Swal.fire("❌ Timeout", "Device did not respond", "error");
+        Swal.fire("❌ Timeout", "Device did not confirm", "error");
       }
     );
   };
 
   const updateGlobalModeInBackend = async (newMode) => {
     const baseUrl = import.meta.env.VITE_REACT_APP_API_URL;
-    const candidates = [
-      {
-        url: `${baseUrl}/api/v1/products/${selectedProductUid}/mode`,
-        method: "PUT",
-      },
-      {
-        url: `${baseUrl}/api/v1/mode/${selectedProductUid}`,
-        method: "PUT",
-      },
-      {
-        url: `${baseUrl}/api/v1/products/${selectedProductUid}/mode`,
-        method: "POST",
-      },
-      {
-        url: `${baseUrl}/api/v1/mode/${selectedProductUid}`,
-        method: "POST",
-      },
+    const endpointCandidates = [
+      { url: `${baseUrl}/api/v1/user/product/mode/${selectedProductUid}`, method: "POST" },
+      { url: `${baseUrl}/api/v1/user/product/mode/${selectedProductUid}`, method: "PUT" },
+      { url: `${baseUrl}/api/v1/product/${selectedProductUid}/mode`, method: "POST" },
+      { url: `${baseUrl}/api/v1/product/${selectedProductUid}/mode`, method: "PUT" },
     ];
 
     let lastError = null;
-    for (const candidate of candidates) {
+    for (const candidate of endpointCandidates) {
       try {
         const response = await fetch(candidate.url, {
           method: candidate.method,
@@ -341,181 +329,204 @@ const AreaCards = ({ expanded, setExpanded }) => {
 
       const messageLines = [
         `Switched to ${newMode.toUpperCase()} mode`,
-        result?.backendNotice ? `(${result.backendNotice})` : null,
+        `\n✅ Updated: ${result?.updatedControls?.length || 0} controls`,
+        result?.skippedControls?.length > 0 ? `Manual-only: ${result.skippedControls.length} controls` : ""
       ].filter(Boolean);
 
-      Swal.fire({
-        icon: "success",
-        title: "Mode Updated",
-        html: messageLines.join("<br/>"),
-      });
-
-      window.dispatchEvent(
-        new CustomEvent("thresholds-updated", { detail: { uid: selectedProductUid } })
-      );
-    } catch (err) {
-      console.error("Global mode switch error:", err);
-      Swal.fire("⚠️ Partial Update", err.message || "Could not switch mode cleanly", "warning");
+      Swal.fire("✅ Mode Updated", messageLines.join(""), "success");
+    } catch (error) {
+      Swal.fire("❌ Failed", error.message || "Could not switch mode. Please try again.", "error");
+      await refetchProducts();
     } finally {
       setModeSwitchLoading(false);
     }
   };
 
+  const controls = productDetails?.controls || [];
+
   return (
-    <section className={`area-cards ${expanded ? "expanded" : "collapsed"}`}>
-      {/* ── Outer Shell ────────────────────────────────────────────── */}
-      <div className="area-card-shell">
-        {/* Dynamic Multi-Farm Selector */}
-        <div className="product-selector-wrapper">
-          <FormControl fullWidth variant="outlined" className="product-dropdown-form">
-            <InputLabel id="farm-select-label" className="custom-dropdown-label">
-              Active Monitoring Farm
-            </InputLabel>
-            <Select
-              labelId="farm-select-label"
-              id="farm-select"
-              value={selectedProductUid || ""}
-              onChange={(e) => {
-                setSelectedProductUid(e.target.value);
-              }}
-              label="Active Monitoring Farm"
-              className="product-select-custom"
-            >
-              {products.map((p) => {
-                const displayName = p.customName || p.alias || p.name || p.uid;
-                return (
-                  <MenuItem key={p.uid} value={p.uid} className="product-menu-item">
-                    <span className="item-name">{displayName}</span>
-                    <span className="item-uid">{p.uid}</span>
-                  </MenuItem>
-                );
-              })}
-            </Select>
-          </FormControl>
-        </div>
-
-        {/* Header Ribbon & Expand Toggle */}
-        <div
-          className="section-header-ribbon"
-          onClick={() => {
-            const next = !expanded;
-            setExpanded(next);
-            if (next) startCollapseTimer();
-            else clearCollapseTimer();
-          }}
-        >
-          <div className="header-left">
-            <h3 className="section-title">
-              <span className="title-icon">⚡</span> Device Control Center
-            </h3>
-            {productDetails && (
-              <span className="farm-alias-badge">
-                {productDetails.customName || productDetails.alias || productDetails.name || "Main Unit"}
-              </span>
-            )}
-          </div>
-
-          <div className="header-right">
-            {/* Global Operation Mode Pill */}
-            {productDetails && (
-              <motion.div
-                className={`global-mode-pill ${productDetails.mode === "automate" ? "automate" : "manual"}`}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleModeToggle();
-                }}
-              >
-                <div className="mode-icon-circle">
-                  {productDetails.mode === "automate" ? (
-                    <PrecisionManufacturingIcon className="mode-icon spinning" />
-                  ) : (
-                    <SettingsRemoteIcon className="mode-icon" />
-                  )}
-                </div>
-                <div className="mode-text-group">
-                  <span className="mode-caption">Global Mode</span>
-                  <span className="mode-value">
-                    {productDetails.mode === "automate" ? "Automated" : "Manual"}
-                  </span>
-                </div>
-                <div className="status-pulse-dot" />
-              </motion.div>
-            )}
-
-            {/* Expansion Arrow Pill */}
-            <div className={`accordion-trigger-pill ${expanded ? "open" : ""}`}>
-              <span className="trigger-text">{expanded ? "Hide Controls" : "Configure"}</span>
-              <span className="trigger-chevron">❯</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Collapsible Accordion Drawer */}
-        {expanded && (
-          <div
-            className="controls-drawer"
-            onMouseEnter={clearCollapseTimer}
-            onMouseLeave={startCollapseTimer}
+    <section className="content-area-cards">
+      {/* ── Product Dropdown Selector ─────────────────────────────── */}
+      <div className="dropdown-container">
+        <FormControl fullWidth variant="outlined" className="product-select-form">
+          <InputLabel shrink>Select Product</InputLabel>
+          <Select
+            label="Select Product"
+            value={selectedProductUid || ""}
+            onChange={(e) => {
+              const val = e.target.value;
+              setSelectedProductUid(val);
+              localStorage.setItem("selectedProductUid", val);
+            }}
+            displayEmpty
           >
-            {/* Control Timers Module */}
-            <div className="control-timers-container">
-              <ControlTimers
-                product={productDetails}
-                onTimersUpdated={() => refetchProducts()}
-              />
+            {products.map((p) => (
+              <MenuItem key={p._id || p.uid} value={p.uid}>
+                {p.alias || p.customName || p.name || p.uid}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+      </div>
+
+      {/* ── Top Stat Cards Row ─────────────────────────────────────── */}
+      <div className="area-cards-row">
+        <motion.div className="area-card" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+          <PrecisionManufacturingIcon className="card-icon" />
+          <div className="info-content">
+            <p className="info-title">Product</p>
+            <p className="info-value">{productDetails?.alias || "—"}</p>
+          </div>
+        </motion.div>
+
+        <motion.div className="area-card" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+          <ElectricBoltIcon className="card-icon" />
+          <div className="info-content">
+            <p className="info-title">Mode</p>
+            <div className="mode-toggle">
+              <Tooltip title={!controls.length ? "Mode toggle disabled — no controls" : ""} arrow>
+                <span>
+                  <Switch
+                    checked={productDetails?.mode === "automate"}
+                    onChange={handleModeToggle}
+                    disabled={!controls.length || modeSwitchLoading}
+                  />
+                </span>
+              </Tooltip>
+              <span>{productDetails?.mode?.toUpperCase() || "MANUAL"}</span>
             </div>
+          </div>
+        </motion.div>
 
-            <Divider className="drawer-divider" />
+        <motion.div className="area-card" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+          <SettingsRemoteIcon className="card-icon" />
+          <div className="info-content">
+            <p className="info-title">Controls</p>
+            <p className="info-value">{controls.length}</p>
+          </div>
+        </motion.div>
+      </div>
 
-            {!productDetails?.controls?.length ? (
-              <div className="empty-controls-banner">
-                <span className="empty-icon">🔌</span>
-                <p>No active relay controls configured for this unit.</p>
+      {/* ── Collapsible Controller Configuration Drawer ───────────── */}
+      <div
+        className={`control-panel-flat ${!expanded ? "collapsed" : ""}`}
+        onMouseEnter={clearCollapseTimer}
+        onMouseMove={clearCollapseTimer}
+        onMouseLeave={() => {
+          if (expanded) startCollapseTimer();
+        }}
+      >
+        <div
+          className="control-panel-header"
+          onClick={() => setExpanded(!expanded)}
+          style={{ cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }}
+        >
+          <Typography variant="h6" className="panel-title">
+            ⚙️ Controller Configuration
+          </Typography>
+          <span
+            className="toggle-icon-btn"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: "28px",
+              height: "28px",
+              borderRadius: "50%",
+              background: "rgba(255, 255, 255, 0.04)",
+              border: "1px solid var(--card-border)",
+              cursor: "pointer"
+            }}
+          >
+            <span style={{
+              display: "block",
+              transform: expanded ? "rotate(0deg)" : "rotate(-90deg)",
+              transition: "transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
+              fontSize: "0.85rem",
+              color: "var(--primary-emerald)",
+              lineHeight: 1
+            }}>
+              ▼
+            </span>
+          </span>
+        </div>
+
+        {expanded && (
+          <div className="control-panel-body">
+            {controls.length === 0 ? (
+              <div className="no-controls-msg">
+                ⚠️ No controls available for this product.
               </div>
             ) : (
               <div className="controls-grid">
-                {productDetails.controls.map((control) => (
-                  <div key={control.controlId} className="control-node-card">
-                    {/* Control Card Header */}
-                    <div className="control-node-header">
-                      <div className="node-title-group">
-                        <div className="node-icon-avatar">
-                          <ElectricBoltIcon className="node-icon" />
-                        </div>
-                        <div>
-                          <h4 className="node-name">{control.name || `Relay #${control.pin}`}</h4>
-                          <span className="node-pin-tag">PIN {control.pin}</span>
-                        </div>
-                      </div>
-
-                      {/* Power Switch Action */}
-                      <Tooltip
-                        title={
-                          productDetails?.mode === "automate" && control.supportsAuto
-                            ? "Power switches automatically based on thresholds"
-                            : `Turn ${controlStates[control.controlId] === "ON" ? "OFF" : "ON"}`
-                        }
-                      >
-                        <span>
-                          <Switch
-                            checked={controlStates[control.controlId] === "ON"}
-                            disabled={productDetails?.mode === "automate" && control.supportsAuto}
-                            onChange={() =>
-                              handleTogglePower(
-                                control.controlId,
-                                control.pin,
-                                controlStates[control.controlId]
-                              )
-                            }
-                            className="power-toggle-switch"
-                          />
-                        </span>
-                      </Tooltip>
+                {controls.map((control) => (
+                  <div className="control-card" key={control.controlId}>
+                    <div className="control-header-box">
+                      <span className="control-title">
+                        {control.name}
+                      </span>
                     </div>
 
-                    {/* Manual Mode Status Notice */}
+                    {/* Power Button - In Manual Mode OR for Manual-Only Controls */}
+                    {(productDetails?.mode === "manual" || (productDetails?.mode === "automate" && !control.supportsAuto)) && (
+                      <div className={`control-power-box ${controlStates[control.controlId] === "ON" ? 'state-on' : 'state-off'}`}>
+                        <div className="state-info">
+                          <span className="state-label">Status</span>
+                          <span className="state-text">
+                            {controlStates[control.controlId] || 'N/A'}
+                          </span>
+                        </div>
+                        <Tooltip title={!controlStates[control.controlId] ? "No state data" : ""}>
+                          <span>
+                            <Button
+                              onClick={() =>
+                                handleTogglePower(control.controlId, control.pin, controlStates[control.controlId])
+                              }
+                              disabled={!controlStates[control.controlId]}
+                              sx={{
+                                minWidth: 110,
+                                fontWeight: 800,
+                                borderRadius: "10px",
+                                fontFamily: "var(--font-family-jakarta)",
+                                textTransform: "none",
+                                fontSize: "0.82rem",
+                                py: 0.7,
+                                ...(controlStates[control.controlId] === "ON" ? {
+                                  background: "var(--color-success) !important",
+                                  backgroundColor: "var(--color-success) !important",
+                                  color: "#050a15 !important",
+                                  boxShadow: "0 4px 12px rgba(16, 185, 129, 0.25) !important"
+                                } : {
+                                  border: "1px solid var(--card-border) !important",
+                                  color: "var(--text-secondary) !important",
+                                  background: "rgba(255, 255, 255, 0.02) !important",
+                                  backgroundColor: "rgba(255, 255, 255, 0.02) !important",
+                                  "&:hover": {
+                                    borderColor: "var(--primary-emerald) !important",
+                                    color: "var(--primary-emerald) !important",
+                                    background: "rgba(0, 242, 155, 0.08) !important"
+                                  }
+                                })
+                              }}
+                            >
+                              {controlStates[control.controlId] === "ON" ? "⚡ Turn OFF" : "🔌 Turn ON"}
+                            </Button>
+                          </span>
+                        </Tooltip>
+                      </div>
+                    )}
+
+                    {/* V2 Timer & Schedule — manual control context */}
+                    {(productDetails?.mode === "manual" || (productDetails?.mode === "automate" && !control.supportsAuto)) && (
+                      <ControlTimers
+                        productId={productDetails?._id || productDetails?.id}
+                        control={control}
+                        onChanged={refetchProducts}
+                        capabilities={productDetails?.capabilities}
+                      />
+                    )}
+
+                    {/* Manual-Only Indicator */}
                     {productDetails?.mode === "manual" && !control.supportsAuto && (
                       <div className="manual-only-indicator">
                         🪜 Manual Control Only
