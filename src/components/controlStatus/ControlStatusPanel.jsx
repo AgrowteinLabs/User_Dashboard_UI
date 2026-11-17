@@ -242,23 +242,30 @@ const ControlStatusPanel = ({ configExpanded, setConfigExpanded }) => {
                 );
                 return (
                   <li key={h.id} className="history-item">
-                    <div className="history-left">
-                      <span className="history-control">
+                    <div className="history-item-top">
+                      <span
+                        className="history-control"
+                        title={control?.name || h.controlId || h.pin || "Controller"}
+                      >
                         {control?.name || h.controlId || h.pin || "Controller"}
                       </span>
-                      <span className="history-action">{commandLabel(h)}</span>
-                    </div>
-                    <div className="history-right">
                       <StatusChip status={h.status} />
-                      <span className="history-time">
-                        {formatRelative(h.timestamp)}
+                    </div>
+                    <div className="history-item-bottom">
+                      <span className="history-action" title={commandLabel(h)}>
+                        {commandLabel(h)}
                       </span>
-                      {h.deviceFeedback?.received &&
-                        Number.isFinite(h.deviceFeedback?.responseTime) && (
-                          <span className="history-ack">
-                            acked in {(h.deviceFeedback.responseTime / 1000).toFixed(1)}s
-                          </span>
-                        )}
+                      <div className="history-item-meta">
+                        <span className="history-time">
+                          {formatRelative(h.timestamp)}
+                        </span>
+                        {h.deviceFeedback?.received &&
+                          Number.isFinite(h.deviceFeedback?.responseTime) && (
+                            <span className="history-ack">
+                              acked in {(h.deviceFeedback.responseTime / 1000).toFixed(1)}s
+                            </span>
+                          )}
+                      </div>
                     </div>
                   </li>
                 );
