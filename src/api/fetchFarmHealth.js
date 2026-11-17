@@ -1,9 +1,16 @@
+import { isFarmHealthActive } from "../constants/featureFlags";
+
 // GET /api/v1/products/:uid/health — backend-computed farm health score.
 // Returns { data } on success, { error, status? } on failure.
 // Response data: { uid, score (0-100), status (excellent|warning|critical),
 //                  factors: [{ sensor, unit, status, value, score, range?, direction? }],
 //                  lastComputedAt }
 export default async function fetchFarmHealth(uid) {
+  // Feature flagged off / deferred for Phase 2 AI Model integration
+  if (!isFarmHealthActive()) {
+    return { data: null, deferred: true };
+  }
+
   if (!uid) return { error: "Missing farm uid" };
   const API_URL = import.meta.env.VITE_REACT_APP_API_URL;
   try {

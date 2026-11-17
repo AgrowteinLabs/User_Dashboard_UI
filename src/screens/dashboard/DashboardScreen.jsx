@@ -8,9 +8,11 @@ import {
   FarmWeatherCard,
   FarmHealthCard,
 } from "../../components";
+import { isFarmHealthHidden } from "../../constants/featureFlags";
 
 const Dashboard = () => {
   const [configExpanded, setConfigExpanded] = useState(false);
+  const healthHidden = isFarmHealthHidden();
 
   return (
     <div className="content-area">
@@ -21,12 +23,14 @@ const Dashboard = () => {
       <div className="dashboard-grid">
         
         {/* Row 1: Quick Telemetry Widgets */}
-        <div className="col-6">
+        <div className={healthHidden ? "col-12" : "col-6"}>
           <FarmWeatherCard />
         </div>
-        <div className="col-6">
-          <FarmHealthCard />
-        </div>
+        {!healthHidden && (
+          <div className="col-6">
+            <FarmHealthCard />
+          </div>
+        )}
 
         {/* Row 2: Product Controls & Controller Status Panels (Synchronized Equal Heights) */}
         <div className="col-8">
