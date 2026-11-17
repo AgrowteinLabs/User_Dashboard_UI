@@ -71,7 +71,7 @@ const commandLabel = (h) => {
 const ControlStatusPanel = ({ configExpanded }) => {
   const { selectedProductUid, selectedProduct } = useContext(ProductContext);
   const controls = selectedProduct?.controls || [];
-  const productId = selectedProduct?.id || null;
+  const productId = selectedProduct?._id || selectedProduct?.id || null;
   const [history, setHistory] = useState([]);
   const [historyTotal, setHistoryTotal] = useState(0);
   const [historyLoading, setHistoryLoading] = useState(false);
