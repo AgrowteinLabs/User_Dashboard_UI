@@ -11,28 +11,37 @@ import {
   Button,
   Tooltip,
   TextField,
-  Divider
+  Divider,
+  CircularProgress
 } from "@mui/material";
 import SettingsRemoteIcon from "@mui/icons-material/SettingsRemote";
 import PrecisionManufacturingIcon from "@mui/icons-material/PrecisionManufacturing";
 import ElectricBoltIcon from "@mui/icons-material/ElectricBolt";
 import { motion } from "framer-motion";
 import { ProductContext } from "../../../context/ProductContext";
-import fetchProducts from "../../../api/fetchProducts";
 import fetchUser from "../../../api/fetchuser";
 import Swal from "sweetalert2";
 import { useMqttControl } from "../../../hooks/useMqttControl";
 import ControlTimers from "../../controlTimers/ControlTimers";
+import FarmWeatherCard from "../../farmWeather/FarmWeatherCard";
 import "./AreaCards.scss";
 
 const AreaCards = ({ expanded, setExpanded }) => {
-  const { products, selectedProductUid, setSelectedProductUid, selectedProduct, refetchProducts } = useContext(ProductContext);
+  const {
+    products,
+    selectedProductUid,
+    setSelectedProductUid,
+    selectedProduct,
+    setSelectedProductDetails,
+    refetchProducts,
+  } = useContext(ProductContext);
   const productDetails = selectedProduct;
   const [thresholds, setThresholds] = useState({});
   const [offsets, setOffsets] = useState({});
   const [controlStates, setControlStates] = useState({});
+  const [pendingControls, setPendingControls] = useState({});
+  const controlVersionsRef = useRef({});
   const [modeSwitchLoading, setModeSwitchLoading] = useState(false);
-  const userId = localStorage.getItem("userId");
 
   // Tracks the last-saved threshold + offset per controlId so we can detect dirty state
   const originalConfigRef = useRef({});
@@ -47,7 +56,48 @@ const AreaCards = ({ expanded, setExpanded }) => {
     );
   };
 
-  const { publishCommandWithFeedback } = useMqttControl(selectedProductUid);
+  // State Versioning & External Feedback (§2 & §4)
+  const handleExternalFeedback = useCallback((feedback) => {
+    if (!feedback || !feedback.pin) return;
+    const pinStr = String(feedback.pin).trim().toUpperCase();
+
+    const ctrl = selectedProduct?.controls?.find(
+      (c) => String(c.pin).trim().toUpperCase() === pinStr
+    );
+    if (!ctrl) return;
+
+    const controlId = ctrl.controlId;
+    const localVer = controlVersionsRef.current[controlId] ?? 0;
+    const incomingVer =
+      typeof feedback.stateVersion === "number"
+        ? feedback.stateVersion
+        : localVer;
+
+    // Architecture Rule 4: Only apply incoming state updates if incoming.stateVersion >= local.stateVersion
+    if (incomingVer >= localVer) {
+      if (typeof feedback.stateVersion === "number") {
+        controlVersionsRef.current[controlId] = incomingVer;
+      }
+      if (feedback.state) {
+        const normalizedState = String(feedback.state).toUpperCase();
+        setControlStates((prev) => ({ ...prev, [controlId]: normalizedState }));
+      }
+      setPendingControls((prev) => {
+        if (prev[controlId]) {
+          const updated = { ...prev };
+          delete updated[controlId];
+          return updated;
+        }
+        return prev;
+      });
+    } else {
+      console.warn(
+        `[Sync] Discarded stale feedback for pin ${pinStr}: incoming v${incomingVer} < local v${localVer}`
+      );
+    }
+  }, [selectedProduct]);
+
+  const { publishCommandWithFeedback } = useMqttControl(selectedProductUid, handleExternalFeedback);
 
   const collapseTimerRef = useRef(null);
 
@@ -92,25 +142,44 @@ const AreaCards = ({ expanded, setExpanded }) => {
     }
   };
 
-  // Populate control states when the selected product changes
+  // Populate control states when the selected product changes (§4: State Versioning)
   useEffect(() => {
-    if (selectedProduct) {
+    if (selectedProduct && selectedProduct.controls) {
+      setSelectedProductDetails?.(selectedProduct);
       const initThresh = {};
       const initOffsets = {};
-      const initStates = {};
       const initOriginals = {};
       selectedProduct.controls.forEach((c) => {
-        const thresh = c.threshHold || 0;
-        const offset = c.offset || c.min || 0;
-        initThresh[c.controlId] = thresh;
-        initOffsets[c.controlId] = offset;
-        initStates[c.controlId] = c.state || "OFF";
-        initOriginals[c.controlId] = { threshold: thresh, offset };
+        const thresh = c.threshHold !== undefined && c.threshHold !== null ? Number(c.threshHold) : 0;
+        const off = c.offset !== undefined && c.offset !== null ? Number(c.offset) : (c.min ?? 0);
+        initThresh[c.controlId] = isNaN(thresh) ? 0 : thresh;
+        initOffsets[c.controlId] = isNaN(off) ? (c.min ?? 0) : off;
+        initOriginals[c.controlId] = { threshold: initThresh[c.controlId], offset: initOffsets[c.controlId] };
       });
       setThresholds(initThresh);
       setOffsets(initOffsets);
-      setControlStates(initStates);
+      setControlStates((prev) => {
+        const next = { ...prev };
+        selectedProduct.controls.forEach((c) => {
+          const currentVer = controlVersionsRef.current[c.controlId] ?? -1;
+          const incomingVer = typeof c.stateVersion === "number" ? c.stateVersion : 0;
+          if (incomingVer >= currentVer) {
+            controlVersionsRef.current[c.controlId] = incomingVer;
+            next[c.controlId] = (c.state || "OFF").toUpperCase();
+          }
+        });
+        return next;
+      });
       originalConfigRef.current = initOriginals;
+    }
+  }, [selectedProduct, setSelectedProductDetails]);
+
+  const handlePowerStateChange = useCallback((pin, newState) => {
+    const ctrl = selectedProduct?.controls?.find(
+      (c) => String(c.pin).trim().toUpperCase() === String(pin).trim().toUpperCase()
+    );
+    if (ctrl) {
+      setControlStates((prev) => ({ ...prev, [ctrl.controlId]: newState.toUpperCase() }));
     }
   }, [selectedProduct]);
 
@@ -126,16 +195,18 @@ const AreaCards = ({ expanded, setExpanded }) => {
   }, [refetchProducts]);
 
   const handleThresholdChange = (controlId, value) => {
-    setThresholds((prev) => ({ ...prev, [controlId]: value }));
+    const formatted = typeof value === "number" ? Math.round(value * 100) / 100 : value;
+    setThresholds((prev) => ({ ...prev, [controlId]: formatted }));
   };
 
   const handleOffsetChange = (controlId, value) => {
-    setOffsets((prev) => ({ ...prev, [controlId]: value }));
+    const formatted = typeof value === "number" ? Math.round(value * 100) / 100 : value;
+    setOffsets((prev) => ({ ...prev, [controlId]: formatted }));
   };
 
   const handleSaveThreshold = (controlId, pin) => {
-    const threshold = thresholds[controlId];
-    const offset = offsets[controlId];
+    const threshold = Number(thresholds[controlId]) || 0;
+    const offset = Number(offsets[controlId]) || 0;
     const payload = { command: "SetThreshold", pin, threshold, offset };
 
     Swal.fire({ title: "Sending...", text: "Waiting for Device feedback", allowOutsideClick: false, didOpen: () => Swal.showLoading() });
@@ -196,39 +267,89 @@ const AreaCards = ({ expanded, setExpanded }) => {
   };
 
   const handleTogglePower = (controlId, pin, currentState) => {
+    if (pendingControls[controlId]) return;
+
     const newState = currentState === "ON" ? "OFF" : "ON";
     const payload = { command: "SetPower", pin, state: newState };
 
-    Swal.fire({ title: "Sending...", text: "Waiting for Device feedback", allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+    // Part 2: Never Confirm Power State Immediately (Pending State)
+    setPendingControls((prev) => ({ ...prev, [controlId]: true }));
 
     publishCommandWithFeedback(
       payload,
-      async () => {
-        Swal.close();
-
-        const feedbackPayload = {
-          uid: String(selectedProductUid),
-          pin: String(pin),
-          controlId: String(controlId),
-          value: String(newState),
-          mode: "state"
-        };
-
-        const res = await fetch(`${import.meta.env.VITE_REACT_APP_API_URL}/api/v1/command/control/save`, {
-          method: "POST",
-          credentials: "include",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(feedbackPayload),
+      async (feedback) => {
+        // Part 2: Device Feedback as Single Source of Truth
+        setPendingControls((prev) => {
+          const next = { ...prev };
+          delete next[controlId];
+          return next;
         });
-        await parseApiResponse(res);
 
-        await refetchProducts();
+        const localVer = controlVersionsRef.current[controlId] ?? 0;
+        const incomingVer =
+          typeof feedback?.stateVersion === "number"
+            ? feedback.stateVersion
+            : localVer + 1;
 
-        Swal.fire("✅ Success", `Control turned ${newState}`, "success");
+        if (incomingVer >= localVer) {
+          controlVersionsRef.current[controlId] = incomingVer;
+          const confirmedState = feedback?.state ? String(feedback.state).toUpperCase() : newState;
+          setControlStates((prev) => ({ ...prev, [controlId]: confirmedState }));
+        }
+
+        try {
+          const feedbackPayload = {
+            uid: String(selectedProductUid),
+            pin: String(pin),
+            controlId: String(controlId),
+            value: String(newState),
+            mode: "state",
+          };
+
+          const res = await fetch(`${import.meta.env.VITE_REACT_APP_API_URL}/api/v1/command/control/save`, {
+            method: "POST",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(feedbackPayload),
+          });
+          await parseApiResponse(res);
+          await refetchProducts();
+        } catch (err) {
+          console.warn("Error saving control state to backend:", err);
+        }
+
+        window.dispatchEvent(
+          new CustomEvent("thresholds-updated", { detail: { uid: selectedProductUid } })
+        );
+
+        const Toast = Swal.mixin({
+          toast: true,
+          position: "top-end",
+          showConfirmButton: false,
+          timer: 3000,
+          timerProgressBar: true,
+        });
+        Toast.fire({
+          icon: "success",
+          title: `Control turned ${newState}`,
+        });
       },
       () => {
-        Swal.close();
-        Swal.fire("❌ Timeout", "Device did not confirm", "error");
+        // Part 2: If device feedback does not arrive within 25 seconds,
+        // revert the switch back to its original state and show: "Device unreachable. State unchanged."
+        setPendingControls((prev) => {
+          const next = { ...prev };
+          delete next[controlId];
+          return next;
+        });
+
+        setControlStates((prev) => ({ ...prev, [controlId]: currentState }));
+
+        Swal.fire({
+          icon: "error",
+          title: "Timeout",
+          text: "Device unreachable. State unchanged.",
+        });
       }
     );
   };
@@ -293,7 +414,7 @@ const AreaCards = ({ expanded, setExpanded }) => {
                     pin: control.pin,
                     mode: "Auto",
                     threshold,
-                    offset: Math.max(1, offset),
+                    offset: Math.max(0, offset),
                   }
                   : {
                     command: "SetMode",
@@ -315,8 +436,8 @@ const AreaCards = ({ expanded, setExpanded }) => {
 
       const messageLines = [
         `Switched to ${newMode.toUpperCase()} mode`,
-        `\n✅ Updated: ${result.updatedControls?.length || 0} controls`,
-        result.skippedControls?.length > 0 ? `Manual-only: ${result.skippedControls.length} controls` : ""
+        `\n✅ Updated: ${result?.updatedControls?.length || 0} controls`,
+        result?.skippedControls?.length > 0 ? `Manual-only: ${result.skippedControls.length} controls` : ""
       ].filter(Boolean);
 
       Swal.fire("✅ Mode Updated", messageLines.join(""), "success");
@@ -332,28 +453,35 @@ const AreaCards = ({ expanded, setExpanded }) => {
 
   return (
     <section className="content-area-cards">
-      <div className="dropdown-container">
-        <FormControl fullWidth variant="outlined" className="product-select-form">
-          <InputLabel shrink>Select Product</InputLabel>
-          <Select
-            label="Select Product"
-            value={selectedProductUid || ""}
-            onChange={(e) => {
-              const val = e.target.value;
-              setSelectedProductUid(val);
-              localStorage.setItem("selectedProductUid", val);
-            }}
-            displayEmpty
-          >
-            {products.map((p) => (
-              <MenuItem key={p._id} value={p.uid}>
-                {p.alias}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+      {/* ── Product Dropdown Selector & Compact Weather Row ─────────── */}
+      <div className="product-weather-row">
+        <div className="dropdown-container">
+          <FormControl fullWidth variant="outlined" className="product-select-form">
+            <InputLabel shrink>Select Product</InputLabel>
+            <Select
+              label="Select Product"
+              value={selectedProductUid || ""}
+              onChange={(e) => {
+                const val = e.target.value;
+                setSelectedProductUid(val);
+                localStorage.setItem("selectedProductUid", val);
+              }}
+              displayEmpty
+            >
+              {products.map((p) => (
+                <MenuItem key={p._id || p.uid} value={p.uid}>
+                  {p.alias || p.customName || p.name || p.uid}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </div>
+        <div className="weather-inline-container">
+          <FarmWeatherCard compact={true} />
+        </div>
       </div>
 
+      {/* ── Top Stat Cards Row ─────────────────────────────────────── */}
       <div className="area-cards-row">
         <motion.div className="area-card" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
           <PrecisionManufacturingIcon className="card-icon" />
@@ -391,7 +519,8 @@ const AreaCards = ({ expanded, setExpanded }) => {
         </motion.div>
       </div>
 
-      <div 
+      {/* ── Collapsible Controller Configuration Drawer ───────────── */}
+      <div
         className={`control-panel-flat ${!expanded ? "collapsed" : ""}`}
         onMouseEnter={clearCollapseTimer}
         onMouseMove={clearCollapseTimer}
@@ -399,7 +528,7 @@ const AreaCards = ({ expanded, setExpanded }) => {
           if (expanded) startCollapseTimer();
         }}
       >
-        <div 
+        <div
           className="control-panel-header"
           onClick={() => setExpanded(!expanded)}
           style={{ cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }}
@@ -407,7 +536,7 @@ const AreaCards = ({ expanded, setExpanded }) => {
           <Typography variant="h6" className="panel-title">
             ⚙️ Controller Configuration
           </Typography>
-          <span 
+          <span
             className="toggle-icon-btn"
             style={{
               display: "flex",
@@ -433,6 +562,7 @@ const AreaCards = ({ expanded, setExpanded }) => {
             </span>
           </span>
         </div>
+
         {expanded && (
           <div className="control-panel-body">
             {controls.length === 0 ? (
@@ -451,20 +581,22 @@ const AreaCards = ({ expanded, setExpanded }) => {
 
                     {/* Power Button - In Manual Mode OR for Manual-Only Controls */}
                     {(productDetails?.mode === "manual" || (productDetails?.mode === "automate" && !control.supportsAuto)) && (
-                      <div className={`control-power-box ${controlStates[control.controlId] === "ON" ? 'state-on' : 'state-off'}`}>
+                      <div className={`control-power-box ${pendingControls[control.controlId] ? "pending" : ""} ${controlStates[control.controlId] === "ON" ? 'state-on' : 'state-off'}`}>
                         <div className="state-info">
                           <span className="state-label">Status</span>
                           <span className="state-text">
-                            {controlStates[control.controlId] || 'N/A'}
+                            {pendingControls[control.controlId]
+                              ? "SYNCING..."
+                              : (controlStates[control.controlId] || 'N/A')}
                           </span>
                         </div>
-                        <Tooltip title={!controlStates[control.controlId] ? "No state data" : ""}>
+                        <Tooltip title={pendingControls[control.controlId] ? "Waiting for device confirmation..." : !controlStates[control.controlId] ? "No state data" : ""}>
                           <span>
                             <Button
                               onClick={() =>
                                 handleTogglePower(control.controlId, control.pin, controlStates[control.controlId])
                               }
-                              disabled={!controlStates[control.controlId]}
+                              disabled={!controlStates[control.controlId] || pendingControls[control.controlId]}
                               sx={{
                                 minWidth: 110,
                                 fontWeight: 800,
@@ -473,7 +605,11 @@ const AreaCards = ({ expanded, setExpanded }) => {
                                 textTransform: "none",
                                 fontSize: "0.82rem",
                                 py: 0.7,
-                                ...(controlStates[control.controlId] === "ON" ? {
+                                ...(pendingControls[control.controlId] ? {
+                                  border: "1px solid rgba(245, 158, 11, 0.4) !important",
+                                  color: "#f59e0b !important",
+                                  background: "rgba(245, 158, 11, 0.1) !important",
+                                } : controlStates[control.controlId] === "ON" ? {
                                   background: "var(--color-success) !important",
                                   backgroundColor: "var(--color-success) !important",
                                   color: "#050a15 !important",
@@ -491,7 +627,16 @@ const AreaCards = ({ expanded, setExpanded }) => {
                                 })
                               }}
                             >
-                              {controlStates[control.controlId] === "ON" ? "⚡ Turn OFF" : "🔌 Turn ON"}
+                              {pendingControls[control.controlId] ? (
+                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                                  <CircularProgress size={14} color="inherit" />
+                                  <span>Syncing...</span>
+                                </span>
+                              ) : controlStates[control.controlId] === "ON" ? (
+                                "⚡ Turn OFF"
+                              ) : (
+                                "🔌 Turn ON"
+                              )}
                             </Button>
                           </span>
                         </Tooltip>
@@ -502,9 +647,12 @@ const AreaCards = ({ expanded, setExpanded }) => {
                     {(productDetails?.mode === "manual" || (productDetails?.mode === "automate" && !control.supportsAuto)) && (
                       <ControlTimers
                         productId={productDetails?._id || productDetails?.id}
+                        productUid={selectedProductUid}
                         control={control}
                         onChanged={refetchProducts}
                         capabilities={productDetails?.capabilities}
+                        onPowerStateChange={handlePowerStateChange}
+                        publishCommandWithFeedback={publishCommandWithFeedback}
                       />
                     )}
 
@@ -526,10 +674,14 @@ const AreaCards = ({ expanded, setExpanded }) => {
                           </div>
                           <div className="slider-row">
                             <Slider
-                              value={thresholds[control.controlId] || 0}
-                              min={control.min}
-                              max={control.max}
-                              step={1}
+                              value={
+                                thresholds[control.controlId] !== undefined && thresholds[control.controlId] !== ""
+                                  ? Number(thresholds[control.controlId]) || 0
+                                  : Number(control.min ?? 0)
+                              }
+                              min={Number(control.min ?? 0)}
+                              max={Number(control.max ?? 100)}
+                              step={0.1}
                               valueLabelDisplay="auto"
                               onChange={(_, val) => handleThresholdChange(control.controlId, val)}
                             />
@@ -537,29 +689,27 @@ const AreaCards = ({ expanded, setExpanded }) => {
                               type="number"
                               value={thresholds[control.controlId] ?? 0}
                               onChange={(e) => {
-                                const rawValue = e.target.value.trim();
+                                const rawValue = e.target.value;
                                 if (rawValue === '') {
                                   handleThresholdChange(control.controlId, '');
                                 } else {
-                                  const parsed = parseInt(rawValue, 10);
+                                  const parsed = parseFloat(rawValue);
                                   if (!isNaN(parsed)) {
-                                    handleThresholdChange(control.controlId, parsed);
+                                    handleThresholdChange(control.controlId, rawValue);
                                   }
                                 }
                               }}
                               onBlur={(e) => {
-                                const rawValue = e.target.value.trim();
-                                if (rawValue === '') {
-                                  handleThresholdChange(control.controlId, 0);
+                                const rawValue = String(e.target.value).trim();
+                                if (rawValue === '' || isNaN(Number(rawValue))) {
+                                  handleThresholdChange(control.controlId, Number(control.min ?? 0));
                                 } else {
-                                  const parsed = parseInt(rawValue, 10);
-                                  if (!isNaN(parsed)) {
-                                    handleThresholdChange(control.controlId, parsed);
-                                  }
+                                  const parsed = parseFloat(rawValue);
+                                  handleThresholdChange(control.controlId, parsed);
                                 }
                               }}
                               size="small"
-                              inputProps={{ min: control.min, max: control.max, step: 1 }}
+                              inputProps={{ min: control.min, max: control.max, step: 0.1 }}
                             />
                           </div>
                         </div>
@@ -572,40 +722,42 @@ const AreaCards = ({ expanded, setExpanded }) => {
                           </div>
                           <div className="slider-row">
                             <Slider
-                              value={offsets[control.controlId] || control.min}
-                              min={control.min}
-                              max={control.max}
-                              step={1}
+                              value={
+                                offsets[control.controlId] !== undefined && offsets[control.controlId] !== ""
+                                  ? Number(offsets[control.controlId]) || 0
+                                  : Number(control.min ?? 0)
+                              }
+                              min={Number(control.min ?? 0)}
+                              max={Number(control.max ?? 100)}
+                              step={0.1}
                               valueLabelDisplay="auto"
                               onChange={(_, val) => handleOffsetChange(control.controlId, val)}
                             />
                             <TextField
                               type="number"
-                              value={offsets[control.controlId] ?? control.min}
+                              value={offsets[control.controlId] ?? (control.min ?? 0)}
                               onChange={(e) => {
-                                const rawValue = e.target.value.trim();
+                                const rawValue = e.target.value;
                                 if (rawValue === '') {
                                   handleOffsetChange(control.controlId, '');
                                 } else {
-                                  const parsed = parseInt(rawValue, 10);
+                                  const parsed = parseFloat(rawValue);
                                   if (!isNaN(parsed)) {
-                                    handleOffsetChange(control.controlId, parsed);
+                                    handleOffsetChange(control.controlId, rawValue);
                                   }
                                 }
                               }}
                               onBlur={(e) => {
-                                const rawValue = e.target.value.trim();
-                                if (rawValue === '') {
-                                  handleOffsetChange(control.controlId, control.min);
+                                const rawValue = String(e.target.value).trim();
+                                if (rawValue === '' || isNaN(Number(rawValue))) {
+                                  handleOffsetChange(control.controlId, Number(control.min ?? 0));
                                 } else {
-                                  const parsed = parseInt(rawValue, 10);
-                                  if (!isNaN(parsed)) {
-                                    handleOffsetChange(control.controlId, parsed);
-                                  }
+                                  const parsed = parseFloat(rawValue);
+                                  handleOffsetChange(control.controlId, parsed);
                                 }
                               }}
                               size="small"
-                              inputProps={{ min: control.min, max: control.max, step: 1 }}
+                              inputProps={{ min: control.min, max: control.max, step: 0.1 }}
                             />
                           </div>
                         </div>

@@ -1,63 +1,98 @@
 .content-area-cards {
   background: transparent;
   color: var(--text-color);
-  margin-bottom: 24px;
+  margin-bottom: 0;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
 
-  .dropdown-container {
-    margin-bottom: 28px;
+  .product-weather-row {
     display: flex;
-    justify-content: flex-start;
-    padding: 0;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 20px;
 
-    .MuiFormControl-root {
-      width: 100%;
-      max-width: calc((100% - 48px) / 3);
-      min-width: 240px;
-      background: var(--card-bg);
-      backdrop-filter: var(--glass-blur);
-      border-radius: 16px;
-      box-shadow: var(--shadow-premium);
-      border: 1px solid var(--card-border);
-      transition: var(--transition-smooth);
-      
-      &:hover {
-        border-color: rgba(0, 242, 155, 0.25);
-        box-shadow: var(--shadow-premium), 0 0 20px rgba(0, 242, 155, 0.08);
+    @media (max-width: 768px) {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 12px;
+    }
+
+    .dropdown-container {
+      margin-bottom: 0;
+      flex: 0 0 260px;
+      padding: 0;
+
+      @media (max-width: 992px) {
+        flex: 0 0 220px;
       }
-      
-      .MuiInputLabel-root {
-        color: var(--text-secondary);
-        font-weight: 700;
-        font-family: var(--font-family-jakarta);
-        font-size: 0.95rem;
-        
-        &.Mui-focused {
-          color: var(--primary-color);
-        }
+
+      @media (max-width: 768px) {
+        flex: 1 1 auto;
+        width: 100%;
       }
-      
-      .MuiOutlinedInput-root {
+
+      .MuiFormControl-root {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        background: var(--card-bg);
+        backdrop-filter: var(--glass-blur);
         border-radius: 16px;
+        box-shadow: var(--shadow-premium);
+        border: 1px solid var(--card-border);
+        transition: var(--transition-smooth);
         
-        & fieldset {
-          border: none;
+        &:hover {
+          border-color: rgba(0, 242, 155, 0.25);
+          box-shadow: var(--shadow-premium), 0 0 20px rgba(0, 242, 155, 0.08);
         }
         
-        .MuiSelect-select {
-          font-weight: 800;
-          color: var(--text-color);
-          padding: 14px 18px;
+        .MuiInputLabel-root {
+          color: var(--text-secondary);
+          font-weight: 700;
           font-family: var(--font-family-jakarta);
+          font-size: 0.95rem;
+          
+          &.Mui-focused {
+            color: var(--primary-color);
+          }
+        }
+        
+        .MuiOutlinedInput-root {
+          border-radius: 16px;
+          
+          & fieldset {
+            border: none;
+          }
+          
+          .MuiSelect-select {
+            font-weight: 800;
+            color: var(--text-color);
+            padding: 14px 18px;
+            font-family: var(--font-family-jakarta);
+          }
         }
       }
+    }
+
+    .weather-inline-container {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      align-items: center;
     }
   }
 
   .area-cards-row {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-    gap: 24px;
-    margin-bottom: 28px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+    margin-bottom: 20px;
+
+    @media (max-width: 680px) {
+      grid-template-columns: 1fr;
+    }
 
     .area-card {
       background-color: var(--card-bg);
@@ -127,7 +162,7 @@
   }
 
   .control-panel-flat {
-    margin-top: 28px;
+    margin-top: 0;
     background-color: var(--card-bg);
     backdrop-filter: var(--glass-blur);
     border: 1px solid var(--card-border);
@@ -258,6 +293,19 @@
           border: 1px solid var(--tbl-border-color);
           transition: var(--transition-smooth);
           
+          &.pending {
+            position: relative;
+            background: rgba(245, 158, 11, 0.06);
+            border-color: rgba(245, 158, 11, 0.45) !important;
+            animation: controlPendingPulse 1.8s infinite ease-in-out;
+
+            .state-text {
+              color: #f59e0b !important;
+              font-size: 0.95rem;
+              letter-spacing: 0.05em;
+            }
+          }
+
           &.state-on {
             background: rgba(16, 185, 129, 0.08);
             border-color: rgba(16, 185, 129, 0.25);
@@ -398,5 +446,17 @@
     justify-content: center;
     padding: 54px;
     color: var(--primary-color);
+  }
+}
+
+@keyframes controlPendingPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.35);
+  }
+  70% {
+    box-shadow: 0 0 0 8px rgba(245, 158, 11, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
   }
 }

@@ -5,6 +5,7 @@ import { useMqttSensorData } from "../../hooks/useMqttSensorData";
 import { fetchSensorList } from "../../api/fetchsensorlist";
 import { fetchIntervalData } from "../../api/fetchHistoryData";
 import AreaChartCard from "../predefinedcharts/AreaChartCard";
+import PaymentHoldBanner from "../PaymentHoldBanner";
 import {
   ToggleButton,
   ToggleButtonGroup,
@@ -60,6 +61,11 @@ const sensorChartMap = {
   "CO2 Sensor 4": { type: "bar", unit: "ppm", label: "CO2 Sensor 4" },
   "CO2 Sensor": { type: "bar", unit: "ppm", label: "CO₂ Level" },
   CO2: { type: "bar", unit: "ppm", label: "CO₂ Level" },
+  O3: { type: "bar", unit: "ppb", label: "O₃" },
+  NO2: { type: "bar", unit: "ppb", label: "NO₂" },
+  SO2: { type: "bar", unit: "ppb", label: "SO₂" },
+  CH2O: { type: "bar", unit: "ug/m3", label: "CH₂O" },
+  CO: { type: "bar", unit: "ppm", label: "CO" },
 };
 
 // Maps activity log types to a visual tone + icon
@@ -90,8 +96,20 @@ const ProductDataPage = () => {
   const navigate = useNavigate();
   const alias = location.state?.alias || uid;
 
-  const { history } = useSensorData(uid);
-  const { lastReceivedTime, connected } = useMqttSensorData(uid);
+  const { history, isSuspended: isHistorySuspended, suspensionReason: historyReason, holdType: historyHoldType } =
+    useSensorData(uid);
+  const {
+    lastReceivedTime,
+    connected,
+    isSuspended: isMqttSuspended,
+    suspensionReason: mqttReason,
+    holdType: mqttHoldType,
+  } = useMqttSensorData(uid);
+
+  const isSuspended = isMqttSuspended || isHistorySuspended;
+  const suspensionReason = mqttReason || historyReason;
+  const holdType = mqttHoldType || historyHoldType || "PAYMENT";
+
   const ProductIcon = getProductIcon(uid);
 
   // Live device status — online while fresh MQTT readings keep arriving
@@ -301,109 +319,123 @@ const ProductDataPage = () => {
         </div>
       </div>
 
-      {/* ─── View Toggle ─────────────────────────────────── */}
-      <ToggleButtonGroup
-        className="view-toggle"
-        value={viewMode}
-        exclusive
-        onChange={(_, newMode) => newMode && setViewMode(newMode)}
-      >
-        <ToggleButton value="history">
-          <HistoryIcon /> History
-        </ToggleButton>
-        <ToggleButton value="activity">
-          <ActivityIcon /> Activity Log
-        </ToggleButton>
-      </ToggleButtonGroup>
-
-      {/* ─── History: Filter Bar ─────────────────────────── */}
-      {viewMode === "history" && (
-        <div className="filter-controls">
-          <TextField
-            label="Start Date"
-            type="date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-            InputLabelProps={{ shrink: true }}
-          />
-          <TextField
-            label="End Date"
-            type="date"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-            InputLabelProps={{ shrink: true }}
-          />
-          <Select value={interval} onChange={(e) => setInterval(e.target.value)}>
-            <MenuItem value={30}>30 Minutes</MenuItem>
-            <MenuItem value={60}>1 Hour</MenuItem>
-          </Select>
-          <Button variant="contained" className="filter-apply" onClick={handleFilterData}>
-            Apply Filter
-          </Button>
-          <Button variant="outlined" className="filter-reset" onClick={resetFilters}>
-            Reset
-          </Button>
-        </div>
+      {/* ─── Payment Hold Banner (if suspended) ───────────── */}
+      {isSuspended && (
+        <PaymentHoldBanner
+          reason={suspensionReason}
+          billingStatus={isMqttSuspended ? "PAYMENT_HOLD_RECORDING" : "SUSPENDED_BLOCKED"}
+          holdType={holdType}
+          uid={uid}
+        />
       )}
 
-      {/* ─── Activity Log ────────────────────────────────── */}
-      {viewMode === "activity" && (
-        <div className="activity-panel">
-          <div className="activity-panel-header">
-            <div>
-              <h3>Device Activity Timeline</h3>
-              <p>Latest events recorded for this device</p>
-            </div>
-            <Button
-              className="activity-refresh"
-              startIcon={<RefreshIcon />}
-              onClick={fetchActivityLogs}
-              disabled={activitiesLoading}
-            >
-              Refresh
-            </Button>
-          </div>
+      {!isSuspended && (
+        <>
+          {/* ─── View Toggle ─────────────────────────────────── */}
+          <ToggleButtonGroup
+            className="view-toggle"
+            value={viewMode}
+            exclusive
+            onChange={(_, newMode) => newMode && setViewMode(newMode)}
+          >
+            <ToggleButton value="history">
+              <HistoryIcon /> History
+            </ToggleButton>
+            <ToggleButton value="activity">
+              <ActivityIcon /> Activity Log
+            </ToggleButton>
+          </ToggleButtonGroup>
 
-          {activitiesLoading ? (
-            <div className="loading-spinner">
-              <CircularProgress sx={{ color: "var(--primary-color)" }} />
-            </div>
-          ) : activities.length === 0 ? (
-            <div className="activity-empty">
-              <span className="empty-icon">🕘</span>
-              <p>No activities logged for this device.</p>
-            </div>
-          ) : (
-            <div className="activity-list">
-              {activities.map((act) => {
-                const meta = getActivityMeta(act.type);
-                return (
-                  <div className="activity-item" key={act.id || act._id}>
-                    <div className={`activity-icon ${meta.cls}`}>{meta.icon}</div>
-                    <div className="activity-body">
-                      <p className="activity-desc">{act.description}</p>
-                      <span className="activity-type">{act.type}</span>
-                    </div>
-                    <span className="activity-time">
-                      {new Date(act.timestamp).toLocaleString()}
-                    </span>
-                  </div>
-                );
-              })}
+          {/* ─── History: Filter Bar ─────────────────────────── */}
+          {viewMode === "history" && (
+            <div className="filter-controls">
+              <TextField
+                label="Start Date"
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                InputLabelProps={{ shrink: true }}
+              />
+              <TextField
+                label="End Date"
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                InputLabelProps={{ shrink: true }}
+              />
+              <Select value={interval} onChange={(e) => setInterval(e.target.value)}>
+                <MenuItem value={30}>30 Minutes</MenuItem>
+                <MenuItem value={60}>1 Hour</MenuItem>
+              </Select>
+              <Button variant="contained" className="filter-apply" onClick={handleFilterData}>
+                Apply Filter
+              </Button>
+              <Button variant="outlined" className="filter-reset" onClick={resetFilters}>
+                Reset
+              </Button>
             </div>
           )}
-        </div>
-      )}
 
-      {/* ─── History: Charts ─────────────────────────────── */}
-      {viewMode !== "activity" &&
-        (loading ? (
-          <div className="loading-spinner">
-            <CircularProgress sx={{ color: "var(--primary-color)" }} />
-          </div>
-        ) : (
-          <div className="charts-container">{renderCharts()}</div>
-        ))}
+          {/* ─── Activity Log ────────────────────────────────── */}
+          {viewMode === "activity" && (
+            <div className="activity-panel">
+              <div className="activity-panel-header">
+                <div>
+                  <h3>Device Activity Timeline</h3>
+                  <p>Latest events recorded for this device</p>
+                </div>
+                <Button
+                  className="activity-refresh"
+                  startIcon={<RefreshIcon />}
+                  onClick={fetchActivityLogs}
+                  disabled={activitiesLoading}
+                >
+                  Refresh
+                </Button>
+              </div>
+
+              {activitiesLoading ? (
+                <div className="loading-spinner">
+                  <CircularProgress sx={{ color: "var(--primary-color)" }} />
+                </div>
+              ) : activities.length === 0 ? (
+                <div className="activity-empty">
+                  <span className="empty-icon">🕘</span>
+                  <p>No activities logged for this device.</p>
+                </div>
+              ) : (
+                <div className="activity-list">
+                  {activities.map((act) => {
+                    const meta = getActivityMeta(act.type);
+                    return (
+                      <div className="activity-item" key={act.id || act._id}>
+                        <div className={`activity-icon ${meta.cls}`}>{meta.icon}</div>
+                        <div className="activity-body">
+                          <p className="activity-desc">{act.description}</p>
+                          <span className="activity-type">{act.type}</span>
+                        </div>
+                        <span className="activity-time">
+                          {new Date(act.timestamp).toLocaleString()}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ─── History: Charts ─────────────────────────────── */}
+          {viewMode !== "activity" &&
+            (loading ? (
+              <div className="loading-spinner">
+                <CircularProgress sx={{ color: "var(--primary-color)" }} />
+              </div>
+            ) : (
+              <div className="charts-container">{renderCharts()}</div>
+            ))}
+        </>
+      )}
 
       <Snackbar
         open={snackbarOpen}

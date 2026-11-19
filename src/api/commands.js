@@ -82,3 +82,29 @@ export async function setPower(uid, pin, controlId, value) {
     throw error;
   }
 }
+
+export async function sendTimerCommand({ uid, pin, timer_enabled, on_time, off_time }) {
+  try {
+    const response = await fetch(
+      `${import.meta.env.VITE_REACT_APP_API_URL}/api/v1/command/timer`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({ uid, pin, timer_enabled, on_time, off_time }),
+      }
+    );
+
+    if (!response.ok) {
+      const errorDetails = await response.text();
+      throw new Error(`Error: ${response.status}, ${errorDetails}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Error setting timer command:", error);
+    throw error;
+  }
+}

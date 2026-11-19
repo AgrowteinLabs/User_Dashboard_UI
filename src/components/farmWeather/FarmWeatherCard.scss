@@ -195,6 +195,125 @@ body.dark-mode {
   font-weight: 700;
   border-radius: 10px;
   margin-top: 4px;
+
+  &.compact {
+    margin-top: 0;
+    padding: 4px 10px;
+    font-size: 0.72rem;
+  }
+}
+
+// ── Compact Inline Weather Variant ─────────────────────────────────────
+.farm-weather-card.compact {
+  height: 54px;
+  min-height: 54px;
+  padding: 0 16px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--card-bg);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--card-border);
+  box-shadow: var(--shadow-premium);
+  color: var(--text-color);
+  width: 100%;
+  margin: 0;
+  transition: var(--transition-smooth);
+
+  &:hover {
+    border-color: rgba(0, 242, 155, 0.25);
+    box-shadow: var(--shadow-premium), 0 0 20px rgba(0, 242, 155, 0.08);
+  }
+
+  &::after {
+    display: none;
+  }
+
+  .fw-compact-weather {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+
+    .fw-compact-icon {
+      font-size: 1.45rem;
+      line-height: 1;
+      filter: drop-shadow(0 2px 6px rgba(0, 242, 155, 0.2));
+    }
+
+    .fw-compact-temp {
+      font-family: var(--font-family-outfit);
+      font-size: 1.25rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: var(--text-color);
+    }
+
+    .fw-compact-cond {
+      font-family: var(--font-family-jakarta);
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-secondary);
+      max-width: 110px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  }
+
+  .fw-compact-loc {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    flex: 1;
+    justify-content: center;
+
+    .fw-compact-pin,
+    .fw-compact-icon {
+      font-size: 0.95rem;
+      flex-shrink: 0;
+    }
+
+    .fw-compact-farm-name {
+      font-family: var(--font-family-jakarta);
+      font-weight: 700;
+      font-size: 0.82rem;
+      color: var(--text-color);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 220px;
+    }
+  }
+
+  .fw-compact-muted {
+    font-family: var(--font-family-jakarta);
+    font-size: 0.74rem;
+    color: var(--text-muted);
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  .fw-compact-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  &.empty,
+  &.skeleton {
+    height: 54px;
+    min-height: 54px;
+    padding: 0 16px;
+    border-radius: 16px;
+    cursor: default;
+  }
 }
 
 @keyframes fw-spin {

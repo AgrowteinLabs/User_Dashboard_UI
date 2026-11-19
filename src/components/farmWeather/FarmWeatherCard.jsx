@@ -1,4 +1,5 @@
 import { useCallback, useContext, useEffect, useMemo, useState } from "react";
+import PropTypes from "prop-types";
 import { ProductContext } from "../../context/ProductContext";
 import fetchProducts from "../../api/fetchProducts";
 import LocationPicker from "./LocationPicker";
@@ -18,7 +19,7 @@ const conditionIcon = (condition) => {
   return "🌡️";
 };
 
-const FarmWeatherCard = () => {
+const FarmWeatherCard = ({ compact = false }) => {
   const { selectedProductUid } = useContext(ProductContext);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -53,24 +54,31 @@ const FarmWeatherCard = () => {
   const body = (() => {
     if (loading && products.length === 0) {
       return (
-        <div className="farm-weather-card skeleton">Loading weather…</div>
+        <div className={`farm-weather-card${compact ? " compact" : ""} skeleton`}>
+          {compact ? <span className="fw-compact-muted">Loading weather…</span> : "Loading weather…"}
+        </div>
       );
     }
 
     if (error && products.length === 0) {
       return (
-        <div className="farm-weather-card empty">
-          <span className="fw-icon">🌡️</span>
-          <span>Weather unavailable.</span>
+        <div className={`farm-weather-card${compact ? " compact" : ""} empty`}>
+          <span className={compact ? "fw-compact-icon" : "fw-icon"}>🌡️</span>
+          <span className={compact ? "fw-compact-muted" : ""}>Weather unavailable.</span>
+          {compact && (
+            <button type="button" className="fw-action-icon-btn" onClick={loadProducts} title="Retry">
+              ↻
+            </button>
+          )}
         </div>
       );
     }
 
     if (!product) {
       return (
-        <div className="farm-weather-card empty">
-          <span className="fw-icon">📍</span>
-          <span>Select a farm to see weather.</span>
+        <div className={`farm-weather-card${compact ? " compact" : ""} empty`}>
+          <span className={compact ? "fw-compact-icon" : "fw-icon"}>📍</span>
+          <span className={compact ? "fw-compact-muted" : ""}>Select a farm to see weather.</span>
         </div>
       );
     }
@@ -80,6 +88,25 @@ const FarmWeatherCard = () => {
     const weather = product.weather || null;
 
     if (!hasCoords) {
+      if (compact) {
+        return (
+          <div className="farm-weather-card compact empty">
+            <div className="fw-compact-loc">
+              <span className="fw-compact-icon">📍</span>
+              <span className="fw-compact-farm-name" title={farmName}>{farmName}</span>
+            </div>
+            <span className="fw-compact-muted">No location set</span>
+            <button
+              type="button"
+              className="fw-set-location-btn compact"
+              onClick={() => setPickerOpen(true)}
+            >
+              📍 Set location
+            </button>
+          </div>
+        );
+      }
+
       return (
         <div className="farm-weather-card empty">
           <span className="fw-icon">📍</span>
@@ -99,6 +126,37 @@ const FarmWeatherCard = () => {
     }
 
     if (!weather) {
+      if (compact) {
+        return (
+          <div className="farm-weather-card compact empty">
+            <div className="fw-compact-loc" title={farmName}>
+              <span className="fw-compact-icon">🌡️</span>
+              <span className="fw-compact-farm-name">{farmName}</span>
+            </div>
+            <span className="fw-compact-muted">Weather unavailable</span>
+            <div className="fw-compact-actions">
+              <button
+                type="button"
+                className="fw-action-icon-btn"
+                onClick={() => setPickerOpen(true)}
+                title="Edit location"
+              >
+                ✏️
+              </button>
+              <button
+                type="button"
+                className={`fw-action-icon-btn${loading ? " spinning" : ""}`}
+                onClick={loadProducts}
+                disabled={loading}
+                title="Retry"
+              >
+                ↻
+              </button>
+            </div>
+          </div>
+        );
+      }
+
       return (
         <div className="farm-weather-card empty">
           <span className="fw-icon">🌡️</span>
@@ -131,6 +189,41 @@ const FarmWeatherCard = () => {
     const temp = Number.isFinite(Number(weather.temperatureC))
       ? `${Math.round(Number(weather.temperatureC))}°C`
       : "—";
+
+    if (compact) {
+      return (
+        <div className="farm-weather-card compact">
+          <div className="fw-compact-weather">
+            <span className="fw-compact-icon">{conditionIcon(weather.condition)}</span>
+            <span className="fw-compact-temp">{temp}</span>
+            <span className="fw-compact-cond">{weather.condition || "Unknown"}</span>
+          </div>
+          <div className="fw-compact-loc" title={farmName}>
+            <span className="fw-compact-pin">📍</span>
+            <span className="fw-compact-farm-name">{farmName}</span>
+          </div>
+          <div className="fw-compact-actions">
+            <button
+              type="button"
+              className="fw-action-icon-btn"
+              onClick={() => setPickerOpen(true)}
+              title="Edit Location"
+            >
+              ✏️
+            </button>
+            <button
+              type="button"
+              className={`fw-action-icon-btn${loading ? " spinning" : ""}`}
+              onClick={loadProducts}
+              disabled={loading}
+              title="Refresh Weather"
+            >
+              ↻
+            </button>
+          </div>
+        </div>
+      );
+    }
 
     return (
       <div className="farm-weather-card">
@@ -182,6 +275,10 @@ const FarmWeatherCard = () => {
       />
     </>
   );
+};
+
+FarmWeatherCard.propTypes = {
+  compact: PropTypes.bool,
 };
 
 export default FarmWeatherCard;

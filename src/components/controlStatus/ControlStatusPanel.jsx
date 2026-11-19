@@ -68,10 +68,10 @@ const commandLabel = (h) => {
   return `${cmd}${val}`.trim() || "Command";
 };
 
-const ControlStatusPanel = ({ configExpanded }) => {
+const ControlStatusPanel = ({ configExpanded, setConfigExpanded }) => {
   const { selectedProductUid, selectedProduct } = useContext(ProductContext);
-  const controls = selectedProduct?.controls || [];
-  const productId = selectedProduct?.id || null;
+  const controls = useMemo(() => selectedProduct?.controls || [], [selectedProduct]);
+  const productId = selectedProduct?._id || selectedProduct?.id || null;
   const [history, setHistory] = useState([]);
   const [historyTotal, setHistoryTotal] = useState(0);
   const [historyLoading, setHistoryLoading] = useState(false);
@@ -137,13 +137,50 @@ const ControlStatusPanel = ({ configExpanded }) => {
 
   return (
     <div className={`control-status-panel-flat ${!configExpanded ? "sync-collapsed" : ""}`}>
-      <div className="panel-header">
+      <div
+        className="panel-header"
+        onClick={() => setConfigExpanded?.((prev) => !prev)}
+        style={{ cursor: setConfigExpanded ? "pointer" : "default" }}
+        title={configExpanded ? "Collapse panel" : "Expand panel"}
+      >
         <div className="title-block" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
           <h3>📊 Controller Status</h3>
         </div>
-        <span className={`connection ${connected ? "online" : "offline"}`}>
-          {connected ? "Connected" : "Disconnected"}
-        </span>
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <span className={`connection ${connected ? "online" : "offline"}`}>
+            {connected ? "Connected" : "Disconnected"}
+          </span>
+          {setConfigExpanded && (
+            <span
+              className="toggle-icon-btn"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: "28px",
+                height: "28px",
+                borderRadius: "50%",
+                background: "rgba(255, 255, 255, 0.04)",
+                border: "1px solid var(--card-border)",
+                cursor: "pointer",
+              }}
+              title={configExpanded ? "Collapse panel" : "Expand panel"}
+            >
+              <span
+                style={{
+                  display: "block",
+                  transform: configExpanded ? "rotate(0deg)" : "rotate(-90deg)",
+                  transition: "transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
+                  fontSize: "0.85rem",
+                  color: "var(--primary-emerald)",
+                  lineHeight: 1,
+                }}
+              >
+                ▼
+              </span>
+            </span>
+          )}
+        </div>
       </div>
 
       <div className="content">
@@ -205,23 +242,30 @@ const ControlStatusPanel = ({ configExpanded }) => {
                 );
                 return (
                   <li key={h.id} className="history-item">
-                    <div className="history-left">
-                      <span className="history-control">
+                    <div className="history-item-top">
+                      <span
+                        className="history-control"
+                        title={control?.name || h.controlId || h.pin || "Controller"}
+                      >
                         {control?.name || h.controlId || h.pin || "Controller"}
                       </span>
-                      <span className="history-action">{commandLabel(h)}</span>
-                    </div>
-                    <div className="history-right">
                       <StatusChip status={h.status} />
-                      <span className="history-time">
-                        {formatRelative(h.timestamp)}
+                    </div>
+                    <div className="history-item-bottom">
+                      <span className="history-action" title={commandLabel(h)}>
+                        {commandLabel(h)}
                       </span>
-                      {h.deviceFeedback?.received &&
-                        Number.isFinite(h.deviceFeedback?.responseTime) && (
-                          <span className="history-ack">
-                            acked in {(h.deviceFeedback.responseTime / 1000).toFixed(1)}s
-                          </span>
-                        )}
+                      <div className="history-item-meta">
+                        <span className="history-time">
+                          {formatRelative(h.timestamp)}
+                        </span>
+                        {h.deviceFeedback?.received &&
+                          Number.isFinite(h.deviceFeedback?.responseTime) && (
+                            <span className="history-ack">
+                              acked in {(h.deviceFeedback.responseTime / 1000).toFixed(1)}s
+                            </span>
+                          )}
+                      </div>
                     </div>
                   </li>
                 );
@@ -236,6 +280,7 @@ const ControlStatusPanel = ({ configExpanded }) => {
 
 ControlStatusPanel.propTypes = {
   configExpanded: PropTypes.bool.isRequired,
+  setConfigExpanded: PropTypes.func,
 };
 
 export default ControlStatusPanel;

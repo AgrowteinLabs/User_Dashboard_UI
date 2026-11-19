@@ -4,50 +4,53 @@ import { v4 as uuidv4 } from "uuid";
 
 const SIGN_URL_API = `${import.meta.env.VITE_REACT_APP_API_URL}/api/sign-mqtt-url`;
 
-export const useMqttControl = (uid) => {
+export const useMqttControl = (uid, onExternalFeedback) => {
   const clientRef = useRef(null);
   const messageListenerRef = useRef(null);
+  const externalFeedbackRef = useRef(onExternalFeedback);
+
+  useEffect(() => {
+    externalFeedbackRef.current = onExternalFeedback;
+  }, [onExternalFeedback]);
 
   const publishCommandWithFeedback = (payload, onSuccess, onTimeout) => {
     const client = clientRef.current;
     if (!client?.connected) {
       console.warn("❌ MQTT not connected");
-      onTimeout?.();
+      onTimeout?.(new Error("MQTT not connected"));
       return;
     }
 
-    // Timeout for device feedback - 25 seconds
+    // Timeout for device feedback - 25 seconds (§3)
     const FEEDBACK_TIMEOUT = 25000;
     let feedbackTimeoutId = null;
     let feedbackReceived = false;
 
-    const onMessage = (topic, message) => {
+    const onMessage = (_topic, message) => {
       try {
         const feedback = JSON.parse(message.toString());
         console.log("📡 Feedback received:", feedback);
-        console.log(
-          "🔍 Comparing - Expected pin:",
-          payload.pin,
-          "Got:",
-          feedback.pin,
-          "| Expected command:",
-          payload.command,
-          "Got:",
-          feedback.command
-        );
+
+        // Normalize matching
+        const pinMatch =
+          String(feedback.pin || "").trim().toUpperCase() ===
+          String(payload.pin || "").trim().toUpperCase();
+        const cmdMatch =
+          String(feedback.command || "").trim().toLowerCase() ===
+          String(payload.command || "").trim().toLowerCase();
 
         // Match feedback with command
-        if (
-          feedback.pin === payload.pin &&
-          feedback.command === payload.command
-        ) {
-          console.log("✅ Feedback matched! Device confirmed command.");
+        if (pinMatch && cmdMatch) {
+          console.log("✅ Feedback matched! Device confirmed command:", feedback);
           feedbackReceived = true;
           clearTimeout(feedbackTimeoutId);
           client.removeListener("message", onMessage);
-          onSuccess?.();
-        } else {
-          console.log("⚠️ Feedback received but doesn't match this command");
+
+          if (feedback.status === "error") {
+            onTimeout?.(new Error(feedback.message || "Device returned error"));
+          } else {
+            onSuccess?.(feedback);
+          }
         }
       } catch (err) {
         console.warn("⚠️ Invalid feedback received", err);
@@ -68,21 +71,21 @@ export const useMqttControl = (uid) => {
           clearTimeout(feedbackTimeoutId);
           client.removeListener("message", onMessage);
           console.error("❌ Publish failed", err);
-          onTimeout?.();
+          onTimeout?.(err);
           return;
         }
         console.log("✅ Command published successfully to MQTT broker");
       }
     );
 
-    // Hard timeout if feedback never comes and fallback already triggered
+    // 25s timeout for device acknowledgement (§3)
     feedbackTimeoutId = setTimeout(() => {
       console.warn(
         `⏱️ Hard timeout - no device feedback after ${FEEDBACK_TIMEOUT}ms`
       );
       client.removeListener("message", onMessage);
       if (!feedbackReceived) {
-        onTimeout?.();
+        onTimeout?.(new Error("Timeout: device did not respond within 25 seconds"));
       }
     }, FEEDBACK_TIMEOUT);
   };
@@ -103,11 +106,22 @@ export const useMqttControl = (uid) => {
         });
 
         mqttClient.on("connect", () => {
-          const topic = `esp32/${uid}/feed`;
-          mqttClient.subscribe(topic, (err) => {
+          const feedTopic = `esp32/${uid}/feed`;
+          const msgTopic = `esp32/${uid}/msg`;
+          mqttClient.subscribe([feedTopic, msgTopic], (err) => {
             if (err) console.error("❌ Subscription failed", err);
-            else console.log(`📡 Subscribed to ${topic}`);
+            else console.log(`📡 Subscribed to ${feedTopic} and ${msgTopic}`);
           });
+        });
+
+        // Global feed listener for cross-platform synchronization (§2 & §4)
+        mqttClient.on("message", (_topic, message) => {
+          try {
+            const data = JSON.parse(message.toString());
+            externalFeedbackRef.current?.(data);
+          } catch {
+            /* ignore non-json */
+          }
         });
 
         mqttClient.on("error", (err) => console.error("MQTT error:", err));

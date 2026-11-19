@@ -1,4 +1,5 @@
-import React, { createContext, useState, useEffect, useRef, useCallback } from 'react';
+import { createContext, useState, useEffect, useRef, useCallback } from 'react';
+import PropTypes from 'prop-types';
 import fetchProducts from '../api/fetchProducts';
 
 export const ProductContext = createContext();
@@ -6,6 +7,7 @@ export const ProductContext = createContext();
 export const ProductProvider = ({ children }) => {
   const [products, setProducts] = useState([]);
   const [selectedProductUid, setSelectedProductUid] = useState(null);
+  const [customProductDetails, setCustomProductDetails] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -50,6 +52,33 @@ export const ProductProvider = ({ children }) => {
     }
   }, [fetchProductsList]);
 
+  // App Resume & Reconnection Handler (Sync spec §3: fetch latest device state on reconnect/resume)
+  useEffect(() => {
+    const handleResumeOrReconnect = () => {
+      const userId = localStorage.getItem("userId");
+      if (userId) {
+        console.log("🔄 App resume / network reconnect: fetching latest confirmed device state");
+        fetchProductsList();
+      }
+    };
+
+    window.addEventListener("online", handleResumeOrReconnect);
+    window.addEventListener("focus", handleResumeOrReconnect);
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        handleResumeOrReconnect();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener("online", handleResumeOrReconnect);
+      window.removeEventListener("focus", handleResumeOrReconnect);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [fetchProductsList]);
+
   // Handle setting default selected product once products list loads
   useEffect(() => {
     if (products.length > 0 && !selectedProductUid) {
@@ -65,6 +94,7 @@ export const ProductProvider = ({ children }) => {
   };
 
   const selectedProduct = products.find((p) => p.uid === selectedProductUid) || null;
+  const selectedProductDetails = customProductDetails || selectedProduct;
 
   return (
     <ProductContext.Provider
@@ -74,6 +104,8 @@ export const ProductProvider = ({ children }) => {
         selectedProductUid,
         setSelectedProductUid: selectProduct,
         selectedProduct,
+        selectedProductDetails,
+        setSelectedProductDetails: setCustomProductDetails,
         loading,
         error,
         refetchProducts: fetchProductsList,
@@ -82,4 +114,8 @@ export const ProductProvider = ({ children }) => {
       {children}
     </ProductContext.Provider>
   );
+};
+
+ProductProvider.propTypes = {
+  children: PropTypes.node,
 };

@@ -102,3 +102,13 @@ export async function deleteSchedule(productId, controlId, scheduleId) {
   );
   return res.json();
 }
+
+// ---------- Hardware Cyclic Timer REST Fallback (§2) ----------
+// POST /api/v1/command/timer
+export async function sendTimerCommand(payload) {
+  const res = await request(`${API_URL}/api/v1/command/timer`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return res.json();
+}
