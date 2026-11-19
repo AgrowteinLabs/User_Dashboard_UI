@@ -27,9 +27,8 @@ import {
   DeleteOutline,
   Add,
   PlayArrow,
-  EventRepeat,
-  Event,
-  Today,
+  CloudQueue,
+  Memory,
 } from "@mui/icons-material";
 import {
   fetchSchedules,
@@ -44,24 +43,46 @@ import "./ControlTimers.scss";
 
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
+const getTodayDateString = () => {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
 const describeSchedule = (s) => {
   const action = s.action === "ON" ? "Turn ON" : "Turn OFF";
   const startTime = s.startTime || s.time || "--:--";
   const rangeStr = s.endTime ? `from ${startTime} to ${s.endTime}` : `at ${startTime}`;
+
   if (s.scheduleType === "once") {
-    const d = s.startDate ? new Date(s.startDate).toLocaleDateString() : "";
+    const d = s.startDate || "";
     return `${action} once on ${d} ${rangeStr}`;
   }
-  if (s.scheduleType === "weekly") {
-    const days = (s.days || []).length
-      ? (s.days || [])
-          .map((d) => DAY_LABELS[Number(d)])
-          .filter(Boolean)
-          .join(", ")
-      : "every day";
-    return `${action} ${days} ${rangeStr}`;
+
+  const daysArr = Array.isArray(s.days) ? s.days.map(Number) : [];
+  if (daysArr.length === 7 || s.scheduleType === "daily") {
+    return `${action} daily ${rangeStr}`;
   }
-  return `${action} daily ${rangeStr}`;
+
+  const sortedDays = daysArr.slice().sort((a, b) => a - b).join(",");
+  if (sortedDays === "1,2,3,4,5" || s.scheduleType === "weekdays") {
+    return `${action} weekdays (Mon-Fri) ${rangeStr}`;
+  }
+  if (sortedDays === "0,6" || s.scheduleType === "weekends") {
+    return `${action} weekends (Sat-Sun) ${rangeStr}`;
+  }
+
+  if (daysArr.length > 0) {
+    const dayNames = daysArr
+      .map((d) => DAY_LABELS[d])
+      .filter(Boolean)
+      .join(", ");
+    return `${action} on ${dayNames} ${rangeStr}`;
+  }
+
+  return `${action} ${rangeStr}`;
 };
 
 const ControlTimers = ({
@@ -198,7 +219,7 @@ const ControlTimers = ({
     }
   };
 
-  // ─── Schedules State & Handlers ───────────────────────────────────────────
+  // ─── Schedules State & Handlers (Recurring vs. One-Time / Once) ───────────
   const [schedOpen, setSchedOpen] = useState(false);
   const [schedules, setSchedules] = useState([]);
   const [schedLoading, setSchedLoading] = useState(false);
@@ -208,7 +229,7 @@ const ControlTimers = ({
   const [schedType, setSchedType] = useState("daily");
   const [schedTime, setSchedTime] = useState("08:00");
   const [schedDays, setSchedDays] = useState([1, 2, 3, 4, 5]);
-  const [schedDate, setSchedDate] = useState("");
+  const [schedDate, setSchedDate] = useState(getTodayDateString());
   const schedTimezone = defaultTimezone;
   const [schedEnabled, setSchedEnabled] = useState(true);
   const [schedEndTime, setSchedEndTime] = useState("");
@@ -242,9 +263,14 @@ const ControlTimers = ({
     setSchedBusy(true);
     setSchedError("");
     try {
+      if (!schedTime) {
+        throw new Error("Start time is required");
+      }
       if (schedEndTime && schedEndTime === schedTime) {
         throw new Error("Start time and end time cannot be the same");
       }
+
+      // Base payload conforming to REST API spec
       const payload = {
         action: schedAction,
         scheduleType: schedType,
@@ -253,13 +279,50 @@ const ControlTimers = ({
         timezone: schedTimezone,
         enabled: schedEnabled,
       };
-      if (schedEndTime) payload.endTime = schedEndTime;
-      if (schedType === "weekly") payload.days = schedDays;
-      if (schedType === "once") payload.startDate = schedDate;
 
+      if (schedEndTime) {
+        payload.endTime = schedEndTime;
+      }
+
+      if (schedType === "once") {
+        if (!schedDate) {
+          throw new Error("Date is required for a one-time schedule (YYYY-MM-DD)");
+        }
+        // Specific calendar date for cloud execution (timerEngine)
+        payload.startDate = schedDate;
+        // ⚠️ Rule: NEVER include days array for "once" schedules!
+      } else {
+        // Recurring schedules: send with the appropriate day array [0..6]
+        if (schedType === "daily") {
+          payload.days = [0, 1, 2, 3, 4, 5, 6];
+        } else if (schedType === "weekdays") {
+          payload.days = [1, 2, 3, 4, 5];
+        } else if (schedType === "weekends") {
+          payload.days = [0, 6];
+        } else if (schedType === "weekly") {
+          if (!schedDays || schedDays.length === 0) {
+            throw new Error("Please select at least one day of the week");
+          }
+          payload.days = schedDays.slice().sort((a, b) => a - b);
+        }
+      }
+
+      // Save via the Backend REST API:
+      // POST /api/v1/products/:productId/controls/:controlId/schedules
       await createSchedule(productId, controlKey, payload);
       await loadSchedules();
       onChanged?.();
+
+      Swal.fire({
+        icon: "success",
+        title: "Schedule Created",
+        text:
+          schedType === "once"
+            ? `One-time schedule set for ${schedDate} at ${schedTime} (Cloud Executed)`
+            : `Recurring schedule created for ${schedTime} (Hardware Scheduler)`,
+        timer: 2500,
+        showConfirmButton: false,
+      });
     } catch (err) {
       setSchedError(err.message);
     } finally {
@@ -268,18 +331,22 @@ const ControlTimers = ({
   };
 
   const handleToggleSchedule = async (s) => {
+    const scheduleId = s.id || s._id;
     try {
-      await updateSchedule(productId, controlKey, s.id, { enabled: !s.enabled });
+      await updateSchedule(productId, controlKey, scheduleId, { enabled: !s.enabled });
       await loadSchedules();
+      onChanged?.();
     } catch (err) {
       setSchedError(err.message);
     }
   };
 
   const handleDeleteSchedule = async (s) => {
+    const scheduleId = s.id || s._id;
     try {
-      await deleteSchedule(productId, controlKey, s.id);
+      await deleteSchedule(productId, controlKey, scheduleId);
       await loadSchedules();
+      onChanged?.();
     } catch (err) {
       setSchedError(err.message);
     }
@@ -524,7 +591,7 @@ const ControlTimers = ({
         </DialogContent>
       </Dialog>
 
-      {/* ─── Schedule Modal ─────────────────────────────────────────────────── */}
+      {/* ─── Schedule Modal (Recurring vs. One-Time / Once) ──────────────────── */}
       <Dialog open={schedOpen} onClose={() => setSchedOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle className="ct-dialog-title">
           <Box style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
@@ -544,23 +611,30 @@ const ControlTimers = ({
           </IconButton>
         </DialogTitle>
         <DialogContent dividers>
+          {/* Info Banner explaining Hardware vs. Cloud Execution */}
           <Box
             className="ct-info-banner"
             style={{
               background: "rgba(0, 242, 155, 0.04)",
               border: "1px dashed rgba(0, 242, 155, 0.2)",
               borderRadius: "10px",
-              padding: "10px 14px",
+              padding: "12px 14px",
               marginBottom: "16px",
               fontSize: "0.82rem",
               color: "var(--text-color)",
               display: "flex",
-              alignItems: "center",
-              gap: "8px",
+              flexDirection: "column",
+              gap: "6px",
               fontFamily: "var(--font-family-jakarta)",
             }}
           >
-            ℹ️ Schedules execute recurring triggers at specific times, running entirely on the device even when offline.
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", fontWeight: 700 }}>
+              ℹ️ Schedule Execution Architecture
+            </div>
+            <div style={{ fontSize: "0.78rem", color: "var(--text-secondary)", lineHeight: 1.45 }}>
+              • <strong>Recurring (Daily / Weekdays / Custom Days):</strong> Executes autonomously on the ESP32 hardware scheduler even when offline.<br/>
+              • <strong>Once (Specific Date):</strong> Executed via Cloud Engine (timerEngine) at the exact calendar date/time, then automatically disabled without weekly repeats.
+            </div>
           </Box>
 
           <Typography variant="subtitle2" sx={{ mb: 1.5, display: "flex", alignItems: "center", gap: "6px" }}>
@@ -572,45 +646,63 @@ const ControlTimers = ({
             </Box>
           ) : schedules.length === 0 ? (
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              No schedules yet — the backend executes these even when the app is closed.
+              No schedules yet — add one below.
             </Typography>
           ) : (
             <Box className="ct-sched-list">
-              {schedules.map((s) => (
-                <Box key={s.id} className="ct-sched-item">
-                  <Box className="ct-sched-icon">
-                    {s.scheduleType === "once" ? <Event /> : s.scheduleType === "weekly" ? <Today /> : <EventRepeat />}
+              {schedules.map((s) => {
+                const isOnce = s.scheduleType === "once";
+                return (
+                  <Box key={s.id || s._id} className="ct-sched-item">
+                    <Box className="ct-sched-icon">
+                      {isOnce ? <CloudQueue /> : <Memory />}
+                    </Box>
+                    <Box className="ct-sched-body">
+                      <Box sx={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap", mb: 0.3 }}>
+                        <Typography variant="body2" className={s.enabled ? "" : "ct-disabled"}>
+                          {describeSchedule(s)}
+                        </Typography>
+                        {isOnce ? (
+                          <Chip
+                            label="☁️ Cloud (Once)"
+                            size="small"
+                            className="ct-exec-badge cloud"
+                          />
+                        ) : (
+                          <Chip
+                            label="⚡ Hardware"
+                            size="small"
+                            className="ct-exec-badge hardware"
+                          />
+                        )}
+                      </Box>
+                      <Typography variant="caption" color="text.secondary">
+                        {s.timezone || schedTimezone} · {s.runs || 0} run{(s.runs || 0) === 1 ? "" : "s"}
+                        {s.endTime && (
+                          <Chip
+                            label={`↩ OFF at ${s.endTime}`}
+                            size="small"
+                            variant="outlined"
+                            color="warning"
+                            sx={{ ml: 1, height: 18, fontSize: "0.65rem", verticalAlign: "middle" }}
+                          />
+                        )}
+                      </Typography>
+                    </Box>
+                    <Tooltip title={s.enabled ? "Pause Schedule" : "Resume Schedule"}>
+                      <Switch size="small" checked={s.enabled} onChange={() => handleToggleSchedule(s)} />
+                    </Tooltip>
+                    <IconButton
+                      size="small"
+                      onClick={() => handleDeleteSchedule(s)}
+                      aria-label="Delete schedule"
+                      className="ct-delete-btn"
+                    >
+                      <DeleteOutline fontSize="small" />
+                    </IconButton>
                   </Box>
-                  <Box className="ct-sched-body">
-                    <Typography variant="body2" className={s.enabled ? "" : "ct-disabled"}>
-                      {describeSchedule(s)}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      {s.timezone} · {s.runs || 0} run{(s.runs || 0) === 1 ? "" : "s"}
-                      {s.endTime && (
-                        <Chip
-                          label={`↩ OFF at ${s.endTime}`}
-                          size="small"
-                          variant="outlined"
-                          color="warning"
-                          sx={{ ml: 1, height: 18, fontSize: "0.65rem", verticalAlign: "middle" }}
-                        />
-                      )}
-                    </Typography>
-                  </Box>
-                  <Tooltip title={s.enabled ? "Disable" : "Enable"}>
-                    <Switch size="small" checked={s.enabled} onChange={() => handleToggleSchedule(s)} />
-                  </Tooltip>
-                  <IconButton
-                    size="small"
-                    onClick={() => handleDeleteSchedule(s)}
-                    aria-label="Delete schedule"
-                    className="ct-delete-btn"
-                  >
-                    <DeleteOutline fontSize="small" />
-                  </IconButton>
-                </Box>
-              ))}
+                );
+              })}
             </Box>
           )}
 
@@ -639,9 +731,11 @@ const ControlTimers = ({
             <FormControl size="small" fullWidth>
               <InputLabel>Repeat</InputLabel>
               <Select label="Repeat" value={schedType} onChange={(e) => setSchedType(e.target.value)}>
-                <MenuItem value="once">📅 Once (Single Run)</MenuItem>
-                <MenuItem value="daily">🔁 Daily (Every Day)</MenuItem>
-                <MenuItem value="weekly">🗓️ Weekly (Custom Days)</MenuItem>
+                <MenuItem value="once">📅 Once (Specific Date · Cloud Execution)</MenuItem>
+                <MenuItem value="daily">🔁 Daily (Every Day · Hardware)</MenuItem>
+                <MenuItem value="weekdays">💼 Weekdays (Mon - Fri · Hardware)</MenuItem>
+                <MenuItem value="weekends">🏖️ Weekends (Sat - Sun · Hardware)</MenuItem>
+                <MenuItem value="weekly">🗓️ Custom Days (Hardware)</MenuItem>
               </Select>
             </FormControl>
             <TextField
@@ -672,34 +766,42 @@ const ControlTimers = ({
               }}
               helperText={schedEndTime ? `Device automatically turns OFF at ${schedEndTime}` : "Optional: Auto-turns off to create window"}
             />
-            <TextField
-              type="date"
-              label="Date (once)"
-              size="small"
-              fullWidth
-              value={schedDate}
-              onChange={(e) => setSchedDate(e.target.value)}
-              InputLabelProps={{ shrink: true }}
-              disabled={schedType !== "once"}
-            />
+            {schedType === "once" && (
+              <TextField
+                type="date"
+                label="Execution Date"
+                size="small"
+                fullWidth
+                value={schedDate}
+                onChange={(e) => setSchedDate(e.target.value)}
+                InputLabelProps={{ shrink: true }}
+                inputProps={{ min: getTodayDateString() }}
+                helperText="One-time schedule executes on this specific calendar date via Cloud Engine"
+              />
+            )}
           </Box>
 
           {schedType === "weekly" && (
             <Box className="ct-days" sx={{ mt: 1.5 }}>
-              {DAY_LABELS.map((label, idx) => (
-                <FormControlLabel
-                  key={label}
-                  control={
-                    <Checkbox
-                      size="small"
-                      checked={schedDays.includes(idx)}
-                      onChange={() => toggleDay(idx)}
-                    />
-                  }
-                  label={label}
-                  className="ct-day-label"
-                />
-              ))}
+              <Typography variant="caption" sx={{ fontWeight: 700, color: "var(--text-secondary)", mb: 0.5, display: "block" }}>
+                Select Days of the Week:
+              </Typography>
+              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+                {DAY_LABELS.map((label, idx) => (
+                  <FormControlLabel
+                    key={label}
+                    control={
+                      <Checkbox
+                        size="small"
+                        checked={schedDays.includes(idx)}
+                        onChange={() => toggleDay(idx)}
+                      />
+                    }
+                    label={label}
+                    className="ct-day-label"
+                  />
+                ))}
+              </Box>
             </Box>
           )}
 
