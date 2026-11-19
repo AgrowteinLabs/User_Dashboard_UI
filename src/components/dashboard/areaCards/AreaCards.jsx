@@ -11,7 +11,8 @@ import {
   Button,
   Tooltip,
   TextField,
-  Divider
+  Divider,
+  CircularProgress
 } from "@mui/material";
 import SettingsRemoteIcon from "@mui/icons-material/SettingsRemote";
 import PrecisionManufacturingIcon from "@mui/icons-material/PrecisionManufacturing";
@@ -38,6 +39,8 @@ const AreaCards = ({ expanded, setExpanded }) => {
   const [thresholds, setThresholds] = useState({});
   const [offsets, setOffsets] = useState({});
   const [controlStates, setControlStates] = useState({});
+  const [pendingControls, setPendingControls] = useState({});
+  const controlVersionsRef = useRef({});
   const [modeSwitchLoading, setModeSwitchLoading] = useState(false);
 
   // Tracks the last-saved threshold + offset per controlId so we can detect dirty state
@@ -53,7 +56,48 @@ const AreaCards = ({ expanded, setExpanded }) => {
     );
   };
 
-  const { publishCommandWithFeedback } = useMqttControl(selectedProductUid);
+  // State Versioning & External Feedback (§2 & §4)
+  const handleExternalFeedback = useCallback((feedback) => {
+    if (!feedback || !feedback.pin) return;
+    const pinStr = String(feedback.pin).trim().toUpperCase();
+
+    const ctrl = selectedProduct?.controls?.find(
+      (c) => String(c.pin).trim().toUpperCase() === pinStr
+    );
+    if (!ctrl) return;
+
+    const controlId = ctrl.controlId;
+    const localVer = controlVersionsRef.current[controlId] ?? 0;
+    const incomingVer =
+      typeof feedback.stateVersion === "number"
+        ? feedback.stateVersion
+        : localVer;
+
+    // Architecture Rule 4: Only apply incoming state updates if incoming.stateVersion >= local.stateVersion
+    if (incomingVer >= localVer) {
+      if (typeof feedback.stateVersion === "number") {
+        controlVersionsRef.current[controlId] = incomingVer;
+      }
+      if (feedback.state) {
+        const normalizedState = String(feedback.state).toUpperCase();
+        setControlStates((prev) => ({ ...prev, [controlId]: normalizedState }));
+      }
+      setPendingControls((prev) => {
+        if (prev[controlId]) {
+          const updated = { ...prev };
+          delete updated[controlId];
+          return updated;
+        }
+        return prev;
+      });
+    } else {
+      console.warn(
+        `[Sync] Discarded stale feedback for pin ${pinStr}: incoming v${incomingVer} < local v${localVer}`
+      );
+    }
+  }, [selectedProduct]);
+
+  const { publishCommandWithFeedback } = useMqttControl(selectedProductUid, handleExternalFeedback);
 
   const collapseTimerRef = useRef(null);
 
@@ -98,28 +142,46 @@ const AreaCards = ({ expanded, setExpanded }) => {
     }
   };
 
-  // Populate control states when the selected product changes
+  // Populate control states when the selected product changes (§4: State Versioning)
   useEffect(() => {
-    if (selectedProduct) {
+    if (selectedProduct && selectedProduct.controls) {
       setSelectedProductDetails?.(selectedProduct);
       const initThresh = {};
       const initOffsets = {};
-      const initStates = {};
       const initOriginals = {};
       selectedProduct.controls.forEach((c) => {
         const thresh = c.threshHold !== undefined && c.threshHold !== null ? Number(c.threshHold) : 0;
         const off = c.offset !== undefined && c.offset !== null ? Number(c.offset) : (c.min ?? 0);
         initThresh[c.controlId] = isNaN(thresh) ? 0 : thresh;
         initOffsets[c.controlId] = isNaN(off) ? (c.min ?? 0) : off;
-        initStates[c.controlId] = c.state || "OFF";
         initOriginals[c.controlId] = { threshold: initThresh[c.controlId], offset: initOffsets[c.controlId] };
       });
       setThresholds(initThresh);
       setOffsets(initOffsets);
-      setControlStates(initStates);
+      setControlStates((prev) => {
+        const next = { ...prev };
+        selectedProduct.controls.forEach((c) => {
+          const currentVer = controlVersionsRef.current[c.controlId] ?? -1;
+          const incomingVer = typeof c.stateVersion === "number" ? c.stateVersion : 0;
+          if (incomingVer >= currentVer) {
+            controlVersionsRef.current[c.controlId] = incomingVer;
+            next[c.controlId] = (c.state || "OFF").toUpperCase();
+          }
+        });
+        return next;
+      });
       originalConfigRef.current = initOriginals;
     }
   }, [selectedProduct, setSelectedProductDetails]);
+
+  const handlePowerStateChange = useCallback((pin, newState) => {
+    const ctrl = selectedProduct?.controls?.find(
+      (c) => String(c.pin).trim().toUpperCase() === String(pin).trim().toUpperCase()
+    );
+    if (ctrl) {
+      setControlStates((prev) => ({ ...prev, [ctrl.controlId]: newState.toUpperCase() }));
+    }
+  }, [selectedProduct]);
 
   useEffect(() => {
     fetchUser().catch(console.error);
@@ -205,45 +267,89 @@ const AreaCards = ({ expanded, setExpanded }) => {
   };
 
   const handleTogglePower = (controlId, pin, currentState) => {
+    if (pendingControls[controlId]) return;
+
     const newState = currentState === "ON" ? "OFF" : "ON";
     const payload = { command: "SetPower", pin, state: newState };
 
-    Swal.fire({ title: "Sending...", text: "Waiting for Device feedback", allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+    // Part 2: Never Confirm Power State Immediately (Pending State)
+    setPendingControls((prev) => ({ ...prev, [controlId]: true }));
 
     publishCommandWithFeedback(
       payload,
-      async () => {
-        Swal.close();
-
-        const feedbackPayload = {
-          uid: String(selectedProductUid),
-          pin: String(pin),
-          controlId: String(controlId),
-          value: String(newState),
-          mode: "state"
-        };
-
-        const res = await fetch(`${import.meta.env.VITE_REACT_APP_API_URL}/api/v1/command/control/save`, {
-          method: "POST",
-          credentials: "include",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(feedbackPayload),
+      async (feedback) => {
+        // Part 2: Device Feedback as Single Source of Truth
+        setPendingControls((prev) => {
+          const next = { ...prev };
+          delete next[controlId];
+          return next;
         });
-        await parseApiResponse(res);
 
-        await refetchProducts();
+        const localVer = controlVersionsRef.current[controlId] ?? 0;
+        const incomingVer =
+          typeof feedback?.stateVersion === "number"
+            ? feedback.stateVersion
+            : localVer + 1;
 
-        setControlStates((prev) => ({ ...prev, [controlId]: newState }));
+        if (incomingVer >= localVer) {
+          controlVersionsRef.current[controlId] = incomingVer;
+          const confirmedState = feedback?.state ? String(feedback.state).toUpperCase() : newState;
+          setControlStates((prev) => ({ ...prev, [controlId]: confirmedState }));
+        }
+
+        try {
+          const feedbackPayload = {
+            uid: String(selectedProductUid),
+            pin: String(pin),
+            controlId: String(controlId),
+            value: String(newState),
+            mode: "state",
+          };
+
+          const res = await fetch(`${import.meta.env.VITE_REACT_APP_API_URL}/api/v1/command/control/save`, {
+            method: "POST",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(feedbackPayload),
+          });
+          await parseApiResponse(res);
+          await refetchProducts();
+        } catch (err) {
+          console.warn("Error saving control state to backend:", err);
+        }
 
         window.dispatchEvent(
           new CustomEvent("thresholds-updated", { detail: { uid: selectedProductUid } })
         );
 
-        Swal.fire("✅ Success", `Control turned ${newState}`, "success");
+        const Toast = Swal.mixin({
+          toast: true,
+          position: "top-end",
+          showConfirmButton: false,
+          timer: 3000,
+          timerProgressBar: true,
+        });
+        Toast.fire({
+          icon: "success",
+          title: `Control turned ${newState}`,
+        });
       },
       () => {
-        Swal.close();
-        Swal.fire("❌ Timeout", "Device did not confirm", "error");
+        // Part 2: If device feedback does not arrive within 25 seconds,
+        // revert the switch back to its original state and show: "Device unreachable. State unchanged."
+        setPendingControls((prev) => {
+          const next = { ...prev };
+          delete next[controlId];
+          return next;
+        });
+
+        setControlStates((prev) => ({ ...prev, [controlId]: currentState }));
+
+        Swal.fire({
+          icon: "error",
+          title: "Timeout",
+          text: "Device unreachable. State unchanged.",
+        });
       }
     );
   };
@@ -475,20 +581,22 @@ const AreaCards = ({ expanded, setExpanded }) => {
 
                     {/* Power Button - In Manual Mode OR for Manual-Only Controls */}
                     {(productDetails?.mode === "manual" || (productDetails?.mode === "automate" && !control.supportsAuto)) && (
-                      <div className={`control-power-box ${controlStates[control.controlId] === "ON" ? 'state-on' : 'state-off'}`}>
+                      <div className={`control-power-box ${pendingControls[control.controlId] ? "pending" : ""} ${controlStates[control.controlId] === "ON" ? 'state-on' : 'state-off'}`}>
                         <div className="state-info">
                           <span className="state-label">Status</span>
                           <span className="state-text">
-                            {controlStates[control.controlId] || 'N/A'}
+                            {pendingControls[control.controlId]
+                              ? "SYNCING..."
+                              : (controlStates[control.controlId] || 'N/A')}
                           </span>
                         </div>
-                        <Tooltip title={!controlStates[control.controlId] ? "No state data" : ""}>
+                        <Tooltip title={pendingControls[control.controlId] ? "Waiting for device confirmation..." : !controlStates[control.controlId] ? "No state data" : ""}>
                           <span>
                             <Button
                               onClick={() =>
                                 handleTogglePower(control.controlId, control.pin, controlStates[control.controlId])
                               }
-                              disabled={!controlStates[control.controlId]}
+                              disabled={!controlStates[control.controlId] || pendingControls[control.controlId]}
                               sx={{
                                 minWidth: 110,
                                 fontWeight: 800,
@@ -497,7 +605,11 @@ const AreaCards = ({ expanded, setExpanded }) => {
                                 textTransform: "none",
                                 fontSize: "0.82rem",
                                 py: 0.7,
-                                ...(controlStates[control.controlId] === "ON" ? {
+                                ...(pendingControls[control.controlId] ? {
+                                  border: "1px solid rgba(245, 158, 11, 0.4) !important",
+                                  color: "#f59e0b !important",
+                                  background: "rgba(245, 158, 11, 0.1) !important",
+                                } : controlStates[control.controlId] === "ON" ? {
                                   background: "var(--color-success) !important",
                                   backgroundColor: "var(--color-success) !important",
                                   color: "#050a15 !important",
@@ -515,7 +627,16 @@ const AreaCards = ({ expanded, setExpanded }) => {
                                 })
                               }}
                             >
-                              {controlStates[control.controlId] === "ON" ? "⚡ Turn OFF" : "🔌 Turn ON"}
+                              {pendingControls[control.controlId] ? (
+                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                                  <CircularProgress size={14} color="inherit" />
+                                  <span>Syncing...</span>
+                                </span>
+                              ) : controlStates[control.controlId] === "ON" ? (
+                                "⚡ Turn OFF"
+                              ) : (
+                                "🔌 Turn ON"
+                              )}
                             </Button>
                           </span>
                         </Tooltip>
@@ -526,9 +647,12 @@ const AreaCards = ({ expanded, setExpanded }) => {
                     {(productDetails?.mode === "manual" || (productDetails?.mode === "automate" && !control.supportsAuto)) && (
                       <ControlTimers
                         productId={productDetails?._id || productDetails?.id}
+                        productUid={selectedProductUid}
                         control={control}
                         onChanged={refetchProducts}
                         capabilities={productDetails?.capabilities}
+                        onPowerStateChange={handlePowerStateChange}
+                        publishCommandWithFeedback={publishCommandWithFeedback}
                       />
                     )}
 

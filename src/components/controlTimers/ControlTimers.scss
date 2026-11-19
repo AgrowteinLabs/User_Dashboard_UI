@@ -348,6 +348,40 @@
   }
 }
 
+/* ─── Hardware Cyclic Timer Controls ─────────────────── */
+.ct-status-banner {
+  padding: 10px 14px;
+  border-radius: 12px;
+  margin-bottom: 16px;
+  font-family: var(--font-family-jakarta);
+  display: flex;
+  align-items: center;
+  transition: var(--transition-smooth);
+
+  &.active {
+    background: rgba(0, 242, 155, 0.08);
+    border: 1px solid rgba(0, 242, 155, 0.3);
+    color: var(--primary-color);
+  }
+
+  &.inactive {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--card-border);
+    color: var(--text-secondary);
+  }
+}
+
+.ct-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 12px;
+  border: 1px solid var(--card-border);
+  margin-bottom: 16px;
+}
+
 /* ─── Duration Preset Chips ──────────────────────────── */
 .ct-presets {
   display: flex;

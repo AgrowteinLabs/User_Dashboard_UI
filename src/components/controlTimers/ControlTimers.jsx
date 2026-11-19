@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Dialog,
   DialogTitle,
   DialogContent,
-  Button,
   IconButton,
+  Button,
   TextField,
   Typography,
   Box,
@@ -27,38 +27,22 @@ import {
   DeleteOutline,
   Add,
   PlayArrow,
-  StopCircle,
   EventRepeat,
   Event,
   Today,
 } from "@mui/icons-material";
 import {
-  fetchActiveTimer,
-  startTimer,
-  cancelTimer,
   fetchSchedules,
   createSchedule,
   updateSchedule,
   deleteSchedule,
+  sendTimerCommand,
 } from "../../api/controlTimers";
+import Swal from "sweetalert2";
 import PropTypes from "prop-types";
 import "./ControlTimers.scss";
 
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-const PRESETS_MIN = [5, 10, 15, 30, 60];
-
-const pad = (n) => String(n).padStart(2, "0");
-
-// "HH:MM:SS" or "Hh Mm Ss" for long runs
-function formatRemaining(ms) {
-  const totalSec = Math.max(0, Math.floor(ms / 1000));
-  const h = Math.floor(totalSec / 3600);
-  const m = Math.floor((totalSec % 3600) / 60);
-  const s = totalSec % 60;
-  if (h > 0) return `${h}h ${pad(m)}m ${pad(s)}s`;
-  if (m > 0) return `${pad(m)}:${pad(s)}`;
-  return `0:${pad(s)}`;
-}
 
 const describeSchedule = (s) => {
   const action = s.action === "ON" ? "Turn ON" : "Turn OFF";
@@ -80,33 +64,141 @@ const describeSchedule = (s) => {
   return `${action} daily ${rangeStr}`;
 };
 
-const ControlTimers = ({ productId, control, onChanged, capabilities }) => {
+const ControlTimers = ({
+  productId,
+  productUid,
+  control,
+  onChanged,
+  capabilities,
+  onPowerStateChange,
+  publishCommandWithFeedback,
+}) => {
   const controlKey = control.controlId || control.pin;
   const defaultTimezone = useMemo(
     () => Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
     []
   );
 
-  // v1/v2 capabilities gating (handover §7): v2 products expose Timer+Schedule
-  // in the Manual stage; v1 products are Manual+Automate only. Default TRUE
-  // when the payload doesn't carry capabilities (no feature regression).
-  // Escape hatch: whenever a timer/schedule ALREADY EXISTS its management UI
-  // stays visible regardless of capabilities — legacy rows must never strand
-  // an active timer or existing schedules.
   const canTimer = capabilities ? capabilities.timer !== false : true;
   const canSchedule = capabilities ? capabilities.schedule !== false : true;
 
-  // --- Active timer + countdown ---
-  const [timer, setTimer] = useState(null);
-  const [timerLoading, setTimerLoading] = useState(false);
-  const [now, setNow] = useState(Date.now());
-  const [timerOpen, setTimerOpen] = useState(false);
-  const [timerAction, setTimerAction] = useState("ON");
-  const [timerMinutes, setTimerMinutes] = useState(15);
-  const [timerBusy, setTimerBusy] = useState(false);
-  const [timerError, setTimerError] = useState("");
+  // ─── Part 1: Controller Hardware Timers State ─────────────────────────────
+  // appliedTimer: confirmed from device/backend
+  const appliedTimer = useMemo(() => ({
+    enabled: Boolean(control?.timer?.enabled),
+    onTime: Number(control?.timer?.onTime) || 0,
+    offTime: Number(control?.timer?.offTime) || 0,
+  }), [control?.timer?.enabled, control?.timer?.onTime, control?.timer?.offTime]);
 
-  // --- Schedules ---
+  // draftTimer: current form values being edited by the user
+  const [draftTimer, setDraftTimer] = useState({
+    enabled: Boolean(control?.timer?.enabled),
+    onTime: Number(control?.timer?.onTime) || 0,
+    offTime: Number(control?.timer?.offTime) || 0,
+  });
+
+  const [timerOpen, setTimerOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Synchronize draft state when applied state updates from backend/product change
+  useEffect(() => {
+    setDraftTimer(appliedTimer);
+  }, [appliedTimer]);
+
+  // Compute dirty state (§1: UI Behavior & State Logic)
+  const isDirty =
+    draftTimer.enabled !== appliedTimer.enabled ||
+    (draftTimer.enabled &&
+      (Number(draftTimer.onTime) !== Number(appliedTimer.onTime) ||
+        Number(draftTimer.offTime) !== Number(appliedTimer.offTime)));
+
+  const isValid =
+    !draftTimer.enabled ||
+    (Number(draftTimer.onTime) > 0 && Number(draftTimer.offTime) > 0);
+
+  // ─── Part 1: Apply Timer Command (§2 & §3) ───────────────────────────────
+  const handleApplyTimer = async () => {
+    if (!isDirty || !isValid || isSubmitting) return;
+
+    setIsSubmitting(true);
+
+    const payload = draftTimer.enabled
+      ? {
+          command: "setTimer",
+          pin: control.pin,
+          timer_enabled: true,
+          on_time: Number(draftTimer.onTime),
+          off_time: Number(draftTimer.offTime),
+        }
+      : {
+          command: "setTimer",
+          pin: control.pin,
+          timer_enabled: false,
+        };
+
+    const handleSuccess = (feedback) => {
+      // 1. Update appliedTimer = { ...draftTimer } (handled via refetch or parent state)
+      // 2. If state: "OFF" was returned, set the power switch UI to OFF
+      if (
+        String(feedback?.state || "").toUpperCase() === "OFF" ||
+        (!draftTimer.enabled && feedback?.state === undefined)
+      ) {
+        if (String(feedback?.state || "").toUpperCase() === "OFF") {
+          onPowerStateChange?.(control.pin, "OFF");
+        }
+      }
+      setIsSubmitting(false);
+      setTimerOpen(false);
+      onChanged?.();
+
+      Swal.fire({
+        icon: "success",
+        title: "Timer Updated",
+        text: draftTimer.enabled
+          ? `Timer set to ${draftTimer.onTime}m ON / ${draftTimer.offTime}m OFF`
+          : "Timer has been disabled.",
+        timer: 2000,
+        showConfirmButton: false,
+      });
+    };
+
+    const handleFailure = () => {
+      // Revert the timer toggle/inputs back to appliedTimer
+      setDraftTimer({ ...appliedTimer });
+      setIsSubmitting(false);
+      Swal.fire({
+        icon: "error",
+        title: "Timer Update Failed",
+        text: "Device did not respond. Timer update failed.",
+      });
+    };
+
+    if (typeof publishCommandWithFeedback === "function") {
+      publishCommandWithFeedback(
+        payload,
+        (feedback) => handleSuccess(feedback),
+        () => handleFailure()
+      );
+    } else {
+      // Fallback via REST API: POST /api/v1/command/timer
+      try {
+        const res = await sendTimerCommand({
+          uid: productUid,
+          ...payload,
+        });
+        if (res && res.status !== "error") {
+          handleSuccess(res);
+        } else {
+          handleFailure();
+        }
+      } catch (err) {
+        console.error("REST fallback timer command failed:", err);
+        handleFailure();
+      }
+    }
+  };
+
+  // ─── Schedules State & Handlers ───────────────────────────────────────────
   const [schedOpen, setSchedOpen] = useState(false);
   const [schedules, setSchedules] = useState([]);
   const [schedLoading, setSchedLoading] = useState(false);
@@ -117,29 +209,9 @@ const ControlTimers = ({ productId, control, onChanged, capabilities }) => {
   const [schedTime, setSchedTime] = useState("08:00");
   const [schedDays, setSchedDays] = useState([1, 2, 3, 4, 5]);
   const [schedDate, setSchedDate] = useState("");
-  const schedTimezone = defaultTimezone;  // derived — no setter needed
+  const schedTimezone = defaultTimezone;
   const [schedEnabled, setSchedEnabled] = useState(true);
-  const [schedEndTime, setSchedEndTime] = useState("");   // "" = no end-time (trigger-only)
-
-  const timerTicker = useRef(null);
-  // Guards the zero-crossing refetch: when the countdown hits 0 we fetch once
-  // (the engine may keep the timer "active" briefly during its retry window) —
-  // without this guard a still-active response would refetch forever.
-  const expiryFiredRef = useRef(false);
-
-  const loadTimer = useCallback(async () => {
-    if (!productId || !controlKey) return;
-    setTimerLoading(true);
-    try {
-      const t = await fetchActiveTimer(productId, controlKey);
-      setTimer(t);
-      if (t) setNow(Date.now());
-    } catch (err) {
-      console.error("Failed to load timer:", err.message);
-    } finally {
-      setTimerLoading(false);
-    }
-  }, [productId, controlKey]);
+  const [schedEndTime, setSchedEndTime] = useState("");
 
   const loadSchedules = useCallback(async () => {
     if (!productId || !controlKey) return;
@@ -153,94 +225,13 @@ const ControlTimers = ({ productId, control, onChanged, capabilities }) => {
     }
   }, [productId, controlKey]);
 
-  // Countdown ticker — recompute remaining every second while a timer is active.
-  useEffect(() => {
-    if (!timer?.expiresAt) {
-      if (timerTicker.current) clearInterval(timerTicker.current);
-      return undefined;
-    }
-    timerTicker.current = setInterval(() => setNow(Date.now()), 1000);
-    return () => {
-      if (timerTicker.current) clearInterval(timerTicker.current);
-    };
-  }, [timer?.expiresAt]);
-
-  // When the countdown reaches zero the engine has already reversed the action —
-  // refetch once so the chip disappears (or shows the next active timer).
-  const remaining = timer?.expiresAt ? Math.max(0, timer.expiresAt - now) : 0;
-  useEffect(() => {
-    if (timer?.expiresAt && remaining <= 0) {
-      if (!expiryFiredRef.current) {
-        expiryFiredRef.current = true;
-        loadTimer();
-      }
-    } else if (remaining > 0) {
-      expiryFiredRef.current = false;
-    }
-  }, [remaining, timer, loadTimer]);
-
-  useEffect(() => {
-    if (timerOpen) loadTimer();
-  }, [timerOpen, loadTimer]);
-
   useEffect(() => {
     if (schedOpen) loadSchedules();
   }, [schedOpen, loadSchedules]);
 
-  // Load the active timer on mount so an existing timer shows its countdown
-  // immediately, and so the escape hatch can detect it on gated (v1) rows.
-  useEffect(() => {
-    loadTimer();
-  }, [loadTimer]);
-
-  // Escape hatch for schedules: only when gating would hide the Schedule
-  // button, check whether schedules already exist (otherwise schedules are
-  // fetched when the modal opens).
   useEffect(() => {
     if (!canSchedule) loadSchedules();
   }, [canSchedule, loadSchedules]);
-
-  const notifyChanged = () => {
-    if (typeof onChanged === "function") onChanged();
-  };
-
-  const handleStartTimer = async () => {
-    if (!timerMinutes || timerMinutes <= 0) {
-      setTimerError("Enter a duration greater than 0 minutes");
-      return;
-    }
-    setTimerBusy(true);
-    setTimerError("");
-    try {
-      const t = await startTimer(productId, controlKey, {
-        action: timerAction,
-        durationSeconds: Math.round(Number(timerMinutes) * 60),
-      });
-      setTimer(t);
-      setNow(Date.now());
-      setTimerOpen(false);
-      notifyChanged();
-    } catch (err) {
-      setTimerError(err.message);
-    } finally {
-      setTimerBusy(false);
-    }
-  };
-
-  const handleCancelTimer = async () => {
-    setTimerBusy(true);
-    setTimerError("");
-    try {
-      await cancelTimer(productId, controlKey);
-      setTimer(null);
-      setTimerOpen(false);
-      notifyChanged();
-    } catch (err) {
-      setTimerError(err.message);
-    } finally {
-      setTimerBusy(false);
-    }
-  };
 
   const toggleDay = (day) =>
     setSchedDays((prev) =>
@@ -251,29 +242,24 @@ const ControlTimers = ({ productId, control, onChanged, capabilities }) => {
     setSchedBusy(true);
     setSchedError("");
     try {
-      // Validate end time if provided
       if (schedEndTime && schedEndTime === schedTime) {
         throw new Error("Start time and end time cannot be the same");
       }
       const payload = {
         action: schedAction,
         scheduleType: schedType,
-        startTime: schedTime,          // preferred v2 field
-        time: schedTime,               // kept for backward compat
+        startTime: schedTime,
+        time: schedTime,
         timezone: schedTimezone,
         enabled: schedEnabled,
       };
-      // Only include endTime when the user actually set one
       if (schedEndTime) payload.endTime = schedEndTime;
       if (schedType === "weekly") payload.days = schedDays;
-      if (schedType === "once") {
-        if (!schedDate) throw new Error("Pick a date for a one-time schedule");
-        payload.startDate = new Date(`${schedDate}T${schedTime}:00`).toISOString();
-      }
+      if (schedType === "once") payload.startDate = schedDate;
+
       await createSchedule(productId, controlKey, payload);
-      setSchedError("");
-      setSchedEndTime(""); // reset end time after success
       await loadSchedules();
+      onChanged?.();
     } catch (err) {
       setSchedError(err.message);
     } finally {
@@ -299,35 +285,36 @@ const ControlTimers = ({ productId, control, onChanged, capabilities }) => {
     }
   };
 
-  const hasTimerUI = !!timer || canTimer;
+  const hasTimerUI = appliedTimer.enabled || canTimer;
   const hasScheduleUI = canSchedule || schedules.length > 0;
   if (!hasTimerUI && !hasScheduleUI) return null;
 
   return (
     <>
       <Box className="control-timers">
-        {/* Active timer chip with live countdown */}
-        {timer ? (
-          <Tooltip title={`Timer: ${timer.action === "ON" ? "ON" : "OFF"} → reverse in ${formatRemaining(remaining)}`} arrow>
-            <Box className={`ct-timer-chip ${timer.action === "ON" ? "ct-on" : "ct-off"}`}>
+        {/* Active hardware timer chip or setup button */}
+        {appliedTimer.enabled ? (
+          <Tooltip
+            title={`Hardware Cyclic Timer Active: ${appliedTimer.onTime}m ON / ${appliedTimer.offTime}m OFF. Click to configure.`}
+            arrow
+          >
+            <Box
+              className="ct-timer-chip ct-on"
+              onClick={() => {
+                setDraftTimer({ ...appliedTimer });
+                setTimerOpen(true);
+              }}
+              style={{ cursor: "pointer" }}
+            >
               <TimerOutlined fontSize="small" />
               <Box className="ct-chip-text">
                 <Typography variant="caption" className="ct-chip-label">
-                  Timer · {timer.action === "ON" ? "ON" : "OFF"}
+                  Timer · ACTIVE
                 </Typography>
                 <Typography variant="body2" className="ct-chip-count">
-                  {formatRemaining(remaining)}
+                  {appliedTimer.onTime}m ON / {appliedTimer.offTime}m OFF
                 </Typography>
               </Box>
-              <IconButton
-                size="small"
-                className="ct-chip-cancel"
-                onClick={() => setTimerOpen(true)}
-                title="Manage timer"
-                aria-label="Manage timer"
-              >
-                <StopCircle fontSize="small" />
-              </IconButton>
             </Box>
           </Tooltip>
         ) : canTimer ? (
@@ -335,9 +322,11 @@ const ControlTimers = ({ productId, control, onChanged, capabilities }) => {
             size="small"
             variant="outlined"
             startIcon={<TimerOutlined />}
-            onClick={() => setTimerOpen(true)}
+            onClick={() => {
+              setDraftTimer({ ...appliedTimer });
+              setTimerOpen(true);
+            }}
             className="ct-action-btn"
-            disabled={timerLoading}
           >
             Timer
           </Button>
@@ -356,25 +345,208 @@ const ControlTimers = ({ productId, control, onChanged, capabilities }) => {
         )}
       </Box>
 
-      {/* ---------- Timer modal ---------- */}
-      <Dialog open={timerOpen} onClose={() => setTimerOpen(false)} maxWidth="xs" fullWidth>
+      {/* ─── Hardware Cyclic Timer Modal ────────────────────────────────────── */}
+      <Dialog
+        open={timerOpen}
+        onClose={() => {
+          if (!isSubmitting) {
+            setDraftTimer(appliedTimer);
+            setTimerOpen(false);
+          }
+        }}
+        maxWidth="xs"
+        fullWidth
+      >
         <DialogTitle className="ct-dialog-title">
           <Box style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
             <Box style={{ display: "flex", alignItems: "center", gap: "8px" }}>
               <TimerOutlined style={{ color: "var(--primary-color)", fontSize: "1.25rem" }} />
-              <span style={{ fontWeight: 800 }}>{timer ? "Active Timer" : "Set Timer"}</span>
+              <span style={{ fontWeight: 800 }}>Hardware Cyclic Timer</span>
             </Box>
-            <Typography variant="caption" style={{ color: "var(--text-secondary)", fontWeight: 700, marginLeft: "28px" }}>
-              Controller: {control.name || control.pin}
+            <Typography
+              variant="caption"
+              style={{ color: "var(--text-secondary)", fontWeight: 700, marginLeft: "28px" }}
+            >
+              Controller: {control.name || control.pin} ({control.pin})
             </Typography>
           </Box>
-          <IconButton className="ct-dialog-close" onClick={() => setTimerOpen(false)} aria-label="Close">
+          <IconButton
+            className="ct-dialog-close"
+            onClick={() => {
+              if (!isSubmitting) {
+                setDraftTimer(appliedTimer);
+                setTimerOpen(false);
+              }
+            }}
+            aria-label="Close"
+            disabled={isSubmitting}
+          >
             <Close />
           </IconButton>
         </DialogTitle>
         <DialogContent dividers>
-          {!timer && (
-            <Box className="ct-info-banner" style={{
+          {/* Status banner */}
+          <Box className={`ct-status-banner ${appliedTimer.enabled ? "active" : "inactive"}`}>
+            <Typography variant="caption" sx={{ fontWeight: 700 }}>
+              {appliedTimer.enabled
+                ? `⚡ Hardware Timer is ACTIVE (${appliedTimer.onTime}m ON / ${appliedTimer.offTime}m OFF)`
+                : "💤 Hardware Timer is DISABLED on device"}
+            </Typography>
+          </Box>
+
+          {/* Timer Toggle: Controls whether the cyclic timer is active */}
+          <Box className="ct-toggle-row">
+            <Box>
+              <Typography variant="subtitle2" sx={{ fontWeight: 700, m: 0 }}>
+                Cyclic Timer
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                {draftTimer.enabled
+                  ? "Enabled — runs cyclic loop autonomously on device"
+                  : "Disabled — operates in standard manual/automated mode"}
+              </Typography>
+            </Box>
+            <Switch
+              checked={Boolean(draftTimer.enabled)}
+              disabled={isSubmitting}
+              onChange={(e) => setDraftTimer((prev) => ({ ...prev, enabled: e.target.checked }))}
+              color="primary"
+            />
+          </Box>
+
+          {/* ON & OFF Timing Inputs: Only display when timer toggle is Enabled */}
+          {draftTimer.enabled && (
+            <Box className="ct-timing-inputs" sx={{ mt: 2 }}>
+              <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1.5 }}>
+                Configure cycle durations in minutes. The device will switch ON for ON Time, then OFF for OFF Time, repeating continuously.
+              </Typography>
+
+              <Box sx={{ display: "flex", gap: 1.5, mb: 2 }}>
+                <TextField
+                  type="number"
+                  label="ON Time (minutes)"
+                  size="small"
+                  fullWidth
+                  value={draftTimer.onTime || ""}
+                  disabled={isSubmitting}
+                  onChange={(e) => {
+                    const val = e.target.value === "" ? "" : Math.max(1, Number(e.target.value));
+                    setDraftTimer((prev) => ({ ...prev, onTime: val }));
+                  }}
+                  inputProps={{ min: 1, step: 1 }}
+                  error={draftTimer.enabled && (!draftTimer.onTime || Number(draftTimer.onTime) <= 0)}
+                  helperText={
+                    draftTimer.enabled && (!draftTimer.onTime || Number(draftTimer.onTime) <= 0)
+                      ? "Required (> 0 min)"
+                      : ""
+                  }
+                />
+                <TextField
+                  type="number"
+                  label="OFF Time (minutes)"
+                  size="small"
+                  fullWidth
+                  value={draftTimer.offTime || ""}
+                  disabled={isSubmitting}
+                  onChange={(e) => {
+                    const val = e.target.value === "" ? "" : Math.max(1, Number(e.target.value));
+                    setDraftTimer((prev) => ({ ...prev, offTime: val }));
+                  }}
+                  inputProps={{ min: 1, step: 1 }}
+                  error={draftTimer.enabled && (!draftTimer.offTime || Number(draftTimer.offTime) <= 0)}
+                  helperText={
+                    draftTimer.enabled && (!draftTimer.offTime || Number(draftTimer.offTime) <= 0)
+                      ? "Required (> 0 min)"
+                      : ""
+                  }
+                />
+              </Box>
+
+              <Typography variant="caption" sx={{ fontWeight: 600, color: "var(--text-secondary)", mb: 0.8, display: "block" }}>
+                Presets (ON / OFF):
+              </Typography>
+              <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mb: 1 }}>
+                {[
+                  { label: "5m / 15m", on: 5, off: 15 },
+                  { label: "10m / 20m", on: 10, off: 20 },
+                  { label: "15m / 45m", on: 15, off: 45 },
+                  { label: "30m / 60m", on: 30, off: 60 },
+                ].map((p) => (
+                  <Chip
+                    key={p.label}
+                    label={p.label}
+                    size="small"
+                    clickable={!isSubmitting}
+                    color={
+                      Number(draftTimer.onTime) === p.on && Number(draftTimer.offTime) === p.off
+                        ? "primary"
+                        : "default"
+                    }
+                    onClick={() => {
+                      if (!isSubmitting) {
+                        setDraftTimer((prev) => ({ ...prev, onTime: p.on, offTime: p.off }));
+                      }
+                    }}
+                  />
+                ))}
+              </Box>
+            </Box>
+          )}
+
+          {/* "Apply Timer" Button Visibility: Show ONLY when isDirty === true */}
+          {isDirty ? (
+            <Box sx={{ mt: 2.5 }}>
+              <Button
+                variant="contained"
+                color="primary"
+                fullWidth
+                disabled={isSubmitting || !isValid}
+                onClick={handleApplyTimer}
+                startIcon={isSubmitting ? <CircularProgress size={18} color="inherit" /> : <PlayArrow />}
+              >
+                {isSubmitting
+                  ? "Applying to Device..."
+                  : draftTimer.enabled
+                  ? "Apply Timer"
+                  : "Disable Timer"}
+              </Button>
+              {!isValid && draftTimer.enabled && (
+                <Typography variant="caption" color="error" sx={{ display: "block", textAlign: "center", mt: 0.5 }}>
+                  Please enter positive numbers for ON and OFF times.
+                </Typography>
+              )}
+            </Box>
+          ) : (
+            <Typography variant="caption" color="text.secondary" sx={{ display: "block", textAlign: "center", mt: 2 }}>
+              ✓ Current timer matches device configuration.
+            </Typography>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* ─── Schedule Modal ─────────────────────────────────────────────────── */}
+      <Dialog open={schedOpen} onClose={() => setSchedOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle className="ct-dialog-title">
+          <Box style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+            <Box style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <ScheduleIcon style={{ color: "var(--primary-color)", fontSize: "1.25rem" }} />
+              <span style={{ fontWeight: 800 }}>Schedules</span>
+            </Box>
+            <Typography
+              variant="caption"
+              style={{ color: "var(--text-secondary)", fontWeight: 700, marginLeft: "28px" }}
+            >
+              Controller: {control.name || control.pin}
+            </Typography>
+          </Box>
+          <IconButton className="ct-dialog-close" onClick={() => setSchedOpen(false)} aria-label="Close">
+            <Close />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent dividers>
+          <Box
+            className="ct-info-banner"
+            style={{
               background: "rgba(0, 242, 155, 0.04)",
               border: "1px dashed rgba(0, 242, 155, 0.2)",
               borderRadius: "10px",
@@ -385,142 +557,19 @@ const ControlTimers = ({ productId, control, onChanged, capabilities }) => {
               display: "flex",
               alignItems: "center",
               gap: "8px",
-              fontFamily: "var(--font-family-jakarta)"
-            }}>
-              ℹ️ Timer mode triggers the action immediately and reverts it automatically when the countdown reaches 0.
-            </Box>
-          )}
-          {timer ? (
-            <Box className="ct-active">
-              <Typography variant="body1" className="ct-active-label">
-                {timer.action === "ON" ? "Turned ON" : "Turned OFF"} — reverses in
-              </Typography>
-              <Typography variant="h4" className="ct-active-count">
-                {formatRemaining(remaining)}
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                Started {new Date(timer.startedAt).toLocaleString()}
-              </Typography>
-              <Button
-                variant="contained"
-                color="error"
-                fullWidth
-                startIcon={<StopCircle />}
-                onClick={handleCancelTimer}
-                disabled={timerBusy}
-                sx={{ mt: 2 }}
-              >
-                Cancel Timer
-              </Button>
-            </Box>
-          ) : (
-            <Box>
-              <Typography variant="subtitle2" sx={{ mb: 1, display: "flex", alignItems: "center", gap: "6px" }}>
-                ⚡ Select Action
-              </Typography>
-              <Box className="ct-action-toggle">
-                <Button
-                  variant={timerAction === "ON" ? "contained" : "outlined"}
-                  color="success"
-                  size="small"
-                  onClick={() => setTimerAction("ON")}
-                >
-                  Turn ON
-                </Button>
-                <Button
-                  variant={timerAction === "OFF" ? "contained" : "outlined"}
-                  color="error"
-                  size="small"
-                  onClick={() => setTimerAction("OFF")}
-                >
-                  Turn OFF
-                </Button>
-              </Box>
-
-              <Typography variant="subtitle2" sx={{ mt: 2.5, mb: 1, display: "flex", alignItems: "center", gap: "6px" }}>
-                ⏱️ Duration Presets
-              </Typography>
-              <Box className="ct-presets">
-                {PRESETS_MIN.map((m) => (
-                  <Chip
-                    key={m}
-                    label={`${m} min`}
-                    size="small"
-                    clickable
-                    color={timerMinutes === m ? "primary" : "default"}
-                    onClick={() => setTimerMinutes(m)}
-                  />
-                ))}
-              </Box>
-              <TextField
-                type="number"
-                label="Minutes"
-                size="small"
-                fullWidth
-                value={timerMinutes}
-                onChange={(e) => setTimerMinutes(e.target.value)}
-                inputProps={{ min: 1, step: 1 }}
-                sx={{ mt: 1.5 }}
-              />
-              <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>
-                The action applies immediately; the backend reverses it automatically after the duration — even with the app closed.
-              </Typography>
-              {timerError && <Typography color="error" variant="body2" sx={{ mt: 1 }}>{timerError}</Typography>}
-              <Button
-                variant="contained"
-                color="primary"
-                fullWidth
-                startIcon={<PlayArrow />}
-                onClick={handleStartTimer}
-                disabled={timerBusy}
-                sx={{ mt: 2 }}
-              >
-                {timerBusy ? <CircularProgress size={20} color="inherit" /> : "Start Timer"}
-              </Button>
-            </Box>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* ---------- Schedule modal ---------- */}
-      <Dialog open={schedOpen} onClose={() => setSchedOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle className="ct-dialog-title">
-          <Box style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-            <Box style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <ScheduleIcon style={{ color: "var(--primary-color)", fontSize: "1.25rem" }} />
-              <span style={{ fontWeight: 800 }}>Schedules</span>
-            </Box>
-            <Typography variant="caption" style={{ color: "var(--text-secondary)", fontWeight: 700, marginLeft: "28px" }}>
-              Controller: {control.name || control.pin}
-            </Typography>
-          </Box>
-          <IconButton className="ct-dialog-close" onClick={() => setSchedOpen(false)} aria-label="Close">
-            <Close />
-          </IconButton>
-        </DialogTitle>
-        <DialogContent dividers>
-          <Box className="ct-info-banner" style={{
-            background: "rgba(0, 242, 155, 0.04)",
-            border: "1px dashed rgba(0, 242, 155, 0.2)",
-            borderRadius: "10px",
-            padding: "10px 14px",
-            marginBottom: "16px",
-            fontSize: "0.82rem",
-            color: "var(--text-color)",
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-            fontFamily: "var(--font-family-jakarta)"
-          }}>
+              fontFamily: "var(--font-family-jakarta)",
+            }}
+          >
             ℹ️ Schedules execute recurring triggers at specific times, running entirely on the device even when offline.
           </Box>
 
-          {/* Existing schedules */}
           <Typography variant="subtitle2" sx={{ mb: 1.5, display: "flex", alignItems: "center", gap: "6px" }}>
             📋 Configured Schedules
           </Typography>
           {schedLoading ? (
-            <Box className="ct-center"><CircularProgress size={22} /></Box>
+            <Box className="ct-center">
+              <CircularProgress size={22} />
+            </Box>
           ) : schedules.length === 0 ? (
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
               No schedules yet — the backend executes these even when the app is closed.
@@ -550,11 +599,7 @@ const ControlTimers = ({ productId, control, onChanged, capabilities }) => {
                     </Typography>
                   </Box>
                   <Tooltip title={s.enabled ? "Disable" : "Enable"}>
-                    <Switch
-                      size="small"
-                      checked={s.enabled}
-                      onChange={() => handleToggleSchedule(s)}
-                    />
+                    <Switch size="small" checked={s.enabled} onChange={() => handleToggleSchedule(s)} />
                   </Tooltip>
                   <IconButton
                     size="small"
@@ -571,17 +616,19 @@ const ControlTimers = ({ productId, control, onChanged, capabilities }) => {
 
           <Divider sx={{ my: 2.5 }} />
 
-          {/* Add schedule */}
           <Typography variant="subtitle2" sx={{ mb: 1.5, display: "flex", alignItems: "center", gap: "6px" }}>
             ➕ Create New Schedule
           </Typography>
-          <Box className="ct-form-grid" style={{
-            background: "rgba(255, 255, 255, 0.01)",
-            border: "1px solid var(--card-border)",
-            borderRadius: "16px",
-            padding: "16px",
-            marginBottom: "8px"
-          }}>
+          <Box
+            className="ct-form-grid"
+            style={{
+              background: "rgba(255, 255, 255, 0.01)",
+              border: "1px solid var(--card-border)",
+              borderRadius: "16px",
+              padding: "16px",
+              marginBottom: "8px",
+            }}
+          >
             <FormControl size="small" fullWidth>
               <InputLabel>Action</InputLabel>
               <Select label="Action" value={schedAction} onChange={(e) => setSchedAction(e.target.value)}>
@@ -682,15 +729,27 @@ const ControlTimers = ({ productId, control, onChanged, capabilities }) => {
 
 ControlTimers.propTypes = {
   productId: PropTypes.string.isRequired,
+  productUid: PropTypes.string,
   control: PropTypes.shape({
     controlId: PropTypes.string,
     pin: PropTypes.string,
+    name: PropTypes.string,
+    timer: PropTypes.shape({
+      enabled: PropTypes.bool,
+      onTime: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+      offTime: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+      lastConfiguredAt: PropTypes.string,
+    }),
+    state: PropTypes.string,
+    stateVersion: PropTypes.number,
   }).isRequired,
   onChanged: PropTypes.func,
   capabilities: PropTypes.shape({
     timer: PropTypes.bool,
     schedule: PropTypes.bool,
   }),
+  onPowerStateChange: PropTypes.func,
+  publishCommandWithFeedback: PropTypes.func,
 };
 
 export default ControlTimers;

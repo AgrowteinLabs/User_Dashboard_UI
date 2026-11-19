@@ -52,6 +52,33 @@ export const ProductProvider = ({ children }) => {
     }
   }, [fetchProductsList]);
 
+  // App Resume & Reconnection Handler (Sync spec §3: fetch latest device state on reconnect/resume)
+  useEffect(() => {
+    const handleResumeOrReconnect = () => {
+      const userId = localStorage.getItem("userId");
+      if (userId) {
+        console.log("🔄 App resume / network reconnect: fetching latest confirmed device state");
+        fetchProductsList();
+      }
+    };
+
+    window.addEventListener("online", handleResumeOrReconnect);
+    window.addEventListener("focus", handleResumeOrReconnect);
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        handleResumeOrReconnect();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener("online", handleResumeOrReconnect);
+      window.removeEventListener("focus", handleResumeOrReconnect);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [fetchProductsList]);
+
   // Handle setting default selected product once products list loads
   useEffect(() => {
     if (products.length > 0 && !selectedProductUid) {

@@ -59,8 +59,10 @@ export const useMqttControllerStatus = (uid, isBlocked = false) => {
         client.on("connect", () => {
           console.log("✅ MQTT control-status connected");
           setConnected(true);
-          client.subscribe(`esp32/${uid}/msg`, (err) => {
+          const topics = [`esp32/${uid}/msg`, `esp32/${uid}/feed`];
+          client.subscribe(topics, (err) => {
             if (err) console.error("❌ Subscription failed:", err);
+            else console.log(`📡 Status subscribed to: ${topics.join(", ")}`);
           });
         });
 
