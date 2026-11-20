@@ -91,17 +91,34 @@ const ControlStatusPanel = ({ configExpanded, setConfigExpanded }) => {
           `${url}/api/v1/products/${productId}/control-history?limit=25`,
           { credentials: "include" }
         );
-        const body = await res.json();
+        if (!res.ok) {
+          // If 404 (legacy backend or endpoint not deployed yet), treat gracefully as empty history
+          if (res.status === 404) {
+            if (seq === historySeq.current) {
+              setHistory([]);
+              setHistoryTotal(0);
+              setRefreshedAt(new Date());
+              setHistoryError(false);
+            }
+            return;
+          }
+          throw new Error(`HTTP error ${res.status}`);
+        }
+        const body = await res.json().catch(() => ({}));
         const data = body?.data;
         if (data && seq === historySeq.current) {
           setHistory(Array.isArray(data.history) ? data.history : []);
           setHistoryTotal(data.total ?? data.history?.length ?? 0);
           setRefreshedAt(new Date());
           setHistoryError(false);
+        } else if (seq === historySeq.current) {
+          setHistory([]);
+          setHistoryTotal(0);
+          setHistoryError(false);
         }
       } catch (err) {
-        console.error("Failed to fetch command history", err);
-        if (seq === historySeq.current) setHistoryError(true);
+        console.warn("Could not fetch command history:", err.message);
+        if (seq === historySeq.current) setHistoryError(false);
       } finally {
         if (!silent && seq === historySeq.current) setHistoryLoading(false);
       }

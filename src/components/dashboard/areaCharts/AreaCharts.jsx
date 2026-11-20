@@ -3,7 +3,6 @@ import { fetchSensorList } from "../../../api/fetchsensorlist";
 import "./AreaCharts.scss";
 import { CircularProgress } from "@mui/material";
 import { ProductContext } from "../../../context/ProductContext";
-import Swal from "sweetalert2";
 import { useSensorData } from "../../../hooks/useSensorData";
 import { useMqttSensorData } from "../../../hooks/useMqttSensorData";
 import { useNotificationManager } from "../../../hooks/useNotificationManager";
@@ -40,12 +39,13 @@ const AreaCharts = () => {
 
       try {
         const sensors = await fetchSensorList(selectedProductUid);
-        const lowerSensors = sensors
-          .filter((s) => s.visible !== false)
-          .map((s) => s.name.toLowerCase());
+        const lowerSensors = (sensors || [])
+          .filter((s) => s && s.visible !== false)
+          .map((s) => (s.name || "").toLowerCase())
+          .filter(Boolean);
         setAvailableSensors(lowerSensors);
       } catch (err) {
-        Swal.fire("Error", "Failed to fetch sensor list.", "error");
+        console.warn("Could not fetch sensor list for charts:", err);
       } finally {
         setLoading(false);
       }

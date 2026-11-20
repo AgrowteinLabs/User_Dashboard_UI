@@ -132,8 +132,14 @@ const AreaTable = () => {
         setSelectedSensor(null);
         loadSensors(); // Reload to refresh customNames and visibility
       } else {
-        const errorData = await res.json();
-        throw new Error(errorData.error?.message || "Failed to save sensor settings");
+        let errMsg = "Failed to save sensor settings";
+        try {
+          const errorData = await res.json();
+          errMsg = errorData.error?.message || errorData.message || errMsg;
+        } catch {
+          // not json
+        }
+        throw new Error(errMsg);
       }
     } catch (err) {
       Swal.fire("Error", err.message || "Failed to update sensor settings", "error");
