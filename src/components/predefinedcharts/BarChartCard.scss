@@ -1,14 +1,57 @@
 .bar-chart {
-  background-color: var(--secondary-color);
-  padding: 16px;
-  border-radius: 6px;
-  box-shadow: var(--light-shadow1);
-  transition: background 0.3s ease, transform 0.3s ease;
+  background: var(--card-bg);
+  backdrop-filter: var(--glass-blur);
+  padding: 20px 24px 16px;
+  border-radius: 20px;
+  border: 1px solid var(--card-border);
+  box-shadow: var(--shadow-premium);
+  transition: var(--transition-smooth);
+  position: relative;
+  overflow: hidden;
+
+  // Subtle top-left corner glow
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 180px;
+    height: 180px;
+    background: radial-gradient(circle at 0% 0%, rgba(0, 242, 155, 0.06) 0%, transparent 70%);
+    pointer-events: none;
+    transition: opacity 0.4s ease;
+    opacity: 0;
+  }
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-premium), 0 0 24px rgba(0, 242, 155, 0.1);
+    border-color: rgba(0, 242, 155, 0.3);
+
+    &::before {
+      opacity: 1;
+    }
+  }
 
   .bar-chart-title {
-    font-weight: 600;
-    color: var(--text-color);
-    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    gap: 10px;
+
+    h4 {
+      font-family: var(--font-family-jakarta);
+      font-size: 0.9rem;
+      font-weight: 800;
+      color: var(--text-color);
+      letter-spacing: -0.01em;
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
   }
 
   .chart-wrapper-center {
@@ -16,22 +59,33 @@
     flex-direction: column;
     justify-content: center;
     align-items: center;
+    position: relative;
   }
 
   .bar-chart-value-label {
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--primary-color);
-    margin-top: 8px;
+    font-family: var(--font-family-outfit);
+    font-size: 2rem;
+    font-weight: 900;
+    color: var(--primary-color) !important;
+    margin-top: 4px;
     text-align: center;
-    word-break: break-all;
-    max-width: 90%;
+    letter-spacing: -0.03em;
+    line-height: 1;
+    text-shadow: 0 0 20px rgba(0, 242, 155, 0.3);
+    transition: text-shadow 0.4s ease;
+
+    &:hover {
+      text-shadow: 0 0 30px rgba(0, 242, 155, 0.5);
+    }
   }
 
   .timestamp-label {
-    font-size: 13px;
-    text-align: right;
+    font-size: 0.75rem;
+    text-align: center;
     margin-top: 8px;
-    color: var(--text-color);
+    color: var(--text-muted);
+    font-weight: 600;
+    font-family: var(--font-family-jakarta);
+    letter-spacing: 0.02em;
   }
 }

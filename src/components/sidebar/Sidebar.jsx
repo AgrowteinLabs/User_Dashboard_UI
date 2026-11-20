@@ -88,7 +88,7 @@ const Sidebar = () => {
     <>
       {!isSidebarOpen && (
         <button className="sidebar-open-btn" onClick={toggleSidebar}>
-          <MdMenu size={32} />
+          <MdMenu size={24} />
         </button>
       )}
 
@@ -106,7 +106,7 @@ const Sidebar = () => {
             <span className="sidebar-brand-text">AGROWTRACK</span>
           </div>
           <button className="sidebar-close-btn" onClick={closeSidebar}>
-            <MdOutlineClose size={22} />
+            <MdOutlineClose size={20} />
           </button>
         </div>
 
@@ -239,6 +239,17 @@ const Sidebar = () => {
                 </NavLink>
               </li>
             </ul>
+
+            {/* Premium user card widget */}
+            <div className="sidebar-user-profile">
+              <div className="user-avatar">
+                {(user.name || user.email || "U")[0].toUpperCase()}
+              </div>
+              <div className="user-profile-info">
+                <div className="profile-name">{user.name || user.email?.split("@")[0] || "User"}</div>
+                <div className="profile-email">{user.email || ""}</div>
+              </div>
+            </div>
           </div>
         </div>
       </nav>

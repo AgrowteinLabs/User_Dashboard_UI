@@ -1,11 +1,11 @@
-import { useParams, useLocation } from "react-router-dom";
-import { useEffect, useMemo, useState } from "react";
-import { useMqttSensorData } from "../../hooks/useMqttSensorData";
+import { useParams, useLocation, useNavigate } from "react-router-dom";
+import { useEffect, useState, useCallback } from "react";
 import { useSensorData } from "../../hooks/useSensorData";
+import { useMqttSensorData } from "../../hooks/useMqttSensorData";
 import { fetchSensorList } from "../../api/fetchsensorlist";
 import { fetchIntervalData } from "../../api/fetchHistoryData";
-import BarChartCard from "../predefinedcharts/BarChartCard";
 import AreaChartCard from "../predefinedcharts/AreaChartCard";
+import PaymentHoldBanner from "../PaymentHoldBanner";
 import {
   ToggleButton,
   ToggleButtonGroup,
@@ -20,9 +20,21 @@ import {
   CircularProgress,
   Snackbar,
 } from "@mui/material";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import { useTheme } from "@mui/material/styles";
+import {
+  ArrowBack as ArrowBackIcon,
+  History as HistoryIcon,
+  ListAlt as ActivityIcon,
+  ExpandMore as ExpandMoreIcon,
+  Refresh as RefreshIcon,
+  Bolt as BoltIcon,
+  PowerSettingsNew as PowerOnIcon,
+  PowerOff as PowerOffIcon,
+  WarningAmber as WarningIcon,
+  Schedule as ScheduleIcon,
+  CalendarToday as CalendarIcon,
+} from "@mui/icons-material";
 import { exportToExcel } from "../../utils/exportUtils";
+import { getProductIcon } from "../../utils/productIcons";
 import dayjs from "dayjs";
 import "./ProductDataPage.scss";
 
@@ -54,27 +66,77 @@ const sensorChartMap = {
   SO2: { type: "bar", unit: "ppb", label: "SO₂" },
   CH2O: { type: "bar", unit: "ug/m3", label: "CH₂O" },
   CO: { type: "bar", unit: "ppm", label: "CO" },
-
 };
 
-const isStale = (timestamp) => Date.now() - timestamp > 60 * 1000;
+// Maps activity log types to a visual tone + icon
+const getActivityMeta = (type = "") => {
+  const t = String(type).toLowerCase();
+  if (
+    /(turn\s*on|switch\s*on|power\s*on|\bon\b|enable|start|connected|online|resume)/.test(t)
+  ) {
+    return { cls: "success", icon: <PowerOnIcon /> };
+  }
+  if (
+    /(turn\s*off|switch\s*off|power\s*off|\boff\b|disable|stop|disconnect|offline|error|fail|alarm)/.test(t)
+  ) {
+    return { cls: "error", icon: <PowerOffIcon /> };
+  }
+  if (/(threshold|alert|warn|exceed|high|low|critical)/.test(t)) {
+    return { cls: "warning", icon: <WarningIcon /> };
+  }
+  if (/(sched|timer|time|recur)/.test(t)) {
+    return { cls: "info", icon: <ScheduleIcon /> };
+  }
+  return { cls: "info", icon: <BoltIcon /> };
+};
 
 const ProductDataPage = () => {
-  const theme = useTheme();
   const { uid } = useParams();
   const location = useLocation();
+  const navigate = useNavigate();
   const alias = location.state?.alias || uid;
 
-  const { message: mqttMessage } = useMqttSensorData(uid);
-  const { current, history } = useSensorData(uid);
+  const { history, isSuspended: isHistorySuspended, suspensionReason: historyReason, holdType: historyHoldType } =
+    useSensorData(uid);
+  const {
+    lastReceivedTime,
+    connected,
+    isSuspended: isMqttSuspended,
+    suspensionReason: mqttReason,
+    holdType: mqttHoldType,
+  } = useMqttSensorData(uid);
+
+  const isSuspended = isMqttSuspended || isHistorySuspended;
+  const suspensionReason = mqttReason || historyReason;
+  const holdType = mqttHoldType || historyHoldType || "PAYMENT";
+
+  const ProductIcon = getProductIcon(uid);
+
+  // Live device status — online while fresh MQTT readings keep arriving
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    const tick = setInterval(() => setNow(Date.now()), 30000);
+    return () => clearInterval(tick);
+  }, []);
+
+  const DEVICE_TIMEOUT_MS = 90_000;
+  const isOnline = Boolean(lastReceivedTime) && now - lastReceivedTime < DEVICE_TIMEOUT_MS;
+  const isConnecting = !isOnline && connected && !lastReceivedTime;
+  const statusClass = isOnline ? "online" : isConnecting ? "connecting" : "offline";
+  const statusLabel = isOnline ? "Live" : isConnecting ? "Connecting…" : "Offline";
 
   const [availableSensors, setAvailableSensors] = useState([]);
-  const [viewMode, setViewMode] = useState("current");
+  const [viewMode, setViewMode] = useState("history");
   const [startDate, setStartDate] = useState(dayjs().subtract(1, "day").format("YYYY-MM-DD"));
   const [endDate, setEndDate] = useState(dayjs().format("YYYY-MM-DD"));
   const [filteredHistory, setFilteredHistory] = useState({});
   const [interval, setInterval] = useState(60);
   const [loading, setLoading] = useState(false);
+
+  // Resolved ProductId and Activities states
+  const [productId, setProductId] = useState(null);
+  const [activities, setActivities] = useState([]);
+  const [activitiesLoading, setActivitiesLoading] = useState(false);
 
   const [snackbarMessage, setSnackbarMessage] = useState("");
   const [snackbarOpen, setSnackbarOpen] = useState(false);
@@ -84,6 +146,53 @@ const ProductDataPage = () => {
     setSnackbarOpen(true);
   };
 
+  // Resolve ProductId from UID
+  useEffect(() => {
+    const resolveProductId = async () => {
+      try {
+        const userId = localStorage.getItem("userId");
+        const url = import.meta.env.VITE_REACT_APP_API_URL;
+        const res = await fetch(`${url}/api/v1/user/product/${userId}`, { credentials: "include" });
+        if (res.ok) {
+          const products = await res.json();
+          const found = products.find((p) => p.uid === uid);
+          if (found) {
+            setProductId(found.id || found._id);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to resolve product ID:", err);
+      }
+    };
+    resolveProductId();
+  }, [uid]);
+
+  // Fetch Activity logs when selected and productId resolved
+  const fetchActivityLogs = useCallback(async () => {
+    if (!productId) return;
+    setActivitiesLoading(true);
+    try {
+      const url = import.meta.env.VITE_REACT_APP_API_URL;
+      const res = await fetch(`${url}/api/v1/products/${productId}/activity-log?limit=50`, {
+        credentials: "include",
+      });
+      if (res.ok) {
+        const result = await res.json();
+        setActivities(result.data?.activities || []);
+      }
+    } catch (err) {
+      console.error("Failed to fetch activity logs:", err);
+    } finally {
+      setActivitiesLoading(false);
+    }
+  }, [productId]);
+
+  useEffect(() => {
+    if (viewMode === "activity") {
+      fetchActivityLogs();
+    }
+  }, [viewMode, fetchActivityLogs]);
+
   useEffect(() => {
     const fetchSensors = async () => {
       const sensors = await fetchSensorList(uid);
@@ -91,20 +200,6 @@ const ProductDataPage = () => {
     };
     fetchSensors();
   }, [uid]);
-
-  const finalCurrent = useMemo(() => {
-    if (mqttMessage && Object.keys(mqttMessage).length > 0) {
-      return {
-        data: Object.fromEntries(
-          Object.entries(mqttMessage).map(([k, v]) => [
-            k,
-            { status: typeof v === "string" && v.includes("-er") ? "error" : "ok", value: v, timestamp: Date.now() },
-          ])
-        ),
-      };
-    }
-    return current || { data: {} };
-  }, [mqttMessage, current]);
 
   const handleFilterData = async () => {
     const start = dayjs(startDate);
@@ -132,6 +227,8 @@ const ProductDataPage = () => {
     setLoading(false);
   };
 
+  const formatDay = (dateStr) => dayjs(dateStr).format("MMM D, YYYY");
+
   const structureDataBySensor = (data) => {
     const result = {};
     data.forEach((entry) => {
@@ -143,11 +240,16 @@ const ProductDataPage = () => {
     return result;
   };
 
-  const renderCharts = (dataSource) =>
+  const resetFilters = () => {
+    setStartDate(dayjs().subtract(1, "day").format("YYYY-MM-DD"));
+    setEndDate(dayjs().format("YYYY-MM-DD"));
+    setFilteredHistory({});
+  };
+
+  const renderCharts = () =>
     Object.entries(sensorChartMap)
       .filter(([key]) => availableSensors.includes(key.toLowerCase()))
       .map(([sensorKey, config]) => {
-        const sensorInfo = dataSource?.data?.[sensorKey];
         const historyData = filteredHistory[sensorKey] || history[sensorKey] || [];
         const labels = historyData.map((e) => new Date(e.timestamp).toLocaleString());
         const values = historyData.map((e) => parseFloat(e.value).toFixed(2));
@@ -156,46 +258,37 @@ const ProductDataPage = () => {
           <Accordion
             key={sensorKey}
             defaultExpanded
-            sx={{
-              backgroundColor: theme.palette.background.paper,
-              border: `1px solid ${theme.palette.divider}`,
-              boxShadow: theme.shadows[1],
-              borderRadius: 1,
-              mb: 2,
-            }}
+            disableGutters
+            className="sensor-container"
           >
-            <AccordionSummary expandIcon={<ExpandMoreIcon />} sx={{ px: 2 }}>
-              <Typography fontWeight="700" sx={{ width: "100%", textAlign: "center", fontSize: "1.3rem", color: theme.palette.primary.main }}>
-                {config.label}
-              </Typography>
+            <AccordionSummary expandIcon={<ExpandMoreIcon />} className="sensor-summary">
+              <Typography className="sensor-title">{config.label}</Typography>
             </AccordionSummary>
-            <AccordionDetails>
-              {viewMode === "current" ? (
-                sensorInfo && sensorInfo.status !== "error" ? (
-                  <>
-                    <BarChartCard
-                      title={`${config.label} - Current`}
-                      value={parseFloat(sensorInfo.value).toFixed(2)}
-                      unit={config.unit}
-                      status={isStale(sensorInfo.timestamp) ? "stale" : "active"}
-                    />
-                  </>
-                ) : (
-                  <Typography color="error" align="center">
-                    Error or no data for {sensorKey}
-                  </Typography>
-                )
-              ) : historyData.length > 0 ? (
+            <AccordionDetails className="sensor-details">
+              {historyData.length > 0 ? (
                 <>
-                  <Typography variant="subtitle2" align="center" sx={{ color: theme.palette.text.secondary, mb: 1 }}>
-                    Data from {startDate} to {endDate}
-                  </Typography>
-                  <AreaChartCard title={`${config.label} History`} data={values} labels={labels} unit={config.unit} />
+                  <div className="chart-date-range">
+                    <span className="range-item">
+                      <CalendarIcon className="range-icon" />
+                      {formatDay(startDate)}
+                      {startDate !== endDate ? ` – ${formatDay(endDate)}` : ""}
+                    </span>
+                    <span className="range-dot">•</span>
+                    <span className="range-item">
+                      <ScheduleIcon className="range-icon" />
+                      Every {interval} min
+                    </span>
+                  </div>
+                  <AreaChartCard
+                    title={`${config.label} History`}
+                    data={values}
+                    labels={labels}
+                    unit={config.unit}
+                    badgeType="history"
+                  />
                 </>
               ) : (
-                <Typography color="error" align="center">
-                  No history data for {sensorKey}
-                </Typography>
+                <div className="chart-empty">No history data for {sensorKey}</div>
               )}
             </AccordionDetails>
           </Accordion>
@@ -203,42 +296,153 @@ const ProductDataPage = () => {
       });
 
   return (
-    <div className="product-data-page" style={{ color: theme.palette.text.primary }}>
-      <h2 style={{ color: theme.palette.text.primary }}>Sensor Data - {alias}</h2>
-
-      <ToggleButtonGroup
-        value={viewMode}
-        exclusive
-        onChange={(_, newMode) => newMode && setViewMode(newMode)}
-        color="primary"
-        sx={{ display: "flex", justifyContent: "center", mb: 2 }}
-      >
-        <ToggleButton value="current">Current</ToggleButton>
-        <ToggleButton value="history">History</ToggleButton>
-      </ToggleButtonGroup>
-
-      {viewMode === "history" && (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "16px", backgroundColor: theme.palette.background.paper, padding: "12px 16px", borderRadius: "8px", marginBottom: "20px" }}>
-          <TextField label="Start Date" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} InputLabelProps={{ shrink: true }} sx={{ minWidth: 180 }} />
-          <TextField label="End Date" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} InputLabelProps={{ shrink: true }} sx={{ minWidth: 180 }} />
-          <Select value={interval} onChange={(e) => setInterval(e.target.value)} sx={{ minWidth: 180 }}>
-            <MenuItem value={30}>30 Minutes</MenuItem>
-            <MenuItem value={60}>1 Hour</MenuItem>
-          </Select>
-          <Button variant="contained" onClick={handleFilterData}>Apply Filter</Button>
-          <Button variant="outlined" onClick={() => { setStartDate(dayjs().subtract(1, "day").format("YYYY-MM-DD")); setEndDate(dayjs().format("YYYY-MM-DD")); setFilteredHistory({}); }}>Reset</Button>
+    <div className="product-data-page">
+      {/* ─── Page Header ─────────────────────────────────── */}
+      <div className="pdp-header">
+        <button
+          className="pdp-back"
+          onClick={() => navigate("/products")}
+          aria-label="Back to products"
+        >
+          <ArrowBackIcon />
+        </button>
+        <div className="pdp-avatar"><ProductIcon /></div>
+        <div className="pdp-title-block">
+          <h2>{alias}</h2>
+          <div className="pdp-meta">
+            <span className="pdp-uid">UID · {uid}</span>
+            <span className={`pdp-status ${statusClass}`}>
+              <span className="pdp-status-dot" />
+              {statusLabel}
+            </span>
+          </div>
         </div>
+      </div>
+
+      {/* ─── Payment Hold Banner (if suspended) ───────────── */}
+      {isSuspended && (
+        <PaymentHoldBanner
+          reason={suspensionReason}
+          billingStatus={isMqttSuspended ? "PAYMENT_HOLD_RECORDING" : "SUSPENDED_BLOCKED"}
+          holdType={holdType}
+          uid={uid}
+        />
       )}
 
-      {loading ? (
-        <div style={{ display: "flex", justifyContent: "center", margin: "40px 0" }}>
-          <CircularProgress />
-        </div>
-      ) : (
-        <div className="charts-container">{renderCharts(finalCurrent)}</div>
+      {!isSuspended && (
+        <>
+          {/* ─── View Toggle ─────────────────────────────────── */}
+          <ToggleButtonGroup
+            className="view-toggle"
+            value={viewMode}
+            exclusive
+            onChange={(_, newMode) => newMode && setViewMode(newMode)}
+          >
+            <ToggleButton value="history">
+              <HistoryIcon /> History
+            </ToggleButton>
+            <ToggleButton value="activity">
+              <ActivityIcon /> Activity Log
+            </ToggleButton>
+          </ToggleButtonGroup>
+
+          {/* ─── History: Filter Bar ─────────────────────────── */}
+          {viewMode === "history" && (
+            <div className="filter-controls">
+              <TextField
+                label="Start Date"
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                InputLabelProps={{ shrink: true }}
+              />
+              <TextField
+                label="End Date"
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                InputLabelProps={{ shrink: true }}
+              />
+              <Select value={interval} onChange={(e) => setInterval(e.target.value)}>
+                <MenuItem value={30}>30 Minutes</MenuItem>
+                <MenuItem value={60}>1 Hour</MenuItem>
+              </Select>
+              <Button variant="contained" className="filter-apply" onClick={handleFilterData}>
+                Apply Filter
+              </Button>
+              <Button variant="outlined" className="filter-reset" onClick={resetFilters}>
+                Reset
+              </Button>
+            </div>
+          )}
+
+          {/* ─── Activity Log ────────────────────────────────── */}
+          {viewMode === "activity" && (
+            <div className="activity-panel">
+              <div className="activity-panel-header">
+                <div>
+                  <h3>Device Activity Timeline</h3>
+                  <p>Latest events recorded for this device</p>
+                </div>
+                <Button
+                  className="activity-refresh"
+                  startIcon={<RefreshIcon />}
+                  onClick={fetchActivityLogs}
+                  disabled={activitiesLoading}
+                >
+                  Refresh
+                </Button>
+              </div>
+
+              {activitiesLoading ? (
+                <div className="loading-spinner">
+                  <CircularProgress sx={{ color: "var(--primary-color)" }} />
+                </div>
+              ) : activities.length === 0 ? (
+                <div className="activity-empty">
+                  <span className="empty-icon">🕘</span>
+                  <p>No activities logged for this device.</p>
+                </div>
+              ) : (
+                <div className="activity-list">
+                  {activities.map((act) => {
+                    const meta = getActivityMeta(act.type);
+                    return (
+                      <div className="activity-item" key={act.id || act._id}>
+                        <div className={`activity-icon ${meta.cls}`}>{meta.icon}</div>
+                        <div className="activity-body">
+                          <p className="activity-desc">{act.description}</p>
+                          <span className="activity-type">{act.type}</span>
+                        </div>
+                        <span className="activity-time">
+                          {new Date(act.timestamp).toLocaleString()}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ─── History: Charts ─────────────────────────────── */}
+          {viewMode !== "activity" &&
+            (loading ? (
+              <div className="loading-spinner">
+                <CircularProgress sx={{ color: "var(--primary-color)" }} />
+              </div>
+            ) : (
+              <div className="charts-container">{renderCharts()}</div>
+            ))}
+        </>
       )}
 
-      <Snackbar open={snackbarOpen} autoHideDuration={4000} onClose={() => setSnackbarOpen(false)} message={snackbarMessage} />
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={4000}
+        onClose={() => setSnackbarOpen(false)}
+        message={snackbarMessage}
+      />
     </div>
   );
 };

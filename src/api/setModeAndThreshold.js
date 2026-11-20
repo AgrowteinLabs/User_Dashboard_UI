@@ -7,8 +7,9 @@ export const setControls = async (payload) => {
         throw new Error("Invalid payload format");
       }
   
-      const response = await fetch("https://apiv2.agrowtein.com/api/v1/command/controls", {
+      const response = await fetch(`${import.meta.env.VITE_REACT_APP_API_URL}/api/v1/command/controls`, {
         method: "POST",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
         },

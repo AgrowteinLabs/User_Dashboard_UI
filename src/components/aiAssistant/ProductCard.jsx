@@ -3,47 +3,41 @@ import { MdInsights } from "react-icons/md";
 import { motion } from "framer-motion";
 import "./AiAssistant.scss";
 
-const ProductCard = ({ product, onGenerate }) => {
+const ProductCard = ({ product, onGenerate, isSelected }) => {
+  const initial = (product.alias || product.name || product.uid || "P")[0].toUpperCase();
+
   return (
     <motion.div
-      className="product-card enhanced"
-      whileHover={{ scale: 1.03, boxShadow: "0 8px 24px rgba(0,0,0,0.12)" }}
+      className={`ai-product-card ${isSelected ? "selected" : ""}`}
+      whileHover={{ y: -4, transition: { duration: 0.2 } }}
       transition={{ type: "spring", stiffness: 260, damping: 20 }}
     >
-      <div className="product-card-header">
-        <h3
-          className="product-title"
-          aria-label={`Product ${product.alias || product.name}`}
-        >
-          {product.alias || product.name}
-        </h3>
-
-        {product.type && (
-          <p className="product-type">
-            <span className="label">Type:</span> {product.type}
-          </p>
-        )}
-
-        {/* {product.uid && (
-          <p className="product-uid">
-            <span className="label">UID:</span> {product.uid}
-          </p>
-        )} */}
+      <div className="card-top-row">
+        <div className="card-avatar">{initial}</div>
+        {product.type && <span className="card-type-tag">{product.type}</span>}
       </div>
 
-      <div className="product-card-actions">
+      <div className="card-body">
+        <h3 className="product-title" title={product.alias || product.name}>
+          {product.alias || product.name}
+        </h3>
+        {product.uid && (
+          <div className="product-uid-badge">
+            <span className="uid-label">UID</span>
+            <span className="uid-val">{product.uid}</span>
+          </div>
+        )}
+      </div>
+
+      <div className="card-footer">
         <motion.button
-          className="generate-btn"
+          className="generate-insights-btn"
           onClick={onGenerate}
-          whileTap={{ scale: 0.95 }}
-          whileHover={{
-            backgroundColor: "#059669",
-            transition: { duration: 0.2 },
-          }}
-          aria-label="Generate Insight"
+          whileTap={{ scale: 0.96 }}
+          aria-label="Generate AI Insights"
         >
-          <MdInsights size={20} className="icon" />
-          <span>Generate Insight</span>
+          <MdInsights size={18} />
+          <span>{isSelected ? "Regenerate Analysis" : "Analyze Farm"}</span>
         </motion.button>
       </div>
     </motion.div>
@@ -53,18 +47,12 @@ const ProductCard = ({ product, onGenerate }) => {
 ProductCard.propTypes = {
   product: PropTypes.shape({
     alias: PropTypes.string,
-    name: (props, propName, componentName) => {
-      if (!props.alias && !props.name) {
-        return new Error(
-          `One of 'alias' or 'name' is required in '${componentName}'.`
-        );
-      }
-      return null;
-    },
+    name: PropTypes.string,
     type: PropTypes.string,
     uid: PropTypes.string,
   }).isRequired,
   onGenerate: PropTypes.func.isRequired,
+  isSelected: PropTypes.bool,
 };
 
 export default ProductCard;

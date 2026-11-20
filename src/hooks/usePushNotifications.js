@@ -2,14 +2,25 @@ import { useCallback } from "react";
 import savePushSubscription from "../api/savePushSubscription";
 
 const urlBase64ToUint8Array = (base64String) => {
-  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
-  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
-  const rawData = atob(base64);
-  const outputArray = new Uint8Array(rawData.length);
-  for (let i = 0; i < rawData.length; i += 1) {
-    outputArray[i] = rawData.charCodeAt(i);
+  if (!base64String || typeof base64String !== "string") {
+    throw new Error("Invalid or empty VAPID key string");
   }
-  return outputArray;
+
+  // Clean any extraneous spaces or quotes
+  const cleanStr = base64String.trim().replace(/^["']|["']$/g, "");
+  const padding = "=".repeat((4 - (cleanStr.length % 4)) % 4);
+  const base64 = (cleanStr + padding).replace(/-/g, "+").replace(/_/g, "/");
+
+  try {
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+    for (let i = 0; i < rawData.length; i += 1) {
+      outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
+  } catch (err) {
+    throw new Error(`Failed to decode VAPID public key (${err.message})`);
+  }
 };
 
 const isPushSupported = () =>
@@ -26,43 +37,62 @@ const getPermission = async () => {
 
 export const usePushNotifications = () => {
   const ensureSubscription = useCallback(async ({ vapidKey, userId }) => {
-    if (!isPushSupported()) return { supported: false };
-    if (!vapidKey) return { supported: true, error: "Missing VAPID key" };
+    if (!isPushSupported()) return { supported: false, error: "Push is not supported on this browser" };
+    if (!vapidKey) return { supported: true, error: "Missing VAPID public key in environment configuration" };
+
+    let appServerKey;
+    try {
+      appServerKey = urlBase64ToUint8Array(vapidKey);
+    } catch (err) {
+      return { supported: true, error: err.message };
+    }
 
     const permission = await getPermission();
     if (permission !== "granted") {
       return { supported: true, permission };
     }
 
-    const registration = await navigator.serviceWorker.ready;
-    const existing = await registration.pushManager.getSubscription();
-    if (existing) {
-      if (userId) await savePushSubscription(existing, userId).catch(() => {});
-      return { supported: true, permission, subscription: existing };
+    try {
+      const registration = await navigator.serviceWorker.ready;
+      const existing = await registration.pushManager.getSubscription();
+      if (existing) {
+        if (userId) await savePushSubscription(existing, userId).catch(() => {});
+        return { supported: true, permission, subscription: existing };
+      }
+
+      const subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: appServerKey,
+      });
+
+      if (userId) {
+        await savePushSubscription(subscription, userId).catch(() => {});
+      }
+      return { supported: true, permission, subscription };
+    } catch (err) {
+      return { supported: true, permission, error: err.message || "Failed to register push subscription with browser service" };
     }
-
-    const subscription = await registration.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(vapidKey),
-    });
-
-    if (userId)
-      await savePushSubscription(subscription, userId).catch(() => {});
-    return { supported: true, permission, subscription };
   }, []);
 
   const checkSubscriptionStatus = useCallback(async () => {
     if (!isPushSupported()) return { status: "not-supported" };
-    
-    const permission = Notification.permission;
-    const registration = await navigator.serviceWorker.ready;
-    const existing = await registration.pushManager.getSubscription();
-    
-    return { 
-      status: existing ? "subscribed" : "not-subscribed", 
-      subscription: existing,
-      permission 
-    };
+
+    try {
+      const permission = Notification.permission;
+      const registration = await navigator.serviceWorker.ready;
+      const existing = await registration.pushManager.getSubscription();
+
+      return {
+        status: existing ? "subscribed" : "not-subscribed",
+        subscription: existing,
+        permission,
+      };
+    } catch {
+      return {
+        status: "idle",
+        permission: typeof Notification !== "undefined" ? Notification.permission : "default",
+      };
+    }
   }, []);
 
   return { ensureSubscription, isPushSupported, checkSubscriptionStatus };

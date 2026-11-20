@@ -7,6 +7,7 @@ import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import HomeIcon from "@mui/icons-material/Home"; // Import Home Icon
 import { Chip, Tooltip } from "@mui/material"; // Tooltip for hover effect
 import dayjs from "dayjs";
+import NotificationBell from "../../notificationBell/NotificationBell";
 import "./AreaTop.scss";
 
 const AreaTop = () => {
@@ -49,6 +50,8 @@ const AreaTop = () => {
           label={currentTime.format("dddd, MMM D • hh:mm:ss A")}
           className="clock-chip"
         />
+
+        <NotificationBell />
 
         <Tooltip title="Set as Homepage" arrow>
           <HomeIcon
