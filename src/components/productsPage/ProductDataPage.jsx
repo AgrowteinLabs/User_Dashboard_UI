@@ -195,8 +195,12 @@ const ProductDataPage = () => {
 
   useEffect(() => {
     const fetchSensors = async () => {
-      const sensors = await fetchSensorList(uid);
-      setAvailableSensors(sensors.map((s) => s.name.toLowerCase()));
+      try {
+        const sensors = await fetchSensorList(uid);
+        setAvailableSensors((sensors || []).map((s) => (s.name || "").toLowerCase()).filter(Boolean));
+      } catch (err) {
+        console.warn("Could not fetch sensors for product data page:", err);
+      }
     };
     fetchSensors();
   }, [uid]);
