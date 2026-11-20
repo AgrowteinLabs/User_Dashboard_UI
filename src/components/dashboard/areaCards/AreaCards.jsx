@@ -24,6 +24,7 @@ import Swal from "sweetalert2";
 import { useMqttControl } from "../../../hooks/useMqttControl";
 import ControlTimers from "../../controlTimers/ControlTimers";
 import FarmWeatherCard from "../../farmWeather/FarmWeatherCard";
+import { handleBoundaryWheel } from "../../../utils/scrollHelper";
 import "./AreaCards.scss";
 
 const AreaCards = ({ expanded, setExpanded }) => {
@@ -564,7 +565,7 @@ const AreaCards = ({ expanded, setExpanded }) => {
         </div>
 
         {expanded && (
-          <div className="control-panel-body">
+          <div className="control-panel-body" onWheel={handleBoundaryWheel}>
             {controls.length === 0 ? (
               <div className="no-controls-msg">
                 ⚠️ No controls available for this product.

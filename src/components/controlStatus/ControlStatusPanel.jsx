@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, useContext, useCallback, useRef } from "r
 import PropTypes from "prop-types";
 import { ProductContext } from "../../context/ProductContext";
 import { useMqttControllerStatus } from "../../hooks/useMqttControllerStatus";
+import { handleBoundaryWheel } from "../../utils/scrollHelper";
 import "./ControlStatusPanel.scss";
 
 const normalizeKey = (key) => key?.toString().trim().toLowerCase() || "";
@@ -200,7 +201,7 @@ const ControlStatusPanel = ({ configExpanded, setConfigExpanded }) => {
         </div>
       </div>
 
-      <div className="content">
+      <div className="content" onWheel={handleBoundaryWheel}>
         {enrichedControls.length === 0 ? (
           <div className="empty">⚠️ No controllers found for this device.</div>
         ) : (
