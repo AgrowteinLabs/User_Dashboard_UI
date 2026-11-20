@@ -70,8 +70,13 @@ export async function fetchSchedules(productId, controlId) {
   const res = await request(
     `${API_URL}/api/v1/products/${productId}/controls/${encodeURIComponent(controlId)}/schedules`
   );
-  const body = await res.json();
-  return body.data?.schedules || [];
+  const body = await res.json().catch(() => ({}));
+  return (
+    body?.data?.schedules ||
+    body?.schedules ||
+    (Array.isArray(body?.data) ? body.data : []) ||
+    []
+  );
 }
 
 // POST .../schedules
