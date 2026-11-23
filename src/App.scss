@@ -346,8 +346,15 @@ ul {
       .control-status-panel-flat {
         position: static;
         height: auto;
-        max-height: 480px;
         min-height: 0;
+
+        &:not(.sync-collapsed) {
+          max-height: 480px;
+        }
+
+        &.sync-collapsed {
+          max-height: 76px;
+        }
       }
     }
   }

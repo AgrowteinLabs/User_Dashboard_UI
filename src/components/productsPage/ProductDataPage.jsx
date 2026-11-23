@@ -32,7 +32,9 @@ import {
   WarningAmber as WarningIcon,
   Schedule as ScheduleIcon,
   CalendarToday as CalendarIcon,
+  Terminal as TerminalIcon,
 } from "@mui/icons-material";
+import CommandHistoryPanel from "./CommandHistoryPanel";
 import { exportToExcel } from "../../utils/exportUtils";
 import { getProductIcon } from "../../utils/productIcons";
 import dayjs from "dayjs";
@@ -126,7 +128,7 @@ const ProductDataPage = () => {
   const statusLabel = isOnline ? "Live" : isConnecting ? "Connecting…" : "Offline";
 
   const [availableSensors, setAvailableSensors] = useState([]);
-  const [viewMode, setViewMode] = useState("history");
+  const [viewMode, setViewMode] = useState(location.state?.tab || "history");
   const [startDate, setStartDate] = useState(dayjs().subtract(1, "day").format("YYYY-MM-DD"));
   const [endDate, setEndDate] = useState(dayjs().format("YYYY-MM-DD"));
   const [filteredHistory, setFilteredHistory] = useState({});
@@ -135,6 +137,7 @@ const ProductDataPage = () => {
 
   // Resolved ProductId and Activities states
   const [productId, setProductId] = useState(null);
+  const [productDetails, setProductDetails] = useState(null);
   const [activities, setActivities] = useState([]);
   const [activitiesLoading, setActivitiesLoading] = useState(false);
 
@@ -158,6 +161,7 @@ const ProductDataPage = () => {
           const found = products.find((p) => p.uid === uid);
           if (found) {
             setProductId(found.id || found._id);
+            setProductDetails(found);
           }
         }
       } catch (err) {
@@ -348,6 +352,9 @@ const ProductDataPage = () => {
             <ToggleButton value="activity">
               <ActivityIcon /> Activity Log
             </ToggleButton>
+            <ToggleButton value="commands">
+              <TerminalIcon /> Command History
+            </ToggleButton>
           </ToggleButtonGroup>
 
           {/* ─── History: Filter Bar ─────────────────────────── */}
@@ -429,8 +436,16 @@ const ProductDataPage = () => {
             </div>
           )}
 
+          {/* ─── Command History ────────────────────────────── */}
+          {viewMode === "commands" && (
+            <CommandHistoryPanel
+              productId={productId}
+              controls={productDetails?.controls || []}
+            />
+          )}
+
           {/* ─── History: Charts ─────────────────────────────── */}
-          {viewMode !== "activity" &&
+          {viewMode === "history" &&
             (loading ? (
               <div className="loading-spinner">
                 <CircularProgress sx={{ color: "var(--primary-color)" }} />
