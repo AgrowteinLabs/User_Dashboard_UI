@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useContext, useCallback, useRef } from "react";
+import { useMemo, useContext } from "react";
 import PropTypes from "prop-types";
 import { ProductContext } from "../../context/ProductContext";
 import { useMqttControllerStatus } from "../../hooks/useMqttControllerStatus";
@@ -16,20 +16,6 @@ const formatTime = (ts) => {
   }
 };
 
-const formatRelative = (ts) => {
-  if (!ts) return "—";
-  const then = new Date(ts).getTime();
-  if (isNaN(then)) return "—";
-  const diffSec = Math.max(0, Math.round((Date.now() - then) / 1000));
-  if (diffSec < 10) return "just now";
-  if (diffSec < 60) return `${diffSec}s ago`;
-  const diffMin = Math.round(diffSec / 60);
-  if (diffMin < 60) return `${diffMin}m ago`;
-  const diffH = Math.round(diffMin / 60);
-  if (diffH < 24) return `${diffH}h ago`;
-  return `${Math.round(diffH / 24)}d ago`;
-};
-
 const StateBadge = ({ state }) => {
   const normalized = (state || "").toString().toUpperCase();
   const className = `state-badge ${normalized === "ON" ? "on" : normalized === "OFF" ? "off" : ""}`;
@@ -40,99 +26,10 @@ StateBadge.propTypes = {
   state: PropTypes.string,
 };
 
-const STATUS_META = {
-  completed: { label: "✓ Completed", cls: "completed" },
-  acknowledged: { label: "✓ Acknowledged", cls: "completed" },
-  failed: { label: "✗ Failed", cls: "failed" },
-  timeout: { label: "⏱ Timeout", cls: "timeout" },
-  pending: { label: "◌ Pending", cls: "pending" },
-  queued: { label: "◌ Queued", cls: "pending" },
-  executing: { label: "⟳ Executing", cls: "pending" },
-};
-
-const StatusChip = ({ status }) => {
-  const meta =
-    STATUS_META[String(status || "").toLowerCase()] || {
-      label: status || "Unknown",
-      cls: "pending",
-    };
-  return <span className={`status-chip ${meta.cls}`}>{meta.label}</span>;
-};
-
-StatusChip.propTypes = {
-  status: PropTypes.string,
-};
-
-const commandLabel = (h) => {
-  const cmd = h.command || h.action || "";
-  const val = h.value !== undefined && h.value !== null ? ` ${h.value}` : "";
-  return `${cmd}${val}`.trim() || "Command";
-};
-
 const ControlStatusPanel = ({ configExpanded, setConfigExpanded }) => {
   const { selectedProductUid, selectedProduct } = useContext(ProductContext);
   const controls = useMemo(() => selectedProduct?.controls || [], [selectedProduct]);
-  const productId = selectedProduct?._id || selectedProduct?.id || null;
-  const [history, setHistory] = useState([]);
-  const [historyTotal, setHistoryTotal] = useState(0);
-  const [historyLoading, setHistoryLoading] = useState(false);
-  const [historyError, setHistoryError] = useState(false);
-  const [refreshedAt, setRefreshedAt] = useState(null);
-  const historySeq = useRef(0);
   const { statusMap, connected } = useMqttControllerStatus(selectedProductUid);
-
-  const fetchHistory = useCallback(
-    async ({ silent = false } = {}) => {
-      if (!productId) return;
-      const seq = ++historySeq.current;
-      if (!silent) setHistoryLoading(true);
-      try {
-        const url = import.meta.env.VITE_REACT_APP_API_URL;
-        const res = await fetch(
-          `${url}/api/v1/products/${productId}/control-history?limit=25`,
-          { credentials: "include" }
-        );
-        if (!res.ok) {
-          // If 404 (legacy backend or endpoint not deployed yet), treat gracefully as empty history
-          if (res.status === 404) {
-            if (seq === historySeq.current) {
-              setHistory([]);
-              setHistoryTotal(0);
-              setRefreshedAt(new Date());
-              setHistoryError(false);
-            }
-            return;
-          }
-          throw new Error(`HTTP error ${res.status}`);
-        }
-        const body = await res.json().catch(() => ({}));
-        const data = body?.data;
-        if (data && seq === historySeq.current) {
-          setHistory(Array.isArray(data.history) ? data.history : []);
-          setHistoryTotal(data.total ?? data.history?.length ?? 0);
-          setRefreshedAt(new Date());
-          setHistoryError(false);
-        } else if (seq === historySeq.current) {
-          setHistory([]);
-          setHistoryTotal(0);
-          setHistoryError(false);
-        }
-      } catch (err) {
-        console.warn("Could not fetch command history:", err.message);
-        if (seq === historySeq.current) setHistoryError(false);
-      } finally {
-        if (!silent && seq === historySeq.current) setHistoryLoading(false);
-      }
-    },
-    [productId]
-  );
-
-  useEffect(() => {
-    if (!productId) return;
-    fetchHistory();
-    const timer = setInterval(() => fetchHistory({ silent: true }), 8000);
-    return () => clearInterval(timer);
-  }, [productId, fetchHistory]);
 
   const enrichedControls = useMemo(() => {
     return (controls || []).map((control) => {
@@ -223,74 +120,6 @@ const ControlStatusPanel = ({ configExpanded, setConfigExpanded }) => {
             ))}
           </div>
         )}
-
-        <div className="history-section">
-          <div className="history-header">
-            <h4>📜 Recent commands</h4>
-            <button
-              className="refresh"
-              onClick={() => fetchHistory()}
-              disabled={historyLoading}
-              type="button"
-            >
-              {historyLoading ? "Refreshing…" : "↻ Refresh"}
-            </button>
-          </div>
-          {refreshedAt && !historyError && (
-            <p className="history-meta">
-              {historyTotal} command(s) · refreshed {formatRelative(refreshedAt)}
-            </p>
-          )}
-          {historyError ? (
-            <div className="empty">
-              ⚠️ Couldn&apos;t load command history.
-            </div>
-          ) : history.length === 0 ? (
-            <div className="empty">
-              No commands logged.
-            </div>
-          ) : (
-            <ul className="history-list">
-              {history.map((h) => {
-                const control = (controls || []).find(
-                  (c) =>
-                    (h.controlId &&
-                      normalizeKey(c.controlId) === normalizeKey(h.controlId)) ||
-                    (h.pin && normalizeKey(c.pin) === normalizeKey(h.pin))
-                );
-                return (
-                  <li key={h.id} className="history-item">
-                    <div className="history-item-top">
-                      <span
-                        className="history-control"
-                        title={control?.name || h.controlId || h.pin || "Controller"}
-                      >
-                        {control?.name || h.controlId || h.pin || "Controller"}
-                      </span>
-                      <StatusChip status={h.status} />
-                    </div>
-                    <div className="history-item-bottom">
-                      <span className="history-action" title={commandLabel(h)}>
-                        {commandLabel(h)}
-                      </span>
-                      <div className="history-item-meta">
-                        <span className="history-time">
-                          {formatRelative(h.timestamp)}
-                        </span>
-                        {h.deviceFeedback?.received &&
-                          Number.isFinite(h.deviceFeedback?.responseTime) && (
-                            <span className="history-ack">
-                              acked in {(h.deviceFeedback.responseTime / 1000).toFixed(1)}s
-                            </span>
-                          )}
-                      </div>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </div>
       </div>
     </div>
   );
